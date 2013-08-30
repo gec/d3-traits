@@ -1,0 +1,13 @@
+components/
+node_modules/
+coverage/
+
+logs
+target
+tmp
+.history
+/.idea
+/*.iml
+/out
+/.idea_modules
+.DS_Store
