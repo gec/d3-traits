@@ -1,6 +1,6 @@
 # d3-traits
 
-#### Perfect chart. Minimal coding.
+### Perfect charts. Minimal coding.
 
 D3 charts via reusable traits (aka mixins)
 
@@ -18,7 +18,8 @@ D3 charts via reusable traits (aka mixins)
   * Traits are simple components that can be mixed together to create whole charts
   * A trait can be a list of traits
   * Users can create custom traits written in D3
-* Extend D3 with a data `accessors` function so traits can access data in its native format.
+* Extend D3 with a data `accessors` function so traits can access data in its native format
+* Provide a standard set of charts (bar, line, pie) and chart components (axes, labels, interactions)
 
 ## Example
 
