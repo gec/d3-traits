@@ -23,7 +23,7 @@ module.exports = function(grunt) {
       ' Licensed <%= _.pluck(pkg.licenses, "type").join(", ") %> */\n',
 
     watch: {
-      files: ['lib/<%= pkg.name %>.js', 'test/*.spec.js'],
+      files: ['src/<%= pkg.name %>.js', 'test/*.spec.js'],
       tasks: ['jshint', 'concat', 'karma:continuous', 'uglify']
     },
 
@@ -53,11 +53,11 @@ module.exports = function(grunt) {
         stripBanners: true
       },
       js: {
-        src: ['lib/<%= pkg.name %>.js'],
+        src: ['src/<%= pkg.name %>.js', 'src/*/*.js'],
         dest: 'dist/<%= pkg.name %>.js'
       },
       css: {
-        src: ['lib/<%= pkg.name %>.css'],
+        src: ['src/<%= pkg.name %>.css'],
         dest: 'dist/<%= pkg.name %>.css'
       },
       test: {
@@ -84,7 +84,7 @@ module.exports = function(grunt) {
         src: 'Gruntfile.js'
       },
       test: {
-        src: ['lib/**/*.js']
+        src: ['src/**/*.js']
       }
     }
   });

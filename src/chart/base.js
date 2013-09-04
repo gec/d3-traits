@@ -22,7 +22,7 @@
 
 function _chartBase( _super, _access, args) {
 
-    var margin = {top: 2, right: 2, bottom: 4, left: 10},
+    var margin = {top: 2, right: 2, bottom: 2, left: 2},
         ease = 'cubic-in-out';
     var width = 200
     var height = 100
@@ -39,8 +39,10 @@ function _chartBase( _super, _access, args) {
 
             // this == the div
             select = d3.select(this)
-            width = this.parentElement.offsetWidth || width
-            height = this.parentElement.offsetHeight || height
+//            width = this.parentElement.offsetWidth || width
+//            height = this.parentElement.offsetHeight || height
+            width = this.offsetWidth || width
+            height = this.offsetHeight || height
 
             chartWidth = width - margin.left - margin.right
             chartHeight = height - margin.top - margin.bottom
