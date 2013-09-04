@@ -38,12 +38,8 @@
                     _super.plusMarginLeft( 30)
                 }
 
-                var maxY = d3.max( _data, function(s) { return d3.max( _access.seriesData(s), _access.y1); })
-                var y1 = d3.scale.linear()
-                    .domain([0, maxY])
-                    .range([_super.chartHeight(), 0]);
                 var yAxis = d3.svg.axis()
-                    .scale(y1)
+                    .scale( _super.y1())
                     .orient('left');
 
 
@@ -74,10 +70,12 @@
 
                 var x1 = _super.x1()
 
-                var minDate = d3.min( _data, function(s) { return d3.min( _access.seriesData(s), _access.x1); })
-                var maxDate = d3.max( _data, function(s) { return d3.max( _access.seriesData(s), _access.x1); })
-                //var minDate = d3.min(_data, _access.x1)
-                //var maxDate = d3.max(_data, _access.x1)
+                var extent = x1.domain()
+                var minDate = extent[0]
+                var maxDate = extent[extent.length-1]
+//                var minDate = d3.min( _data, function(s) { return d3.min( _access.seriesData(s), _access.x1); })
+//                var maxDate = d3.max( _data, function(s) { return d3.max( _access.seriesData(s), _access.x1); })
+
                 var everyDate = d3.time.day.range(minDate, maxDate);
                 var ticksAtOneAndEveryFifth = everyDate.filter(function (d, i) {
                     return i === 0 || (i+1) % 5 === 0;
@@ -108,6 +106,9 @@
     }
 
     traits.axis.y = _axisY
-    traits.axis.month = { x: _axisMonthX }
+
+    if( ! traits.axis.month)
+        traits.axis.month = {}
+    traits.axis.month.x = _axisMonthX
 
 }(d3, d3.traits));

@@ -1,6 +1,7 @@
 components/
 node_modules/
 coverage/
+bower_components/
 
 logs
 target

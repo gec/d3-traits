@@ -1,5 +1,5 @@
 
-var body, chartDiv
+var chartDiv
 var selection
 var data = [
     {x: 1, y: 4},
@@ -37,6 +37,7 @@ beforeEach(function() {
 it('should find the selection', function() {
     expect( selection.length).toBe( 1)
     expect( selection[0].length).toBe( 1)
+    expect( selection[0][0].tagName).toBe( "DIV")
 });
 
 it('should set accessors on selection', function() {
@@ -76,6 +77,10 @@ it('should setup trait chart.base', function() {
     expect( svgElem.tagName).toBe( "svg")
     expect( svgElem.getAttribute( "width")).toBe( "300")
     expect( svgElem.getAttribute( "height")).toBe( "200")
+
+    var g = svgElem.firstChild
+    expect( g.tagName).toBe( "g")
+    expect( g.className.baseVal).toBe( "container-group")
 
 
 

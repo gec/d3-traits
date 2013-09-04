@@ -56,7 +56,6 @@ function _scaleTimeX( _super,  _access,  args) {
             //var maxX = d3.max( _data, function(s) { return d3.max( _access.seriesData(s), _access.x1); })
 
             x1 = d3.time.scale()
-                //.domain(d3.extent(_data[0].values, _access.x1))
                 .domain([minX, maxX])
                 .nice(d3.time.month)   // start and end on month
                 .range([0, _super.chartWidth()])
