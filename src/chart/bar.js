@@ -20,21 +20,27 @@
  */
 (function (d3, traits) {
 
-function _chartBar( _super,  _access,  args) {
+function _chartBar( _super,  _config) {
+    // Store the group element here so we can have multiple bar charts in one chart.
+    // A second "bar chart" might have a different y-axis, style or orientation.
+    var group
+
     var gap = 0
-    var chartGroup
+    var x1 = _super.x1()
+    var y1 = _super.y1()
+    var color = d3.scale.category10()
+
 
     var dispatch = d3.dispatch('customHover');
     function chartBar( _selection) {
         _selection.each(function(_data) {
             var element = this
-            //var _access = element._access
             console.log( "call( chartBar) margin.left: " + _super.marginLeft() + ", chartWidth: " + _super.chartWidth())
 
-            var data = _access.seriesData( _data.filter( _access.seriesFilter)[0])
+            var filtered = _config.seriesFilter ? _data.filter( _config.seriesFilter) : _data
 
             var xBand = d3.scale.ordinal()
-                .domain( data.map(function(d, i){ return i; }))
+                .domain( filtered.map(function(d, i){ return i; }))
                 .rangeRoundBands([0, _super.chartWidth()], 0.1);
             var gapSize = xBand.rangeBand() / 100 * gap;
             var barW = xBand.rangeBand() - gapSize;
@@ -44,38 +50,58 @@ function _chartBar( _super,  _access,  args) {
             if( 'xAxisTranslateX' in _super)
                 _super.xAxisTranslateX( barW / 2)
 
-            var x1 = _super.x1()
-            var y1 = _super.y1()
-
-
-            var svg = _super.svg()
-            if( !chartGroup) {
-                var container = svg.select('.container-group')
-                chartGroup = container.append('g').classed('chart-group', true);
+            if( !group) {
+                var classes = _config.chartClass ? "chart-bar " + _config.chartClass : 'chart-bar'
+                group = this._chartGroup.append('g').classed( classes, true);
             }
 
-            var bars = chartGroup
-                .selectAll('.bar')
-                .data( data);
-            bars.enter().append('rect')
-                .classed('bar', true)
-                .attr({x: function(d, i) { return x1(_access.x1(d)) + gapSize/2; },
-                    width: barW,
-                    y: function(d, i) {return y1(0)}, //{ return y1(d.value); },
-                    height: function(d, i) {return _super.chartHeight() - y1(0)}
-                })
-                .on('mouseover', dispatch.customHover);
-            bars.transition()
-                .duration(500)
-                .delay(500)
-                .ease(_super.ease())
-                .attr({
-                    width: barW,
-                    x: function(d, i) { return x1(_access.x1(d)) + gapSize/2; },
-                    y: function(d, i) { return y1(_access.y1(d)); },
-                    height: function(d, i) { if(i===0) console.log( "chartH2: " + _super.chartHeight());  return _super.chartHeight() - y1(_access.y1(d)); }
-                });
-            bars.exit().transition().style({opacity: 0}).remove();
+            color.domain( filtered)
+
+            // DATA JOIN
+            var series = group.selectAll(".series")
+                .data( filtered)
+            {
+                // UPDATE
+
+                // ENTER
+                series.enter()
+                    .append("g")
+                        .attr("class", "series")
+                        .style("fill", function(d, i) { return color(i); });
+            }
+
+            // DATA JOIN
+            var bars = series.selectAll("rect")
+                .data(function(d) { return d; })
+            {
+                // UPDATE
+                bars.transition()
+                    .duration(500).delay(500).ease(_super.ease())
+                    .attr({
+                        width: barW,
+                        x: function(d, i) { return x1(_config.x1(d)) + gapSize/2; },
+                        y: function(d, i) { return y1(_config.y1(d)); },
+                        height: function(d, i) { if(i===0) console.log( "chartH2: " + _super.chartHeight());  return _super.chartHeight() - y1(_config.y1(d)); }
+                    });
+
+                // ENTER
+                bars.enter().append('rect')
+                    .classed('bar', true)
+                    .attr({
+                        x: function(d, i) { return x1(_config.x1(d)) + gapSize/2; },
+                        width: barW,
+                        y: function(d, i) {return y1(0)}, //{ return y1(d.value); },
+                        height: function(d, i) {return _super.chartHeight() - y1(0)}
+                    })
+                    .on('mouseover', dispatch.customHover);
+
+                // EXIT
+                bars.exit()
+                    .transition()
+                    .style({opacity: 0})
+                    .remove();
+            }
+
         })
     }
 

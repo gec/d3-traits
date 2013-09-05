@@ -5,6 +5,20 @@
 describe('d3-traits', function() {
 //  var elm, scope, isolatedScope;
 
+    // Usage:
+    //  chartDiv = makeChartDiv()
+    //  window.document.body.appendChild( chartDiv)
+    //
+    function makeChartDiv() {
+        var chartDiv = document.createElement( 'div' )
+        chartDiv.className = "chart-div"
+        chartDiv.setAttribute( "style", "width: 300px; height: 200px; margin: 0; padding: 0; border: 0")
+        chartDiv.setAttribute( "width", "300")
+        chartDiv.setAttribute( "height", "200")
+
+        return chartDiv
+    }
+
 //  beforeEach(inject(function($rootScope, $compile) {
 //    elm = angular.element('<div id="toto">' +
 //      '<linechart data="data" options="options"></linechart>' +

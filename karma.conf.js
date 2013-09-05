@@ -11,8 +11,12 @@ files = [
   JASMINE,
   JASMINE_ADAPTER,
   'bower_components/d3/d3.js',
+  'http://code.jquery.com/jquery-2.0.3.min.js',  // jasmine-fixture needs this
+  'test/lib/jasmine-fixture.js', // https://github.com/searls/jasmine-fixture
   'dist/d3-traits.js',
-  'dist/d3-traits.spec.js'
+//  'dist/d3-traits.spec.js'
+  'test/**/*.spec.js'
+  //'test/fixtures/**/*.html'
 ];
 
 preprocessors = {

@@ -20,40 +20,41 @@
  */
 (function (d3, traits) {
 
-function _scaleOrdinalX( _super, _access, args) {
+function _scaleOrdinalBarsX( _super, _config) {
     var x1
 
-    function scaleOrdinalX( _selection) {
+    function scaleOrdinalBarsX( _selection) {
         _selection.each(function(_data) {
             var element = this
-            //var _access = element._access
 
             if( !x1)
                 x1 = d3.scale.ordinal()
+
+            // Use the first series for the ordinals. TODO: should we merge the series ordinals?
+            var ordinals = _data[0].map( _config.x1)
             x1.rangeRoundBands([0, _super.chartWidth()], 0.1)
-                .domain( _data.map( _access.x1));
+                .domain( ordinals);
         })
     }
-    scaleOrdinalX.x1 = function() {
+    scaleOrdinalBarsX.x1 = function() {
         return x1;
     };
-    return scaleOrdinalX;
+    return scaleOrdinalBarsX;
 }
 
-function _scaleTimeX( _super,  _access,  args) {
+function _scaleTimeX( _super,  _config) {
     var x1
 
     function scaleTimeX( _selection) {
         _selection.each(function(_data, i , j) {
             var element = this
-            //var _access = element._access
 
             // Get array of extents for each series.
-            var extents = _data.map( function(s) { return d3.extent( _access.seriesData(s), _access.x1)})
+            var extents = _data.map( function(s) { return d3.extent( _config.seriesData(s), _config.x1)})
             var minX = d3.min( extents, function(e) { return e[0] }) // this minimums of each extent
             var maxX = d3.max( extents, function(e) { return e[1] }) // the maximums of each extent
-            //var minX = d3.min( _data, function(s) { return d3.min( _access.seriesData(s), _access.x1); })
-            //var maxX = d3.max( _data, function(s) { return d3.max( _access.seriesData(s), _access.x1); })
+            //var minX = d3.min( _data, function(s) { return d3.min( _config.seriesData(s), _config.x1); })
+            //var maxX = d3.max( _data, function(s) { return d3.max( _config.seriesData(s), _config.x1); })
 
             x1 = d3.time.scale()
                 .domain([minX, maxX])
@@ -72,7 +73,7 @@ function _scaleTimeX( _super,  _access,  args) {
  * @param _super
  * @returns {Function}
  */
-function _scaleLinearY( _super,  _access,  args) {
+function _scaleLinearY( _super,  _config) {
 
     function makeUniqueIndex( prefix) {
         for( var index = 0; index < 10; index++ ) {
@@ -100,12 +101,10 @@ function _scaleLinearY( _super,  _access,  args) {
     function scaleLinearY( _selection) {
         _selection.each(function(_data) {
             var element = this
-            //var _access = element._access
-
 
             if( ! scale)
                 scale = d3.scale.linear()
-            var maxY = d3.max( _data, function(s) { return d3.max( _access.seriesData(s), _access.y1); })
+            var maxY = d3.max( _data, function(s) { return d3.max( _config.seriesData(s), _config.y1); })
             scale.domain([0, maxY])
                 .range([_super.chartHeight(), 0]);
         })
@@ -119,9 +118,17 @@ function _scaleLinearY( _super,  _access,  args) {
     return scaleLinearY;
 }
 
+if( ! traits.scale.linear)
+    traits.scale.linear = {}
+if( ! traits.scale.ordinal)
+    traits.scale.ordinal = {}
+if( ! traits.scale.ordinal.bars)
+    traits.scale.ordinal.bars = {}
+if( ! traits.scale.time)
+    traits.scale.time = {}
 
-traits.scale.linear = { y: _scaleLinearY }
-traits.scale.ordinal = { x: _scaleOrdinalX }
-traits.scale.time = { x: _scaleTimeX }
+traits.scale.linear.y = _scaleLinearY
+traits.scale.ordinal.bars.x = _scaleOrdinalBarsX
+traits.scale.time.x = _scaleTimeX
 
 }(d3, d3.traits));

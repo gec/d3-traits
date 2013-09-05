@@ -59,11 +59,11 @@ module.exports = function(grunt) {
       css: {
         src: ['src/<%= pkg.name %>.css'],
         dest: 'dist/<%= pkg.name %>.css'
-      },
-      test: {
-        src: ['test/spec.prefix', 'test/*.spec.js' ,'test/spec.suffix'],
-        dest: 'dist/<%= pkg.name %>.spec.js'
-      }
+      }//,
+//      test: {
+//        src: ['test/spec.prefix', 'test/**/*.spec.js' ,'test/spec.suffix'],
+//        dest: 'dist/<%= pkg.name %>.spec.js'
+//      }
     },
 
     uglify: {

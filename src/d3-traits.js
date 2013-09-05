@@ -61,14 +61,14 @@ function extendObject( obj, extensions) {
     }
     return obj
 }
-function makeTraitAccessors( defaultAccessors, accessors) {
-    var obj = clone( accessors)
+function extendTraitsConfig( defaultConfig, config) {
+    var obj = clone( config)
     if( !obj)
         obj = {}
-    return extendObject( obj, defaultAccessors)
+    return extendObject( obj, defaultConfig)
 }
 
-d3.selection.prototype.trait = function( trait, accessors, args)
+d3.selection.prototype.trait = function( trait, config)
 {
     if( Array.isArray( trait) ) {
         for( var index in trait)
@@ -83,8 +83,8 @@ d3.selection.prototype.trait = function( trait, accessors, args)
         if( traitCount > 0)
             _super = this.traits[ traitCount-1]
 
-        var traitAccessors = makeTraitAccessors( this._access, accessors)
-        var traitInstance = trait( _super, traitAccessors, args)
+        var _config = extendTraitsConfig( this._traitsConfig, config)
+        var traitInstance = trait( _super, _config)
         stackTrait( _super, traitInstance)
 
         this.call( traitInstance)
@@ -103,23 +103,23 @@ d3.selection.prototype.callTraits = function() {
     return this
 }
 
-var DEFALUT_ACCESSORS = {
-    seriesFilter: function( d, i) { return true}
+var DEFAULT_TRAITS_CONFIG = {
+//    seriesFilter: function( d, i) { return true}
 }
 
 d3.selection.prototype._traitsInitialize = function() {
-    if( ! this._access)
-        this._access = clone( DEFALUT_ACCESSORS)
+    if( ! this._traitsConfig)
+        this._traitsConfig = clone( DEFAULT_TRAITS_CONFIG)
     if( ! this.traits)
         this.traits = []
     return this
 }
 
-d3.selection.prototype.accessors = function( accessors)
+d3.selection.prototype.traitConfig = function( config)
 {
     this._traitsInitialize()
-    for( var key in accessors) {
-        this._access[key] = accessors[key]
+    for( var key in config) {
+        this._traitsConfig[key] = config[key]
     }
     return this
 }

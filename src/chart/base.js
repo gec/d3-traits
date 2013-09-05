@@ -20,7 +20,7 @@
  */
 (function (d3, traits) {
 
-function _chartBase( _super, _access, args) {
+function _chartBase( _super, _config) {
 
     var margin = {top: 2, right: 2, bottom: 2, left: 2},
         ease = 'cubic-in-out';
@@ -29,12 +29,15 @@ function _chartBase( _super, _access, args) {
     var chartWidth = width - margin.left - margin.right,
         chartHeight = height - margin.top - margin.bottom;
 
-    var svg, select, duration = 0;
+    var svg, select, duration = 0
+    var selection
     var ChartResized = 'chartResized'
     var dispatch = d3.dispatch( ChartResized)
 
+
     function chartBase( _selection) {
         var self = this
+        selection = _selection
         _selection.each(function(_data) {
 
             // this == the div
@@ -46,7 +49,6 @@ function _chartBase( _super, _access, args) {
 
             chartWidth = width - margin.left - margin.right
             chartHeight = height - margin.top - margin.bottom
-            //console.log( "call( chartBase ) margin.left: " + margin.left + ", chartWidth: " + chartWidth)
 
             if(!svg) {
                 svg = d3.select(this)
@@ -55,8 +57,9 @@ function _chartBase( _super, _access, args) {
                     .attr("width", width)
                     .attr("height", height)
 
-                var container = svg.append('g').classed('container-group', true)
-                this._container = container
+                this._container = svg.append('g').classed('container-group', true)
+                this._chartGroup = this._container.append('g').classed('chart-group', true);
+
             }
 
             svg.transition()
@@ -72,7 +75,7 @@ function _chartBase( _super, _access, args) {
     function updateChartSize() {
         chartWidth = width - margin.left - margin.right
         chartHeight = height - margin.top - margin.bottom
-        console.log( "baseChart.updateChartSize chartWidth=" + chartWidth + ", chartHeight=" + chartHeight)
+        //console.log( "baseChart.updateChartSize chartWidth=" + chartWidth + ", chartHeight=" + chartHeight)
         dispatch.chartResized()
     }
 
@@ -137,13 +140,11 @@ function _chartBase( _super, _access, args) {
     };
     chartBase.plusMarginBottom = function(_marginBottom) {
         margin.bottom += parseInt(_marginBottom, 10);
-        console.log( "baseChart.plusMarginBottom( " + _marginBottom + ") = " + margin.bottom)
         updateChartSize()
         return this;
     };
     chartBase.plusMarginLeft = function(_marginLeft) {
         margin.left += parseInt(_marginLeft, 10);
-        console.log( "baseChart.plusMarginLeft( " + _marginLeft + ") = " + margin.left)
         updateChartSize()
         return this;
     };
@@ -183,8 +184,7 @@ function _chartBase( _super, _access, args) {
         if( namespace && namespace.length > 0)
             event = event + "." + namespace
         dispatch.on( event, function() {
-            console.log( "dispatch.on( " + event + ")")
-            select.call( traitInstance)
+            selection.call( traitInstance)
         })
     }
 

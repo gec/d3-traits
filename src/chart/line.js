@@ -20,79 +20,17 @@
  */
 (function (d3, traits) {
 
-function _chartLine( _super,  _access,  args) {
-    var chartGroup, series, lines
-    var count = 0;
-
-    var dispatch = d3.dispatch('customHover');
-    function chartLine( _selection) {
-        _selection.each(function(_data) {
-            var element = this
-            //var _access = element._access
-            count ++
-
-            var x1 = _super.x1()
-            var y1 = _super.y1()
-
-            var line = d3.svg.line()
-                .interpolate("basis")
-                .x(function(d) { return x1( _access.x1(d)); })
-                .y(function(d) { return y1( _access.y1(d)); });
-
-            var color = d3.scale.category10()
-            color.domain( _data)
-
-            var svg = _super.svg()
-            if( !chartGroup) {
-                var container = svg.select('.container-group')
-                chartGroup = container.append('g').classed('chart-group', true);
-
-                series = chartGroup.selectAll( ".series")
-                    .data( _data)
-                    .enter()
-                    .append("g")
-                    .attr("class", "series")
-
-                series.append("path")
-                    .attr("class", "line")
-                    .attr("d", function(d) { return line( _access.seriesData(d)); })
-                    .style("stroke", function(d, i) { return color(i); });
-
-                lines = series.selectAll( "path")
-
-//            lines = chartGroup.selectAll( "path")
-//                    //.data(function(d) { return d; })
-//                    .data( _data)
-//                    .enter()
-//                    .append("g")
-//                    .attr("class", "series")
-//                    .append("path")
-//                    .attr("class", "line")
-//                    .attr("d", function(d) { return line( d2( d)); })
-//                    .style("stroke", function(d, i) { return color(i); });
-            }
-
-            lines.transition()
-                .duration( 500)
-                .attr("d", function(d) { return line( _access.seriesData(d)); })
-        })
-    }
-
-    d3.rebind(chartLine, dispatch, 'on');
-    _super.onChartResized( 'chartLine', chartLine)
-
-    return chartLine;
-
-}
-
-function _chartLine2( _super, _access,  args) {
+function _chartLine( _super, _config) {
+    // Store the group element here so we can have multiple line charts in one chart.
+    // A second "line chart" might have a different y-axis, style or orientation.
+    var group
 
     var x1 = _super.x1()
     var y1 = _super.y1()
     var line = d3.svg.line()
         .interpolate("basis")
-        .x(function(d) { return x1( _access.x1(d)); })
-        .y(function(d) { return y1( _access.y1(d)); });
+        .x(function(d) { return x1( _config.x1(d)); })
+        .y(function(d) { return y1( _config.y1(d)); });
 
     var color = d3.scale.category10()
 
@@ -102,29 +40,33 @@ function _chartLine2( _super, _access,  args) {
         _selection.each(function(_data) {
             var element = this
 
-            if( !this._chartGroup)
-                this._chartGroup = this._container.append('g').classed('chart-group', true);
+            if( !group) {
+                var classes = _config.chartClass ? "chart-line " + _config.chartClass : 'chart-line'
+                group = this._chartGroup.append('g').classed( classes, true);
+            }
 
-            color.domain( _data)
+            var filtered = _config.seriesFilter ? _data.filter( _config.seriesFilter) : _data
+
+            color.domain( filtered)
 
             // DATA JOIN
-            var series = this._chartGroup.selectAll( ".series")
-                .data( _data)
+            var series = group.selectAll( ".series")
+                .data( filtered)
 
             // UPDATE
             series.selectAll( "path")
                 .transition()
                 .duration( 500)
-                .attr("d", function(d) { return line( _access.seriesData(d)); })
+                .attr("d", function(d) { return line( _config.seriesData(d)); })
 
             // ENTER
             series.enter()
                 .append("g")
-                .attr("class", "series")
+                    .attr("class", "series")
                 .append("path")
-                .attr("class", "line")
-                .attr("d", function(d) { return line( _access.seriesData(d)); })
-                .style("stroke", function(d, i) { return color(i); });
+                    .attr("class", "line")
+                    .attr("d", function(d) { return line( _config.seriesData(d)); })
+                    .style("stroke", function(d, i) { return color(i); });
         })
     }
 
@@ -136,6 +78,5 @@ function _chartLine2( _super, _access,  args) {
 }
 
 traits.chart.line = _chartLine
-traits.chart.line2 = _chartLine2
 
 }(d3, d3.traits));
