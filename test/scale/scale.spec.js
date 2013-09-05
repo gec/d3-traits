@@ -41,6 +41,32 @@ it('scale.ordinal.bars.x should setup domain and range', function() {
     expect( scale.rangeBand()).toEqual( 86)
 });
 
+it('scale.time.x should setup domain and range', function() {
+    // ISO 8601 ex: "2013 07 31"
+    var parseDate = d3.time.format("%Y-%m-%d").parse
+    var Jan01 = parseDate( "2013-01-01")
+    var Jan15 = parseDate( "2013-01-15")
+    var Jan31 = parseDate( "2013-01-31")
+    var Feb01 = parseDate( "2013-02-01")
+    data = [[
+        {x: Jan01, y: 4},
+        {x: Jan15, y: 5},
+        {x: Jan31, y: 6}
+    ]]
+
+    selection.datum( data)
+        .traitConfig( config)
+        .trait( d3.traits.chart.base)
+        .trait( d3.traits.scale.time.x)
+
+    var scale = selection.traits[1].x1()
+
+    expect( scale).toBeDefined()
+    expect( scale.domain()).toEqual( [ Jan01, Feb01])
+    expect( scale.range()).toEqual( [0, 296])
+
+});
+
 it('scale.linear.y should setup domain and range', function() {
     selection.datum( data)
         .traitConfig( config)

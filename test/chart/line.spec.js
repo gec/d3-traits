@@ -17,35 +17,9 @@ var config = {
     seriesData: accessSeriesData
 }
 
-function isString( obj) {
-    return Object.prototype.toString.call(obj) == '[object String]'
-}
-
 beforeEach(function() {
     chartDiv = affix( '.chart-div[style="width: 300px; height: 200px"]')
     selection = d3.select( ".chart-div")
-
-    function toHaveClass( expected) {
-        var className = this.actual.className
-        if( ! isString( className))
-            className = className.baseVal
-        var classes = className.trim().split( " ")
-        return -1 !== classes.indexOf( expected);
-    }
-    this.addMatchers({
-        toHaveClass: toHaveClass,
-
-        // toBeElement( 'g')
-        // toBeElement( 'g.className')
-        toBeElement: function( expected) {
-            var types = expected.split( ".")
-            var isElement = this.actual.tagName.toUpperCase() === types[0].toUpperCase()
-            if( types.length > 1)
-                return isElement && toHaveClass.call( this, types[1]);
-            else
-                return isElement
-        }
-    });
 })
 
 

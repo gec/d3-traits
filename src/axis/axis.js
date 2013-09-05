@@ -20,19 +20,15 @@
  */
 (function (d3, traits) {
 
-    function _axisY( _super, _access, args) {
+    function _axisY( _super, config) {
         var yAxisGroup;
 
         function axisY( _selection) {
-            var _a = this.access
             _selection.each(function(_data) {
                 var element = this
-                //var _access = element._access
 
-                var svg = _super.svg()
                 if( !yAxisGroup) {
-                    var container = svg.select('.container-group')
-                    yAxisGroup = container.append('g').classed('y-axis-group axis', true)
+                    yAxisGroup = this._container.append('g').classed('y-axis-group axis', true)
 
                     //_super.duration( 5000)
                     _super.plusMarginLeft( 30)
@@ -53,7 +49,7 @@
         return axisY;
     }
 
-    function _axisMonthX( _super, _access, args) {
+    function _axisMonthX( _super, _config) {
         var xAxisGroup
         var xAxisTranslateX = 0
 
@@ -61,10 +57,8 @@
             _selection.each(function(_data) {
                 var element = this
 
-                var svg = _super.svg()
                 if( !xAxisGroup) {
-                    var container = svg.select('.container-group')
-                    xAxisGroup = container.append('g').classed('x-axis-group axis', true)
+                    xAxisGroup = this._container.append('g').classed('x-axis-group axis', true)
                     _super.plusMarginBottom( 30)
                 }
 
@@ -73,8 +67,8 @@
                 var extent = x1.domain()
                 var minDate = extent[0]
                 var maxDate = extent[extent.length-1]
-//                var minDate = d3.min( _data, function(s) { return d3.min( _access.seriesData(s), _access.x1); })
-//                var maxDate = d3.max( _data, function(s) { return d3.max( _access.seriesData(s), _access.x1); })
+//                var minDate = d3.min( _data, function(s) { return d3.min( _config.seriesData(s), _config.x1); })
+//                var maxDate = d3.max( _data, function(s) { return d3.max( _config.seriesData(s), _config.x1); })
 
                 var everyDate = d3.time.day.range(minDate, maxDate);
                 var ticksAtOneAndEveryFifth = everyDate.filter(function (d, i) {

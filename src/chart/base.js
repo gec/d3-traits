@@ -36,7 +36,6 @@ function _chartBase( _super, _config) {
 
 
     function chartBase( _selection) {
-        var self = this
         selection = _selection
         _selection.each(function(_data) {
 
