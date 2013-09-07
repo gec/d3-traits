@@ -36,9 +36,9 @@ it('scale.ordinal.bars.x should setup domain and range', function() {
     expect( scale.domain()).toEqual( [ 1, 2, 3])
 
     // 296 * 0.1 = 29.6 which is 14.8 on each side. Guess it rounds to 10 on each side.
-    expect( scale.range()).toEqual( [10, 105, 200])
-    expect( scale.rangeExtent()).toEqual( [0, 296])
-    expect( scale.rangeBand()).toEqual( 86)
+    expect( scale.range()).toEqual( [10, 103, 196])
+    expect( scale.rangeExtent()).toEqual( [0, 290])
+    expect( scale.rangeBand()).toEqual( 84)
 });
 
 it('scale.time.x should setup domain and range', function() {
@@ -63,7 +63,7 @@ it('scale.time.x should setup domain and range', function() {
 
     expect( scale).toBeDefined()
     expect( scale.domain()).toEqual( [ Jan01, Feb01])
-    expect( scale.range()).toEqual( [0, 296])
+    expect( scale.range()).toEqual( [0, 290])
 
 });
 
@@ -78,7 +78,7 @@ it('scale.linear.y should setup domain and range', function() {
 
     var max = d3.max( data[0], accessY1)
     expect( scale.domain()).toEqual( [ 0, max])
-    expect( scale.range()).toEqual( [196, 0])
+    expect( scale.range()).toEqual( [190, 0])
 });
 
 });

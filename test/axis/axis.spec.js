@@ -86,7 +86,7 @@ it('axis.month.x should call _super x1, ease, and plusMarginLeft', function() {
         x1: makeOrdinalX1,
         ease: function() { return 'cubic-in-out'},
         plusMarginBottom: function( value) {},
-        chartHeight: function() {return 196}
+        chartHeight: function() {return 190}
     }
     spyOn( _super, 'plusMarginBottom').andCallThrough()
     spyOn( _super, 'chartHeight').andCallThrough()

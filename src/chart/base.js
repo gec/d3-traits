@@ -22,7 +22,7 @@
 
 function _chartBase( _super, _config) {
 
-    var margin = {top: 2, right: 2, bottom: 2, left: 2},
+    var margin = {top: 5, right: 5, bottom: 5, left: 5},
         ease = 'cubic-in-out';
     var width = 200
     var height = 100
