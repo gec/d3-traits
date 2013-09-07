@@ -21,7 +21,10 @@
 (function (d3, traits) {
 
     function _axisY( _super, config) {
-        var yAxisGroup;
+        var yAxisGroup
+        var yAxis
+
+        _super.plusMarginLeft( 30)
 
         function axisY( _selection) {
             _selection.each(function(_data) {
@@ -29,12 +32,10 @@
 
                 if( !yAxisGroup) {
                     yAxisGroup = this._container.append('g').classed('y-axis-group axis', true)
-
-                    //_super.duration( 5000)
-                    _super.plusMarginLeft( 30)
+                    yAxis = d3.svg.axis()
                 }
 
-                var yAxis = d3.svg.axis()
+                yAxis = d3.svg.axis()
                     .scale( _super.y1())
                     .orient('left');
 
@@ -53,13 +54,14 @@
         var xAxisGroup
         var xAxisTranslateX = 0
 
+        _super.plusMarginBottom( 30)
+
         function axisMonthX( _selection) {
             _selection.each(function(_data) {
                 var element = this
 
                 if( !xAxisGroup) {
                     xAxisGroup = this._container.append('g').classed('x-axis-group axis', true)
-                    _super.plusMarginBottom( 30)
                 }
 
                 var x1 = _super.x1()

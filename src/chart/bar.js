@@ -33,17 +33,10 @@ function _chartBar( _super,  _config) {
     if( _super.x1MarginLeft)
         _super.x1MarginLeft( Math.round( _super.chartWidth() * 0.05))
 
-    function addOuterPaddingToX1Range( padding) {
-        var x1Range = x1.range()
-        // TODO: what about the padding on the right side?
-        x1.range( [x1Range[0] + padding, x1Range[1]])
-    }
-
     var dispatch = d3.dispatch('customHover');
     function chartBar( _selection) {
         _selection.each(function(_data) {
             var element = this
-            console.log( "call( chartBar) margin.left: " + _super.marginLeft() + ", chartWidth: " + _super.chartWidth())
 
             var filtered = _config.seriesFilter ? _data.filter( _config.seriesFilter) : _data
             var series1 = _config.seriesData( filtered[0])
