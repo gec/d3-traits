@@ -72,7 +72,8 @@
 
                 var everyDate = d3.time.day.range(minDate, maxDate);
                 var ticksAtOneAndEveryFifth = everyDate.filter(function (d, i) {
-                    return i === 0 || (i+1) % 5 === 0;
+                    var date = d.getDate()
+                    return date === 1 || date % 5 === 0;
                 });
 
                 var xAxis = d3.svg.axis()
@@ -88,6 +89,22 @@
                     .ease( _super.ease())
                     .attr({transform: 'translate(' + xAxisTranslateX + ',' + _super.chartHeight() + ')'})
                     .call(xAxis);
+
+                var extension = xAxisGroup.selectAll( "path.axis-extension")
+                    .data( [minDate])
+
+                extension.transition()
+                    .attr("class", "axis-extension")
+                    .attr( "d", function( d) {
+                        return "M0,0L" + x1(d) + ",0";
+                    })
+
+                extension.enter()
+                    .append( "path")
+                    .attr("class", "axis-extension")
+                    .attr( "d", function( d) {
+                        return "M0,0L" + x1(d) + ",0";
+                    })
             })
         }
         axisMonthX.xAxisTranslateX = function(_x) {

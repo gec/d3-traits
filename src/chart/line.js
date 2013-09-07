@@ -28,7 +28,7 @@ function _chartLine( _super, _config) {
     var x1 = _super.x1()
     var y1 = _super.y1()
     var line = d3.svg.line()
-        .interpolate("basis")
+        .interpolate( _config.interpolate || "linear")
         .x(function(d) { return x1( _config.x1(d)); })
         .y(function(d) { return y1( _config.y1(d)); });
 

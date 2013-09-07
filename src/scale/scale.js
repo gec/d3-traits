@@ -44,6 +44,13 @@ function _scaleOrdinalBarsX( _super, _config) {
 
 function _scaleTimeX( _super,  _config) {
     var x1
+    var marginLeft = _config.marginLeft || 0
+    var marginRight = _config.marginRight || 0
+
+    function updateRange() {
+        if( x1)
+            x1.range([marginLeft, _super.chartWidth() - marginRight])
+    }
 
     function scaleTimeX( _selection) {
         _selection.each(function(_data, i , j) {
@@ -56,15 +63,31 @@ function _scaleTimeX( _super,  _config) {
             //var minX = d3.min( _data, function(s) { return d3.min( _config.seriesData(s), _config.x1); })
             //var maxX = d3.max( _data, function(s) { return d3.max( _config.seriesData(s), _config.x1); })
 
-            x1 = d3.time.scale()
-                .domain([minX, maxX])
-                .nice(d3.time.month)   // start and end on month
-                .range([0, _super.chartWidth()])
+            if( ! x1)
+                x1 = d3.time.scale()
+            x1.domain([minX, maxX])
+                .nice(d3.time.month)// start and end on month. Ex Jan 1 00:00 to Feb 1 00:00
+                .range([marginLeft, _super.chartWidth() - marginRight])
         })
     }
     scaleTimeX.x1 = function() {
         return x1;
     };
+    scaleTimeX.x1MarginLeft = function(_x) {
+        if (!arguments.length) return marginLeft;
+        marginLeft = _x;
+        updateRange()
+        return this;
+    };
+    scaleTimeX.x1MarginRight = function(_x) {
+        if (!arguments.length) return marginRight;
+        marginRight = _x;
+        updateRange()
+        return this;
+    };
+
+    _super.onChartResized( 'scaleTimeX', scaleTimeX)
+
     return scaleTimeX;
 }
 
