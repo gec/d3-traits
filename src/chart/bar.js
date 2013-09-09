@@ -30,8 +30,8 @@ function _chartBar( _super,  _config) {
     var x1 = _super.x1()
     var y1 = _super.y1()
     var color = d3.scale.category10()
-    if( _super.x1MarginLeft)
-        _super.x1MarginLeft( Math.round( _super.chartWidth() * 0.05))
+
+    //_super.x1MarginLeft( Math.round( _super.chartWidth() * 0.05))
 
     var dispatch = d3.dispatch('customHover');
     function chartBar( _selection) {
@@ -48,8 +48,7 @@ function _chartBar( _super,  _config) {
             var barW = xBand.rangeBand() - gapSize;
             var barOffsetX = Math.round( gapSize / 2 - barW / 2);
             // The bar padding is already .1 * bar width. Let's use * 0.4 for better outer padding
-            if( _super.x1MarginLeft)
-                _super.x1MarginLeft( Math.ceil( gapSize / 2 + barW * 0.4 + barW / 2))
+            _super.x1MarginLeft( Math.ceil( gapSize / 2 + barW * 0.4 + barW / 2))
 
             // The xAxis doesn't know we're a bar graph and we want to center the ticks on the bars.
 //            if( 'xAxisTranslateX' in _super)
@@ -117,6 +116,7 @@ function _chartBar( _super,  _config) {
     };
     d3.rebind(chartBar, dispatch, 'on');
     _super.onChartResized( 'chartBar', chartBar)
+    _super.onX1Resized( 'chartBar', chartBar)
 
     return chartBar;
 

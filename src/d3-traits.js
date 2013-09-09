@@ -68,6 +68,58 @@ function extendTraitsConfig( defaultConfig, config) {
     return extendObject( obj, defaultConfig)
 }
 
+function Trait( _traitFunction, config, _super) {
+    console.log( "trait( " + _traitFunction.name + ")")
+
+    var self = this
+    this._config = config
+    this._super = _super
+
+    this.getImp = function() { return self.imp}
+
+    config = extendTraitsConfig( this.getBaseConfig(), config)
+    self.imp = _traitFunction( _super, config )
+    stackTrait( _super, self.imp)
+    //self.imp.prototype = Trait.prototype
+    self.imp.call = Trait.prototype.call
+    self.imp.trait = Trait.prototype.trait
+    self.imp.getBaseConfig = Trait.prototype.getBaseConfig
+    self.imp._super = _super
+    self.imp._config = config
+}
+
+Trait.prototype = {
+
+    trait: function( _trait, config) {
+        console.log( ".trait( " + _trait.name + ")")
+        var t = new Trait( _trait, config, this)
+        var imp = t.getImp()
+        return imp
+    },
+
+    getBaseConfig: function() {
+        if( this._super)
+            return this._super.getBaseConfig()
+        else
+            return this._config
+    },
+
+    call: function( _selection) {
+        if( this._super)
+            this._super.call( _selection)
+        _selection.call( this)
+        return this
+    }
+
+
+}
+Trait.prototype.constructor = Trait
+
+function traitsTrait( trait, config) {
+    return new Trait( trait, config).getImp()
+}
+d3.traits.trait = traitsTrait
+
 d3.selection.prototype.trait = function( trait, config)
 {
     if( Array.isArray( trait) ) {
@@ -84,7 +136,7 @@ d3.selection.prototype.trait = function( trait, config)
             _super = this.traits[ traitCount-1]
 
         var _config = extendTraitsConfig( this._traitsConfig, config)
-        var traitInstance = trait( _super, _config)
+        var traitInstance = trait( _super, _config, this)
         stackTrait( _super, traitInstance)
 
         this.call( traitInstance)

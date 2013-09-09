@@ -35,10 +35,8 @@
                     yAxis = d3.svg.axis()
                 }
 
-                yAxis = d3.svg.axis()
-                    .scale( _super.y1())
+                yAxis.scale( _super.y1())
                     .orient('left');
-
 
                 yAxisGroup
                     .transition()
@@ -47,6 +45,10 @@
                     .call(yAxis);
             })
         }
+
+        _super.onChartResized( 'axisY', axisY)
+        _super.onX1Resized( 'axisY', axisY)
+
         return axisY;
     }
 
@@ -114,6 +116,9 @@
             xAxisTranslateX = _x;
             return this;
         };
+        _super.onChartResized( 'axisMonthX', axisMonthX)
+        _super.onX1Resized( 'axisMonthX', axisMonthX)
+
 
         return axisMonthX;
     }

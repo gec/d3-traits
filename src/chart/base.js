@@ -22,8 +22,21 @@
 
 function _chartBase( _super, _config) {
 
-    var margin = {top: 5, right: 5, bottom: 5, left: 5},
-        ease = 'cubic-in-out';
+    var margin = {top: 5, right: 5, bottom: 5, left: 5}
+    if( _config.margin) {
+        margin.top = _config.margin.top || margin.top
+        margin.right = _config.margin.right || margin.right
+        margin.bottom = _config.margin.bottom || margin.bottom
+        margin.left = _config.margin.left || margin.left
+    }
+
+    var x1Margin = { left: 0, right: 0}
+    if( _config.x1Margin) {
+        x1Margin.left = _config.x1Margin.left || x1Margin.left
+        x1Margin.right = _config.x1Margin.right || x1Margin.right
+    }
+
+    var ease = 'cubic-in-out'
     var width = 200
     var height = 100
     var chartWidth = width - margin.left - margin.right,
@@ -32,7 +45,8 @@ function _chartBase( _super, _config) {
     var svg, select, duration = 0
     var selection
     var ChartResized = 'chartResized'
-    var dispatch = d3.dispatch( ChartResized)
+    var X1Resized = 'x1Resized'
+    var dispatch = d3.dispatch( ChartResized, X1Resized)
 
 
     function chartBase( _selection) {
@@ -72,16 +86,36 @@ function _chartBase( _super, _config) {
     }
 
     function updateChartSize() {
+        var prev = {
+            chartWidth: chartWidth,
+            chartHeight: chartHeight
+        }
         chartWidth = width - margin.left - margin.right
         chartHeight = height - margin.top - margin.bottom
         //console.log( "baseChart.updateChartSize chartWidth=" + chartWidth + ", chartHeight=" + chartHeight)
-        dispatch.chartResized()
+        if( prev.chartWidth !== chartWidth || prev.chartHeight !== chartHeight)
+            dispatch.chartResized()
     }
 
     function updateSize() {
+        var prev = {
+            width: width,
+            height: height
+        }
         width = chartWidth + margin.left + margin.right
         height = chartHeight + margin.top + margin.bottom
-        dispatch.chartResized()
+        if( prev.width !== width || prev.height !== height)
+            dispatch.chartResized()
+    }
+
+    function updateX1Margin( left, right) {
+        // Whomever needs the largest margins will get their way.
+        // This avoids cyclic events (ex: two traits setting 3 then 4 then 3 ...)
+        if( x1Margin.left < left || x1Margin.right < right) {
+            x1Margin.left = left
+            x1Margin.right = right
+            dispatch.x1Resized()
+        }
     }
 
     chartBase.svg = function() {
@@ -177,13 +211,37 @@ function _chartBase( _super, _config) {
         duration = _x;
         return this;
     };
+
     //d3.rebind(chartBase, dispatch, 'on');
+
     chartBase.onChartResized = function( namespace, traitInstance) {
         var event = ChartResized
         if( namespace && namespace.length > 0)
             event = event + "." + namespace
         dispatch.on( event, function() {
-            selection.call( traitInstance)
+            if( selection)
+                selection.call( traitInstance)
+        })
+    }
+
+    chartBase.x1MarginLeft = function(marginLeft) {
+        if (!arguments.length) return x1Margin.left;
+        updateX1Margin( marginLeft, x1Margin.right)
+        return this;
+    };
+    chartBase.x1MarginRight = function(marginRight) {
+        if (!arguments.length) return x1Margin.right;
+        updateX1Margin( x1Margin.left, marginRight)
+        return this;
+    };
+
+    chartBase.onX1Resized = function( namespace, traitInstance) {
+        var event = X1Resized
+        if( namespace && namespace.length > 0)
+            event = event + "." + namespace
+        dispatch.on( event, function() {
+            if( selection)
+                selection.call( traitInstance)
         })
     }
 

@@ -56,13 +56,19 @@ it('axis.y should call _super y1, ease, and plusMarginLeft', function() {
     var _super = {
         y1: makeLinearY1,
         ease: function() { return 'cubic-in-out'},
-        plusMarginLeft: function( value) {}
+        plusMarginLeft: function( value) {},
+        onChartResized: function() {},
+        onX1Resized: function() {}
     }
     spyOn( _super, 'plusMarginLeft').andCallThrough()
+    spyOn( _super, 'onChartResized').andCallThrough()
+    spyOn( _super, 'onX1Resized').andCallThrough()
 
     var axis = d3.traits.axis.y( _super, {})
     selection.call( axis)
     expect( _super.plusMarginLeft).toHaveBeenCalledWith( 30)
+    expect( _super.onChartResized).toHaveBeenCalledWith( 'axisY', axis)
+    expect( _super.onX1Resized).toHaveBeenCalledWith( 'axisY', axis)
 })
 
 it('axis.y should create g.y-axis-group', function() {
@@ -86,15 +92,21 @@ it('axis.month.x should call _super x1, ease, and plusMarginLeft', function() {
         x1: makeOrdinalX1,
         ease: function() { return 'cubic-in-out'},
         plusMarginBottom: function( value) {},
-        chartHeight: function() {return 190}
+        chartHeight: function() {return 190},
+        onChartResized: function() {},
+        onX1Resized: function() {}
     }
     spyOn( _super, 'plusMarginBottom').andCallThrough()
     spyOn( _super, 'chartHeight').andCallThrough()
+    spyOn( _super, 'onChartResized').andCallThrough()
+    spyOn( _super, 'onX1Resized').andCallThrough()
 
     var axis = d3.traits.axis.month.x( _super, {})
     selection.call( axis)
     expect( _super.plusMarginBottom).toHaveBeenCalledWith( 30)
     expect( _super.chartHeight).toHaveBeenCalled()
+    expect( _super.onChartResized).toHaveBeenCalledWith( 'axisMonthX', axis)
+    expect( _super.onX1Resized).toHaveBeenCalledWith( 'axisMonthX', axis)
 })
 
 it('axis.month.x should create g.x-axis-group', function() {
