@@ -123,10 +123,102 @@
         return axisMonthX;
     }
 
+    function _axisTimeTrendX( _super, _config) {
+        var xAxisGroup
+        var xAxisTranslateX = 0
+
+        var x1 = _super.x1()
+        var xAxis = d3.svg.axis()
+            .scale(x1)
+
+        _super.plusMarginBottom( 30)
+
+
+        function axisTimeTrendX( _selection) {
+            _selection.each(function(_data) {
+                var element = this
+
+                if( !xAxisGroup) {
+                    xAxisGroup = this._container.append('g').classed('x-axis-group axis', true)
+                }
+
+                var extent = x1.domain()
+                var minDate = extent[0]
+                var maxDate = extent[extent.length-1]
+
+                xAxis.orient('bottom')
+//                    .tickFormat(d3.time.format('%e')) // %d is 01, 02. %e is \b1, \b2
+
+                xAxisGroup
+                    .transition()
+                    .duration( _super.duration())
+                    .ease( _super.ease())
+                    .attr({transform: 'translate(' + xAxisTranslateX + ',' + _super.chartHeight() + ')'})
+                    .call(xAxis);
+
+                var extension = xAxisGroup.selectAll( "path.axis-extension")
+                    .data( [minDate])
+
+                extension.transition()
+                    .attr("class", "axis-extension")
+                    .attr( "d", function( d) {
+                        return "M0,0L" + x1(d) + ",0";
+                    })
+
+                extension.enter()
+                    .append( "path")
+                    .attr("class", "axis-extension")
+                    .attr( "d", function( d) {
+                        return "M0,0L" + x1(d) + ",0";
+                    })
+
+                // slide the x-axis left for tends
+//                xAxisGroup.transition()
+//                    .duration( _super.duration())
+//                    .ease( "linear")
+//                    .call( xAxis);
+            })
+        }
+        axisTimeTrendX.axisX1 = function(_x) {
+            if (!arguments.length) return xAxisTranslateX;
+            xAxisTranslateX = _x;
+            return this;
+        };
+        axisTimeTrendX.xAxisTranslateX = function(_x) {
+            if (!arguments.length) return xAxisTranslateX;
+            xAxisTranslateX = _x;
+            return this;
+        };
+        axisTimeTrendX.update = function() {
+            if( _super.update)
+                _super.update()
+
+            // slide the x-axis left for trends
+            xAxisGroup.transition()
+                .duration( _super.duration())
+                .ease( "linear")
+                .call( xAxis);
+            return this;
+        };
+
+
+        _super.onChartResized( 'axisTimeTrendX', axisTimeTrendX)
+        _super.onX1Resized( 'axisTimeTrendX', axisTimeTrendX)
+
+
+        return axisTimeTrendX;
+    }
+
     traits.axis.y = _axisY
 
     if( ! traits.axis.month)
         traits.axis.month = {}
     traits.axis.month.x = _axisMonthX
+
+    if( ! traits.axis.time)
+        traits.axis.time = {}
+    if( ! traits.axis.time.trend)
+        traits.axis.time.trend = {}
+    traits.axis.time.trend.x = _axisTimeTrendX
 
 }(d3, d3.traits));

@@ -74,6 +74,117 @@ function _scaleTimeX( _super,  _config) {
     return scaleTimeX;
 }
 
+var TRACKING_NONE = "none"
+var TRACKING_CURRENT_TIME = "current-time"
+var TRACKING_DOMAIN_MAX = "domain-max"
+
+function _scaleTimeTrendX( _super,  _config) {
+    var ONE_DAY = 1000 * 60 * 60 * 24
+    var tracking = _config.tracking || TRACKING_CURRENT_TIME
+
+    function getDomain( config) {
+        var result, now, then
+
+        if( _config.domain) {
+            if( Array.isArray( _config.domain)) {
+                result = _config.domain.clone()
+            } else {
+                now = new Date()
+                then = new Date( now.getTime() - _config.domain)
+                result = [ then, now]
+            }
+        } else {
+            now = new Date()
+            then = new Date( now.getTime() - ONE_DAY)
+            result = [ then, now]
+        }
+        return result
+    }
+
+    var x1 = d3.time.scale()
+        .domain( getDomain( _config))
+        //.nice()
+    function getTimeSpanFromDomain( domain) { return domain[ domain.length-1].getTime() - domain[0].getTime() }
+    var domainTimeSpan = getTimeSpanFromDomain( x1.domain())
+
+    function makeDomainTimeNow() {
+        var now, then
+        now = new Date()
+        then = new Date( now.getTime() - domainTimeSpan)
+        return [ then, now]
+    }
+    var theData
+    function makeDomainSpanFromMax() {
+        var last, then, domain
+        var maxX = theData.map( function(s) { return d3.max( _config.seriesData(s), _config.x1)})
+        maxX = d3.max( maxX)
+//        domain = x1.domain()
+//        last = domain[ domain.length - 1]
+        then = new Date( maxX - domainTimeSpan)
+        return [ then, maxX]
+    }
+
+    if( _config.x1Margin) {
+        if( _config.x1Margin.left)
+            _super.x1MarginLeft( _config.x1Margin.left)
+        if( _config.x1Margin.right)
+            _super.x1MarginRight( _config.x1Margin.right)
+    }
+
+    function scaleTimeTrendX( _selection) {
+        _selection.each(function(_data, i , j) {
+            var element = this
+            theData = _data
+
+            if( tracking === TRACKING_CURRENT_TIME)
+                x1.domain( makeDomainTimeNow())
+            else if( tracking === TRACKING_DOMAIN_MAX) {
+                // Get array of extents for each series.
+                var extents = _data.map( function(s) { return d3.extent( _config.seriesData(s), _config.x1)})
+                var minX = d3.min( extents, function(e) { return e[0] }) // this minimums of each extent
+                var maxX = d3.max( extents, function(e) { return e[1] }) // the maximums of each extent
+
+                minX = new Date( maxX - domainTimeSpan)
+                x1.domain([minX, maxX])
+
+            }
+
+            x1.range([ _super.x1MarginLeft(), _super.chartWidth() - _super.x1MarginRight()])
+        })
+    }
+    scaleTimeTrendX.x1 = function() {
+        return x1;
+    };
+    scaleTimeTrendX.x1Tracking = function( track) {
+        if (!arguments.length) return tracking;
+        tracking = track;
+        return this;
+    };
+
+    scaleTimeTrendX.x1TimeSpan= function( span) {
+        if (!arguments.length) return domainTimeSpan;
+        domainTimeSpan = span;
+        return this;
+    };
+
+    scaleTimeTrendX.update = function() {
+        if( _super.update)
+            _super.update()
+        if( tracking === TRACKING_CURRENT_TIME)
+            x1.domain( makeDomainTimeNow())
+        else if( tracking === TRACKING_DOMAIN_MAX)
+            x1.domain( makeDomainSpanFromMax())
+
+        return this;
+    };
+
+
+    _super.onChartResized( 'scaleTimeTrendX', scaleTimeTrendX)
+    _super.onX1Resized( 'scaleTimeTrendX', scaleTimeTrendX)
+
+    return scaleTimeTrendX;
+}
+
 /**
  * Each time this trait is stacked it produces an addition yScale (ex: y1, y2, ... y10)
  * @param _super
@@ -116,6 +227,15 @@ function _scaleLinearY( _super,  _config) {
     scaleLinearY[scaleName] = function() {
         return scale;
     };
+    scaleLinearY.update = function() {
+        if( _super.update)
+            _super.update()
+//        var maxY = d3.max( _data, function(s) { return d3.max( _config.seriesData(s), _config.y1); })
+//        scale.domain([0, maxY])
+//            .range([_super.chartHeight(), 0]);
+        return this;
+    };
+
 
     _super.onChartResized( scaleName, scaleLinearY)
 
@@ -130,9 +250,12 @@ if( ! traits.scale.ordinal.bars)
     traits.scale.ordinal.bars = {}
 if( ! traits.scale.time)
     traits.scale.time = {}
+if( ! traits.scale.time.trend)
+    traits.scale.time.trend = {}
 
 traits.scale.linear.y = _scaleLinearY
 traits.scale.ordinal.bars.x = _scaleOrdinalBarsX
 traits.scale.time.x = _scaleTimeX
+traits.scale.time.trend.x = _scaleTimeTrendX
 
 }(d3, d3.traits));
