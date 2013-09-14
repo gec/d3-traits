@@ -57,7 +57,7 @@ it('scale.time.x should setup domain and range', function() {
     selection.datum( data)
         .traitConfig( config)
         .trait( d3.traits.chart.base)
-        .trait( d3.traits.scale.time.x)
+        .trait( d3.traits.scale.time.x, { nice: d3.time.month})
 
     var scale = selection.traits[1].x1()
 

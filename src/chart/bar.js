@@ -30,8 +30,25 @@ function _chartBar( _super,  _config) {
     var x1 = _super.x1()
     var y1 = _super.y1()
     var color = d3.scale.category10()
+    var barCount = _config.barCount
 
     //_super.x1MarginLeft( Math.round( _super.chartWidth() * 0.05))
+
+    // TODO: Need to have the scale setup the number of bars.
+    // - For time scale, the data is not evenly speaced, so it's the minimum space between data (although very wide bars may not be good either).
+    // - For ordinal scale, the data is evenly spaced (always?), so it's the number of elements in the series.
+    // - Needs to work with zoom too.
+    function getBarCountRange( filteredData) {
+        var countRange
+        if( barCount) {
+            var count = typeof( barCount) === "function" ? barCount( filteredData) : barCount
+            countRange = d3.range( count)
+        } else {
+            var series1 = _config.seriesData( filteredData[0])
+            countRange = series1.map(function(d, i){ return i; })
+        }
+        return countRange
+    }
 
     var dispatch = d3.dispatch('customHover');
     function chartBar( _selection) {
@@ -39,10 +56,9 @@ function _chartBar( _super,  _config) {
             var element = this
 
             var filtered = _config.seriesFilter ? _data.filter( _config.seriesFilter) : _data
-            var series1 = _config.seriesData( filtered[0])
 
             var xBand = d3.scale.ordinal()
-                .domain( series1.map(function(d, i){ return i; }))
+                .domain( getBarCountRange( filtered))
                 .rangeRoundBands([0, _super.chartWidth()], 0.1); // bar padding will be 0.1 * bar width
             var gapSize = xBand.rangeBand() / 100 * gap;
             var barW = xBand.rangeBand() - gapSize;

@@ -60,8 +60,9 @@ function _scaleTimeX( _super,  _config) {
             //var maxX = d3.max( _data, function(s) { return d3.max( _config.seriesData(s), _config.x1); })
 
             x1.domain([minX, maxX])
-                .nice(d3.time.month)// start and end on month. Ex Jan 1 00:00 to Feb 1 00:00
-                .range([ _super.x1MarginLeft(), _super.chartWidth() - _super.x1MarginRight()])
+            if( _config.nice)
+                x1.nice( _config.nice)// start and end on month. Ex Jan 1 00:00 to Feb 1 00:00
+            x1.range([ _super.x1MarginLeft(), _super.chartWidth() - _super.x1MarginRight()])
         })
     }
     scaleTimeX.x1 = function() {
@@ -103,7 +104,7 @@ function _scaleTimeTrendX( _super,  _config) {
 
     var x1 = d3.time.scale()
         .domain( getDomain( _config))
-        //.nice()
+        .nice( d3.time.day)
     function getTimeSpanFromDomain( domain) { return domain[ domain.length-1].getTime() - domain[0].getTime() }
     var domainTimeSpan = getTimeSpanFromDomain( x1.domain())
 

@@ -78,6 +78,10 @@ function _trendline( _super, _config) {
     trendline.update = function() {
         if( _super.update)
             _super.update()
+
+        // TODO: The x1.range() needs to be wider, so we draw the new line off the right
+        // then trasition it to the left.
+
 //        var now = new Date()
         //var now = getTimeLastFromDomain( x1.domain())
         var shiftScaleX = x1(timeLast) - x1( x1.domain()[1])
