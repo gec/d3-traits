@@ -25,8 +25,8 @@ function _legendSeries( _super, _config) {
     // A second "line chart" might have a different y-axis, style or orientation.
 
     var color = d3.scale.category10()
-    var orientation = _config.orientation || "top"
-    function topOrBottom() { return orientation === "top" || orientation === "bottom"}
+    var orient = _config.orient || "top"
+    function topOrBottom() { return orient === "top" || orient === "bottom"}
 
     function marginStyle() {
         var style, m = {left: 2, right: 2}
@@ -58,7 +58,7 @@ function _legendSeries( _super, _config) {
                 if( topOrBottom()) {
                     // insert before svg element. Could use ":first-child"
                     var select = d3.select(this)
-                    this._legend = orientation === "top" ? select.insert("ul", "svg") : select.append("ul")
+                    this._legend = orient === "top" ? select.insert("ul", "svg") : select.append("ul")
                     this._legend.attr("style", marginStyle())
                         .attr( "class", classes)
                 } else {

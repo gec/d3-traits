@@ -80,22 +80,21 @@ function _trendline( _super, _config) {
             _super.update()
 
         // TODO: The x1.range() needs to be wider, so we draw the new line off the right
-        // then trasition it to the left.
+        // then translate it to the left with a transition animation.
 
-//        var now = new Date()
-        //var now = getTimeLastFromDomain( x1.domain())
-        var shiftScaleX = x1(timeLast) - x1( x1.domain()[1])
+        var translateX = x1(timeLast) - x1( x1.domain()[1])
 
-        // redraw the line
-        series.selectAll( "path")
+        // redraw the line and no transform
+        series.attr( "transform", null)
+        series.selectAll("path")
             .attr("d", function(d) { return line( _config.seriesData(d)); })
-            .attr( "transform", null)
+
 
         // slide the line left
         series.transition()
             .duration( _super.duration())
             .ease("linear")
-            .attr("transform", "translate(" + shiftScaleX + ")")
+            .attr("transform", "translate(" + translateX + ")")
             //.each("end", tick);
 
         timeLast = getTimeLastFromDomain( x1.domain())

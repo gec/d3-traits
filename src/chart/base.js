@@ -30,6 +30,8 @@ function _chartBase( _super, _config) {
         margin.left = _config.margin.left || margin.left
     }
 
+    // Margin for adjusting the x1-scale range
+    // Without this margin, the outer bars on a bar chart may be half off the chart.
     var x1Margin = { left: 0, right: 0}
     if( _config.x1Margin) {
         x1Margin.left = _config.x1Margin.left || x1Margin.left

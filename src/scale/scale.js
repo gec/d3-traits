@@ -82,6 +82,7 @@ var TRACKING_DOMAIN_MAX = "domain-max"
 function _scaleTimeTrendX( _super,  _config) {
     var ONE_DAY = 1000 * 60 * 60 * 24
     var tracking = _config.tracking || TRACKING_CURRENT_TIME
+    var oldMax, translateLast = 0
 
     function getDomain( config) {
         var result, now, then
@@ -117,8 +118,7 @@ function _scaleTimeTrendX( _super,  _config) {
     var theData
     function makeDomainSpanFromMax() {
         var last, then, domain
-        var maxX = theData.map( function(s) { return d3.max( _config.seriesData(s), _config.x1)})
-        maxX = d3.max( maxX)
+        var maxX = d3.Max( theData.map( function(s) { return d3.max( _config.seriesData(s), _config.x1)}))
 //        domain = x1.domain()
 //        last = domain[ domain.length - 1]
         then = new Date( maxX - domainTimeSpan)
@@ -149,6 +149,8 @@ function _scaleTimeTrendX( _super,  _config) {
                 x1.domain([minX, maxX])
 
             }
+            var theDomain = x1.domain()
+            oldMax = theDomain[ theDomain.length - 1]
 
             x1.range([ _super.x1MarginLeft(), _super.chartWidth() - _super.x1MarginRight()])
         })
@@ -168,13 +170,47 @@ function _scaleTimeTrendX( _super,  _config) {
         return this;
     };
 
+    function shiftExtentMin( extent, translate) {
+        var r0 = new Date( extent[0].getTime() + translate)
+        var r1 = extent[ extent.length - 1]  // don't translate
+        return [r0, r1]
+    }
+
+    var firsty = true;
     scaleTimeTrendX.update = function() {
         if( _super.update)
             _super.update()
         if( tracking === TRACKING_CURRENT_TIME)
             x1.domain( makeDomainTimeNow())
-        else if( tracking === TRACKING_DOMAIN_MAX)
-            x1.domain( makeDomainSpanFromMax())
+        else if( tracking === TRACKING_DOMAIN_MAX) {
+            //x1.domain( makeDomainSpanFromMax())
+
+            // Reset the range to the physical chart coordinates.
+            var range0 = _super.x1MarginLeft()
+            x1.range([ range0, _super.chartWidth() - _super.x1MarginRight()])
+
+            var currentDomain = x1.domain()
+            //var currentDateMax = currentDomain[currentDomain.length-1]
+
+            var maxX = d3.max( theData.map( function(s) { return d3.max( _config.seriesData(s), _config.x1)}))
+            var translateNew = maxX.getTime() - oldMax.getTime()
+
+            // The domain was shifted via translate, but now the translate will be null.
+            // We need to shift the domain the same amount as the last translate.
+            var newDomain = shiftExtentMin( currentDomain, translateLast)
+            x1.domain( newDomain)
+            var newRangeMax = x1( maxX)
+
+
+            // expand the domain to the right.
+            x1.domain( [newDomain[0], maxX])
+            // Grou the range to the right, so we can scroll it slowly to the left.
+            x1.range( [range0, newRangeMax])
+
+            oldMax = maxX
+            translateLast = translateNew
+
+        }
 
         return this;
     };
