@@ -52,6 +52,17 @@
         return axisY;
     }
 
+    function tickValuesForMonthDays( x) {
+        var domain = x.domain()
+        var minDate = domain[0]
+        var maxDate = domain[ domain.length-1]
+        var everyDate = d3.time.day.range(minDate, maxDate);
+        return everyDate.filter(function (d, i) {
+            var date = d.getDate()
+            return date === 1 || date % 5 === 0;
+        });
+    }
+
     function _axisMonthX( _super, _config) {
         var xAxisGroup
         var xAxisTranslateX = 0
@@ -68,23 +79,11 @@
 
                 var x1 = _super.x1()
 
-                var extent = x1.domain()
-                var minDate = extent[0]
-                var maxDate = extent[extent.length-1]
-//                var minDate = d3.min( _data, function(s) { return d3.min( _config.seriesData(s), _config.x1); })
-//                var maxDate = d3.max( _data, function(s) { return d3.max( _config.seriesData(s), _config.x1); })
-
-                var everyDate = d3.time.day.range(minDate, maxDate);
-                var ticksAtOneAndEveryFifth = everyDate.filter(function (d, i) {
-                    var date = d.getDate()
-                    return date === 1 || date % 5 === 0;
-                });
-
                 var xAxis = d3.svg.axis()
                     .scale(x1)
                     .orient('bottom')
                     .tickFormat(d3.time.format('%e')) // %d is 01, 02. %e is \b1, \b2
-                    .tickValues( ticksAtOneAndEveryFifth)
+                    .tickValues( tickValuesForMonthDays( x1))
 
 
                 xAxisGroup
@@ -95,7 +94,7 @@
                     .call(xAxis);
 
                 var extension = xAxisGroup.selectAll( "path.axis-extension")
-                    .data( [minDate])
+                    .data( [x1.domain()[0]])
 
                 extension.transition()
                     .attr("class", "axis-extension")
