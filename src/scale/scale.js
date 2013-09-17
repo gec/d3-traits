@@ -106,6 +106,9 @@ function _scaleTimeTrendX( _super,  _config) {
     var x1 = d3.time.scale()
         .domain( getDomain( _config))
         .nice( d3.time.day)
+    var x1ForAxis = d3.time.scale()
+        .domain( x1.domain())
+        .nice( d3.time.day)
     function getTimeSpanFromDomain( domain) { return domain[ domain.length-1].getTime() - domain[0].getTime() }
     var domainTimeSpan = getTimeSpanFromDomain( x1.domain())
 
@@ -152,11 +155,18 @@ function _scaleTimeTrendX( _super,  _config) {
             var theDomain = x1.domain()
             oldMax = theDomain[ theDomain.length - 1]
 
-            x1.range([ _super.x1MarginLeft(), _super.chartWidth() - _super.x1MarginRight()])
+            var theRange = [ _super.x1MarginLeft(), _super.chartWidth() - _super.x1MarginRight()]
+            x1.range( theRange)
+
+            x1ForAxis.domain( theDomain)
+            x1ForAxis.range( theRange)
         })
     }
     scaleTimeTrendX.x1 = function() {
         return x1;
+    };
+    scaleTimeTrendX.x1ForAxis = function() {
+        return x1ForAxis;
     };
     scaleTimeTrendX.x1Tracking = function( track) {
         if (!arguments.length) return tracking;
@@ -186,8 +196,9 @@ function _scaleTimeTrendX( _super,  _config) {
             //x1.domain( makeDomainSpanFromMax())
 
             // Reset the range to the physical chart coordinates.
-            var range0 = _super.x1MarginLeft()
-            x1.range([ range0, _super.chartWidth() - _super.x1MarginRight()])
+            var rangeMin = _super.x1MarginLeft()
+            x1.range([ rangeMin, _super.chartWidth() - _super.x1MarginRight()])
+            x1ForAxis.range( x1.range())
 
             var currentDomain = x1.domain()
             //var currentDateMax = currentDomain[currentDomain.length-1]
@@ -204,8 +215,10 @@ function _scaleTimeTrendX( _super,  _config) {
 
             // expand the domain to the right.
             x1.domain( [newDomain[0], maxX])
-            // Grou the range to the right, so we can scroll it slowly to the left.
-            x1.range( [range0, newRangeMax])
+            // Grow the range to the right, so we can scroll it slowly to the left.
+            x1.range( [rangeMin, newRangeMax])
+
+            x1ForAxis.domain( [new Date( newDomain[0].getTime() + translateNew), maxX])
 
             oldMax = maxX
             translateLast = translateNew

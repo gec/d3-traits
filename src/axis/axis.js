@@ -127,7 +127,7 @@
         var xAxisGroup
         var xAxisTranslateX = 0
 
-        var x1 = _super.x1()
+        var x1 = _super.x1ForAxis()
         var xAxis = d3.svg.axis()
             .scale(x1)
 
@@ -147,6 +147,7 @@
                 var maxDate = extent[extent.length-1]
 
                 xAxis.orient('bottom')
+                    .ticks( d3.time.days, 5)
 //                    .tickFormat(d3.time.format('%e')) // %d is 01, 02. %e is \b1, \b2
 
                 xAxisGroup

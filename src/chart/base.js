@@ -50,6 +50,13 @@ function _chartBase( _super, _config) {
     var X1Resized = 'x1Resized'
     var dispatch = d3.dispatch( ChartResized, X1Resized)
 
+    function appendClipPathDef( selected, svgDefs) {
+        selected._chartGroupClipPath = svgDefs.append("clipPath")
+            .attr("id", "chart-group-clip-path")
+        selected._chartGroupClipPathRect = selected._chartGroupClipPath.append("rect")
+            .attr("width", chartWidth)
+            .attr("height", chartHeight)
+    }
 
     function chartBase( _selection) {
         selection = _selection
@@ -71,10 +78,18 @@ function _chartBase( _super, _config) {
                     .classed('chart', true)
                     .attr("width", width)
                     .attr("height", height)
+                this._svgDefs = svg.append("defs")
 
+                appendClipPathDef( this, this._svgDefs)
+
+                // Outer container group for charts, axes, labels, etc.
                 this._container = svg.append('g').classed('container-group', true)
+
+                // Inner container group for actual chart data paths, rectangles, circles, etc.
                 this._chartGroup = this._container.append('g').classed('chart-group', true);
 
+                // Clip all chart innards to chartWidth and chartHeight
+                this._chartGroup.attr("clip-path", "url(#chart-group-clip-path)")
             }
 
             svg.transition()
@@ -83,7 +98,9 @@ function _chartBase( _super, _config) {
             svg.select('.container-group')
                 .attr({transform: 'translate(' + margin.left + ',' + margin.top + ')'});
 
-            duration = 1000;
+            this._chartGroupClipPathRect.attr("width", chartWidth).attr("height", chartHeight)
+
+            duration = 500;
         })
     }
 

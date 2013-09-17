@@ -27,7 +27,7 @@ it('should append svg.chart and g.container-group', function() {
     expect( svgElem.getAttribute( "width")).toBe( "300")
     expect( svgElem.getAttribute( "height")).toBe( "200")
 
-    var containerGroup = svgElem.firstChild
+    var containerGroup = svgElem.childNodes[1]
     expect( containerGroup.tagName).toBe( "g")
     expect( containerGroup.className.baseVal).toBe( "container-group")
 
@@ -37,6 +37,30 @@ it('should append svg.chart and g.container-group', function() {
 
     expect( div._container[0][0]).toBe( containerGroup)
     expect( div._chartGroup[0][0]).toBe( chartGroup)
+});
+
+it('should define a clip path and apply it to chart-group', function() {
+    selection.datum( data)
+        .trait( d3.traits.chart.base)
+    var svgElem = selection.traits[0].svg()[0][0]
+
+    // Clip path defined
+    var defs = svgElem.firstChild
+    expect( defs.tagName).toBe( "defs")
+    var clipPath = defs.firstChild
+    expect( clipPath.tagName).toBe( "clipPath")
+    expect( clipPath.id).toBe( "chart-group-clip-path")
+    var rect = clipPath.firstChild
+    expect( rect.tagName).toBe( "rect")
+    expect( rect.getAttribute( "width")).toBe( "290")
+    expect( rect.getAttribute( "height")).toBe( "190")
+
+    // Clip path applied to chartGroup
+    var containerGroup = svgElem.childNodes[1]
+    var chartGroup = containerGroup.firstChild
+    expect( chartGroup.tagName).toBe( "g")
+    expect( chartGroup.getAttribute( "clip-path")).toBe( "url(#chart-group-clip-path)")
+
 });
 
 it('should get/update width, height, chartWidth and chartHeight', function() {

@@ -82,7 +82,7 @@ function _trendline( _super, _config) {
         // TODO: The x1.range() needs to be wider, so we draw the new line off the right
         // then translate it to the left with a transition animation.
 
-        var translateX = x1(timeLast) - x1( x1.domain()[1])
+          var translateX = x1(timeLast) - x1( x1.domain()[1])
 
         // redraw the line and no transform
         series.attr( "transform", null)
