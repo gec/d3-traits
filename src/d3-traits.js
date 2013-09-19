@@ -102,7 +102,7 @@ function extendObjectNoOverwrite( target, extensions) {
     }
     return target
 }
-function extendTraitsConfig( defaultConfig, config) {
+function extendTraitsConfig( config, defaultConfig) {
     var obj = clone( config)
     if( !obj)
         obj = {}
@@ -118,7 +118,7 @@ function Trait( _traitFunction, config, _super) {
 
     this.getImp = function() { return self.imp}
 
-    config = extendTraitsConfig( this.getBaseConfig(), config)
+    config = extendTraitsConfig( config, this.getBaseConfig())
     self.imp = _traitFunction( _super, config )
     stackTrait( _super, self.imp)
     //self.imp.prototype = Trait.prototype

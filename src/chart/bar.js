@@ -64,10 +64,6 @@ function _chartBar( _super,  _config) {
             // The bar padding is already .1 * bar width. Let's use * 0.4 for better outer padding
             _super.minRangeMarginLeft( "x1", Math.ceil( gapSize / 2 + barW * 0.4 + barW / 2))
 
-            // The xAxis doesn't know we're a bar graph and we want to center the ticks on the bars.
-//            if( 'xAxisTranslateX' in _super)
-//                _super.xAxisTranslateX( barW / 2)
-
             if( !group) {
                 var classes = _config.chartClass ? "chart-bar " + _config.chartClass : 'chart-bar'
                 group = this._chartGroup.append('g').classed( classes, true);

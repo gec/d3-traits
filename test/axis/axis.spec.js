@@ -82,11 +82,11 @@ it('axis.linear should create g.axis-y1', function() {
     var div = selection[0][0]
     var container = div._container[0][0]
 
-    var $yAxisGroup = $(container).children( ".axis-y1")
-    expect($yAxisGroup.size()).toBe( 1)
+    var $axisGroup = $(container).children( ".axis-y1")
+    expect($axisGroup.size()).toBe( 1)
 })
 
-it('axis.month.x should call _super x1, ease, and plusMarginLeft', function() {
+it('axis.time.month should call _super x1, ease, and plusMarginLeft', function() {
     makeChartContainer( selection)
     var _super = {
         x1: makeOrdinalX1,
@@ -101,27 +101,27 @@ it('axis.month.x should call _super x1, ease, and plusMarginLeft', function() {
     spyOn( _super, 'onChartResized').andCallThrough()
     spyOn( _super, 'onRangeMarginChanged').andCallThrough()
 
-    var axis = d3.traits.axis.month.x( _super, {})
+    var axis = d3.traits.axis.time.month( _super, {axis: 'x1'})
     selection.call( axis)
     expect( _super.plusMarginBottom).toHaveBeenCalledWith( 30)
     expect( _super.chartHeight).toHaveBeenCalled()
-    expect( _super.onChartResized).toHaveBeenCalledWith( 'axisMonthX', axis)
-    expect( _super.onRangeMarginChanged).toHaveBeenCalledWith( 'axisMonthX', axis)
+    expect( _super.onChartResized).toHaveBeenCalledWith( 'axisMonth-x1', axis)
+    expect( _super.onRangeMarginChanged).toHaveBeenCalledWith( 'axisMonth-x1', axis)
 })
 
-it('axis.month.x should create g.x-axis-group', function() {
+it('axis.time.month should create g.axis-x1', function() {
 
     selection.datum( data)
         .traitConfig( config)
         .trait( d3.traits.chart.base)
         .trait( d3.traits.scale.ordinal.bars.x)
-        .trait( d3.traits.axis.month.x)
+        .trait( d3.traits.axis.time.month, {axis: 'x1'})
 
     var div = selection[0][0]
     var container = div._container[0][0]
 
-    var $yAxisGroup = $(container).children( ".x-axis-group")
-    expect($yAxisGroup.size()).toBe( 1)
+    var $axisGroup = $(container).children( ".axis-x1")
+    expect($axisGroup.size()).toBe( 1)
 })
 
 

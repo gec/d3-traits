@@ -20,42 +20,75 @@
  */
 (function (d3, traits) {
 
-    function _axisLinear( _super, _config) {
-        var group
-        var axis
-
-        var axisName = _config.axis       // x1, y1, x2, etc.
-        var axisAxis = axisName.charAt(0) // x | y
-        var accessData = _config[axisName]
-
-        var margin = _config.margin || 30
-        if( axisAxis === 'x')
-            _super.plusMarginBottom( margin)
+    function orientFromConfig( axisChar, orient) {
+        if( orient)
+            return orient
         else
-            _super.plusMarginLeft( margin)
+            return axisChar === 'x' ? 'bottom' : 'left'
+    }
+    function axisConfig( config) {
+        var name = config.axis,        // x1, y1, x2, etc.
+            axisChar = name.charAt(0) // x | y
+        return {
+            name: name,
+            axisChar: axisChar,
+            accessData: config[name],
+            axisMargin: config.axisMargin || 30,
+            orient: orientFromConfig( axisChar, config.orient)
+        }
+    }
+
+    function adjustChartMarginForAxis( _super, c) {
+        switch( c.orient) {
+            case 'left': _super.plusMarginLeft( c.axisMargin); break;
+            case 'bottom': _super.plusMarginBottom( c.axisMargin); break;
+            case 'top': _super.plusMarginTop( c.axisMargin); break;
+            case 'right': _super.plusMarginRight( c.axisMargin); break;
+            default:
+        }
+    }
+
+    function axisTransform( _super, c) {
+
+        switch( c.orient) {
+            case 'left': return null;
+            case 'bottom': return 'translate(0,' + _super.chartHeight() + ')';
+            case 'top': return null;
+            case 'right': return 'translate(' + _super.chartWidth() + ')';
+            default:
+                return null;
+        }
+    }
+
+    function _axisLinear( _super, _config) {
+        var group, axis,
+            c = axisConfig( _config)
+
+        adjustChartMarginForAxis( _super, c)
 
         function axisLinear( _selection) {
             _selection.each(function(_data) {
                 var element = this
 
                 if( !group) {
-                    group = this._container.append('g').classed('axis axis-' + axisName, true)
+                    group = this._container.append('g').classed('axis axis-' + c.name, true)
                     axis = d3.svg.axis()
                 }
 
-                axis.scale( _super[axisName]())
-                    .orient('left');
+                axis.scale( _super[c.name]())
+                    .orient( c.orient);
 
                 group
                     .transition()
                     .duration( 500)
                     .ease( _super.ease())
+                    .attr({transform: axisTransform( _super, c)})
                     .call(axis);
             })
         }
 
-        _super.onChartResized( 'axisLinear-' + axisName, axisLinear)
-        _super.onRangeMarginChanged( 'axisLinear-' + axisName, axisLinear)
+        _super.onChartResized( 'axisLinear-' + c.name, axisLinear)
+        _super.onRangeMarginChanged( 'axisLinear-' + c.name, axisLinear)
 
         return axisLinear;
     }
@@ -71,68 +104,61 @@
         });
     }
 
-    function _axisMonthX( _super, _config) {
-        var xAxisGroup
-        var xAxisTranslateX = 0
+    function _axisMonth( _super, _config) {
+        var group, axis,
+            c = axisConfig( _config)
 
-        _super.plusMarginBottom( 30)
+        adjustChartMarginForAxis( _super, c)
 
-        function axisMonthX( _selection) {
+        function axisMonth( _selection) {
             _selection.each(function(_data) {
                 var element = this
 
-                if( !xAxisGroup) {
-                    xAxisGroup = this._container.append('g').classed('x-axis-group axis', true)
+                if( !group) {
+                    group = this._container.append('g').classed('axis axis-' + c.name, true)
+                    axis = d3.svg.axis()
                 }
 
-                var x1 = _super.x1()
+                var scale = _super[c.name]()
 
-                var xAxis = d3.svg.axis()
-                    .scale(x1)
-                    .orient('bottom')
+                axis.scale(scale)
+                    .orient( c.orient )
                     .tickFormat(d3.time.format('%e')) // %d is 01, 02. %e is \b1, \b2
-                    .tickValues( tickValuesForMonthDays( x1))
+                    .tickValues( tickValuesForMonthDays( scale))
 
 
-                xAxisGroup
-                    .transition()
+                group.transition()
                     .duration( 500)
                     .ease( _super.ease())
-                    .attr({transform: 'translate(' + xAxisTranslateX + ',' + _super.chartHeight() + ')'})
-                    .call(xAxis);
+                    .attr({transform: axisTransform( _super, c)})
+                    .call(axis);
 
-                var extension = xAxisGroup.selectAll( "path.axis-extension")
-                    .data( [x1.domain()[0]])
+                var extension = group.selectAll( "path.axis-extension")
+                    .data( [scale.domain()[0]])
 
                 extension.transition()
                     .attr("class", "axis-extension")
                     .attr( "d", function( d) {
-                        return "M0,0L" + x1(d) + ",0";
+                        return "M0,0L" + scale(d) + ",0";
                     })
 
                 extension.enter()
                     .append( "path")
                     .attr("class", "axis-extension")
                     .attr( "d", function( d) {
-                        return "M0,0L" + x1(d) + ",0";
+                        return "M0,0L" + scale(d) + ",0";
                     })
             })
         }
-        axisMonthX.xAxisTranslateX = function(_x) {
-            if (!arguments.length) return xAxisTranslateX;
-            xAxisTranslateX = _x;
-            return this;
-        };
-        _super.onChartResized( 'axisMonthX', axisMonthX)
-        _super.onRangeMarginChanged( 'axisMonthX', axisMonthX)
+        _super.onChartResized( 'axisMonth-' + c.name, axisMonth)
+        _super.onRangeMarginChanged( 'axisMonth-' + c.name, axisMonth)
 
 
-        return axisMonthX;
+        return axisMonth;
     }
 
     function _axisTimeTrendX( _super, _config) {
-        var xAxisGroup
-        var xAxisTranslateX = 0
+        var group
 
         var x1 = _super.x1ForAxis()
         var xAxis = d3.svg.axis()
@@ -145,8 +171,8 @@
             _selection.each(function(_data) {
                 var element = this
 
-                if( !xAxisGroup) {
-                    xAxisGroup = this._container.append('g').classed('x-axis-group axis', true)
+                if( !group) {
+                    group = this._container.append('g').classed('x-axis-group axis', true)
                 }
 
                 var extent = x1.domain()
@@ -157,14 +183,14 @@
                     .ticks( d3.time.days, 5)
 //                    .tickFormat(d3.time.format('%e')) // %d is 01, 02. %e is \b1, \b2
 
-                xAxisGroup
+                group
                     .transition()
                     .duration( _super.duration())
                     .ease( _super.ease())
-                    .attr({transform: 'translate(' + xAxisTranslateX + ',' + _super.chartHeight() + ')'})
+                    .attr({transform: 'translate(0,' + _super.chartHeight() + ')'})
                     .call(xAxis);
 
-                var extension = xAxisGroup.selectAll( "path.axis-extension")
+                var extension = group.selectAll( "path.axis-extension")
                     .data( [minDate])
 
                 extension.transition()
@@ -187,22 +213,12 @@
 //                    .call( xAxis);
             })
         }
-        axisTimeTrendX.axisX1 = function(_x) {
-            if (!arguments.length) return xAxisTranslateX;
-            xAxisTranslateX = _x;
-            return this;
-        };
-        axisTimeTrendX.xAxisTranslateX = function(_x) {
-            if (!arguments.length) return xAxisTranslateX;
-            xAxisTranslateX = _x;
-            return this;
-        };
         axisTimeTrendX.update = function() {
             if( _super.update)
                 _super.update()
 
             // slide the x-axis left for trends
-            xAxisGroup.transition()
+            group.transition()
                 .duration( _super.duration())
                 .ease( "linear")
                 .call( xAxis);
@@ -219,12 +235,11 @@
 
     traits.axis.linear = _axisLinear
 
-    if( ! traits.axis.month)
-        traits.axis.month = {}
-    traits.axis.month.x = _axisMonthX
 
     if( ! traits.axis.time)
         traits.axis.time = {}
+    traits.axis.time.month = _axisMonth
+
     if( ! traits.axis.time.trend)
         traits.axis.time.trend = {}
     traits.axis.time.trend.x = _axisTimeTrendX
