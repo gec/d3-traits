@@ -33,9 +33,9 @@ it('should create g.chart-bar and rect.bar', function() {
         .traitConfig( config)
         .trait( d3.traits.chart.base)
         .trait( d3.traits.scale.ordinal.bars.x)
-        .trait( d3.traits.scale.linear.y)
+        .trait( d3.traits.scale.linear, {axis: 'y1'})
         .trait( d3.traits.chart.bar)
-        //.trait( d3.traits.axis.y)
+        //.trait( d3.traits.axis.linear, {axis: 'y1'})
 
     var div = selection[0][0]
     var chartGroup = div._chartGroup[0][0]

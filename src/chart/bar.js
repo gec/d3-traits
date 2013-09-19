@@ -32,8 +32,6 @@ function _chartBar( _super,  _config) {
     var color = d3.scale.category10()
     var barCount = _config.barCount
 
-    //_super.x1MarginLeft( Math.round( _super.chartWidth() * 0.05))
-
     // TODO: Need to have the scale setup the number of bars.
     // - For time scale, the data is not evenly speaced, so it's the minimum space between data (although very wide bars may not be good either).
     // - For ordinal scale, the data is evenly spaced (always?), so it's the number of elements in the series.
@@ -64,7 +62,7 @@ function _chartBar( _super,  _config) {
             var barW = xBand.rangeBand() - gapSize;
             var barOffsetX = Math.round( gapSize / 2 - barW / 2);
             // The bar padding is already .1 * bar width. Let's use * 0.4 for better outer padding
-            _super.x1MarginLeft( Math.ceil( gapSize / 2 + barW * 0.4 + barW / 2))
+            _super.minRangeMarginLeft( "x1", Math.ceil( gapSize / 2 + barW * 0.4 + barW / 2))
 
             // The xAxis doesn't know we're a bar graph and we want to center the ticks on the bars.
 //            if( 'xAxisTranslateX' in _super)
@@ -132,7 +130,7 @@ function _chartBar( _super,  _config) {
     };
     d3.rebind(chartBar, dispatch, 'on');
     _super.onChartResized( 'chartBar', chartBar)
-    _super.onX1Resized( 'chartBar', chartBar)
+    _super.onRangeMarginChanged( 'chartBar', chartBar)
 
     return chartBar;
 

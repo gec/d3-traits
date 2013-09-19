@@ -57,18 +57,56 @@ function clone( obj) {
     return copy;
 }
 
-function extendObject( obj, extensions) {
-    for (var key in extensions) {
-        if (! obj.hasOwnProperty(key))
-            obj[key] = extensions[key];
+/**
+ * Extend the first object with the properties from the second, third, etc. objects.
+ * Ignore properties that are null or undefined.
+ *
+ * @param target
+ * @param obj, obj, ...
+ * @returns The first object merged with the following objects.
+ */
+function extendObject() {
+    var i, options, key, value,
+        target = arguments[0] || {},
+        length = arguments.length;
+
+    for ( i = 1; i < length; i++ ) {
+        // Ignore non-null/undefined values
+        if ( (options = arguments[ i ]) != null ) {
+            // Extend the target object
+            for ( key in options ) {
+                value = options[key]
+                if( value)
+                    target[key] = value
+            }
+        }
     }
-    return obj
+
+    return target
+}
+
+/**
+ * Extend the first object with the properties from the second.
+ * Do not overwrite any properties of the first object.
+ * Ignore properties that are null or undefined.
+ *
+ * @param target
+ * @param extensions
+ * @returns {*}
+ */
+function extendObjectNoOverwrite( target, extensions) {
+    for (var key in extensions) {
+        if (! target.hasOwnProperty(key))
+            if( extensions[key])
+                target[key] = extensions[key];
+    }
+    return target
 }
 function extendTraitsConfig( defaultConfig, config) {
     var obj = clone( config)
     if( !obj)
         obj = {}
-    return extendObject( obj, defaultConfig)
+    return extendObjectNoOverwrite( obj, defaultConfig)
 }
 
 function Trait( _traitFunction, config, _super) {
@@ -177,5 +215,10 @@ d3.selection.prototype.traitConfig = function( config)
         this._traitsConfig[key] = config[key]
     }
     return this
+}
+
+d3.traits.utils = {
+    clone: clone,
+    extend: extendObject
 }
 }(d3));

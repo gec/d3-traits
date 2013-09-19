@@ -41,7 +41,7 @@ it('scale.ordinal.bars.x should setup domain and range', function() {
     expect( scale.rangeBand()).toEqual( 84)
 });
 
-it('scale.time.x should setup domain and range', function() {
+it('scale.time should setup domain and range', function() {
     // ISO 8601 ex: "2013 07 31"
     var parseDate = d3.time.format("%Y-%m-%d").parse
     var Jan01 = parseDate( "2013-01-01")
@@ -57,7 +57,7 @@ it('scale.time.x should setup domain and range', function() {
     selection.datum( data)
         .traitConfig( config)
         .trait( d3.traits.chart.base)
-        .trait( d3.traits.scale.time.x, { nice: d3.time.month})
+        .trait( d3.traits.scale.time, { axis: 'x1', nice: d3.time.month})
 
     var scale = selection.traits[1].x1()
 
@@ -67,17 +67,17 @@ it('scale.time.x should setup domain and range', function() {
 
 });
 
-it('scale.linear.y should setup domain and range', function() {
+it('scale.linear should setup domain and range', function() {
     selection.datum( data)
         .traitConfig( config)
         .trait( d3.traits.chart.base)
-        .trait( d3.traits.scale.linear.y)
+        .trait( d3.traits.scale.linear, {axis: 'y1'})
 
     var scale = selection.traits[1].y1()
     expect( scale).toBeDefined()
 
     var max = d3.max( data[0], accessY1)
-    expect( scale.domain()).toEqual( [ 0, max])
+    expect( scale.domain()).toEqual( [ 4, max])
     expect( scale.range()).toEqual( [190, 0])
 });
 

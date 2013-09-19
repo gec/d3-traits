@@ -104,12 +104,12 @@ it('should get/update width, height, chartWidth and chartHeight', function() {
     expect( traitInstance.chartHeight()).toBe( 300)
 
 
-//        .trait( d3.traits.scale.linear.y)
+//        .trait( d3.traits.scale.linear, {axis: 'y1'})
 //        .trait( d3.traits.scale.time.x)
 //        .trait( d3.traits.axis.month.x)
 //        .trait( d3.traits.chart.bar, { seriesFilter: function( s, i) { return i == 0} })
 //        .trait( d3.traits.chart.line2)
-//        .trait( d3.traits.axis.y)
+//        .trait( d3.traits.axis.linear, {axis: 'y1'})
 
 });
 it('margin update should effect chartWidth and chartHeight', function() {

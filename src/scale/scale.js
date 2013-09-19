@@ -39,46 +39,53 @@ function _scaleOrdinalBarsX( _super, _config) {
     return scaleOrdinalBarsX;
 }
 
-function _scaleTimeX( _super,  _config) {
-    var x1 = d3.time.scale()
-    if( _config.x1Margin) {
-        if( _config.x1Margin.left)
-            _super.x1MarginLeft( _config.x1Margin.left)
-        if( _config.x1Margin.right)
-            _super.x1MarginRight( _config.x1Margin.right)
-    }
+function _scaleTime( _super,  _config) {
 
-    function scaleTimeX( _selection) {
+    var scaleName = _config.axis
+    var accessData = _config[scaleName]
+    var scale = d3.time.scale()
+
+    _super.minRangeMargin( scaleName, _config.minRangeMargin)
+
+    function scaleTime( _selection) {
         _selection.each(function(_data, i , j) {
             var element = this
 
             // Get array of extents for each series.
-            var extents = _data.map( function(s) { return d3.extent( _config.seriesData(s), _config.x1)})
-            var minX = d3.min( extents, function(e) { return e[0] }) // this minimums of each extent
-            var maxX = d3.max( extents, function(e) { return e[1] }) // the maximums of each extent
-            //var minX = d3.min( _data, function(s) { return d3.min( _config.seriesData(s), _config.x1); })
-            //var maxX = d3.max( _data, function(s) { return d3.max( _config.seriesData(s), _config.x1); })
+            var extents = _data.map( function(s) { return d3.extent( _config.seriesData(s), accessData)})
+            var min = d3.min( extents, function(e) { return e[0] }) // the minimums of each extent
+            var max = d3.max( extents, function(e) { return e[1] }) // the maximums of each extent
+            //var min = d3.min( _data, function(s) { return d3.min( _config.seriesData(s), accessData); })
+            //var max = d3.max( _data, function(s) { return d3.max( _config.seriesData(s), accessData); })
 
-            x1.domain([minX, maxX])
+            scale.domain([min, max])
             if( _config.nice)
-                x1.nice( _config.nice)// start and end on month. Ex Jan 1 00:00 to Feb 1 00:00
-            x1.range([ _super.x1MarginLeft(), _super.chartWidth() - _super.x1MarginRight()])
+                scale.nice( _config.nice)// start and end on month. Ex Jan 1 00:00 to Feb 1 00:00
+            scale.range([ _super.minRangeMarginLeft(), _super.chartWidth() - _super.minRangeMarginRight()])
         })
     }
-    scaleTimeX.x1 = function() {
-        return x1;
+    scaleTime[scaleName] = function() {
+        return scale;
     };
 
-    _super.onChartResized( 'scaleTimeX', scaleTimeX)
-    _super.onX1Resized( 'scaleTimeX', scaleTimeX)
+    _super.onChartResized( 'scaleTime' + scaleName, scaleTime)
+    _super.onRangeMarginChanged( 'scaleTime-' + scaleName, scaleTime)
 
-    return scaleTimeX;
+    return scaleTime;
 }
 
 var TRACKING_NONE = "none"
 var TRACKING_CURRENT_TIME = "current-time"
 var TRACKING_DOMAIN_MAX = "domain-max"
 
+    /**
+     * scale.time.trend.x
+     *
+     * @param _super
+     * @param _config
+     * @returns {Function}
+     * @private
+     */
 function _scaleTimeTrendX( _super,  _config) {
     var ONE_DAY = 1000 * 60 * 60 * 24
     var tracking = _config.tracking || TRACKING_CURRENT_TIME
@@ -128,12 +135,7 @@ function _scaleTimeTrendX( _super,  _config) {
         return [ then, maxX]
     }
 
-    if( _config.x1Margin) {
-        if( _config.x1Margin.left)
-            _super.x1MarginLeft( _config.x1Margin.left)
-        if( _config.x1Margin.right)
-            _super.x1MarginRight( _config.x1Margin.right)
-    }
+    _super.minRangeMargin( "x1", _config.minRangeMargin)
 
     function scaleTimeTrendX( _selection) {
         _selection.each(function(_data, i , j) {
@@ -155,7 +157,7 @@ function _scaleTimeTrendX( _super,  _config) {
             var theDomain = x1.domain()
             oldMax = theDomain[ theDomain.length - 1]
 
-            var theRange = [ _super.x1MarginLeft(), _super.chartWidth() - _super.x1MarginRight()]
+            var theRange = [ _super.minRangeMarginLeft(), _super.chartWidth() - _super.minRangeMarginRight()]
             x1.range( theRange)
 
             x1ForAxis.domain( theDomain)
@@ -196,8 +198,8 @@ function _scaleTimeTrendX( _super,  _config) {
             //x1.domain( makeDomainSpanFromMax())
 
             // Reset the range to the physical chart coordinates.
-            var rangeMin = _super.x1MarginLeft()
-            x1.range([ rangeMin, _super.chartWidth() - _super.x1MarginRight()])
+            var rangeMin = _super.minRangeMarginLeft()
+            x1.range([ rangeMin, _super.chartWidth() - _super.minRangeMarginRight()])
             x1ForAxis.range( x1.range())
 
             var currentDomain = x1.domain()
@@ -230,7 +232,7 @@ function _scaleTimeTrendX( _super,  _config) {
 
 
     _super.onChartResized( 'scaleTimeTrendX', scaleTimeTrendX)
-    _super.onX1Resized( 'scaleTimeTrendX', scaleTimeTrendX)
+    _super.onRangeMarginChanged( 'scaleTimeTrendX', scaleTimeTrendX)
 
     return scaleTimeTrendX;
 }
@@ -240,72 +242,75 @@ function _scaleTimeTrendX( _super,  _config) {
  * @param _super
  * @returns {Function}
  */
-function _scaleLinearY( _super,  _config) {
+function _scaleLinear( _super,  _config) {
 
-    function makeUniqueIndex( prefix) {
-        for( var index = 0; index < 10; index++ ) {
-            var name = prefix + index
-            if( !(name in _super))
-                return index
-        }
-        return undefined
-    }
+//    function makeUniqueIndex( prefix) {
+//        for( var index = 0; index < 10; index++ ) {
+//            var name = prefix + index
+//            if( !(name in _super))
+//                return index
+//        }
+//        return undefined
+//    }
+//
+//    function makeUniqueName( prefix) {
+//        for( var index = 1; index <= 10; index++ ) {
+//            var name = prefix + index
+//            if( !(name in _super))
+//                return name
+//        }
+//        return undefined
+//    }
 
-    function makeUniqueName( prefix) {
-        for( var index = 1; index <= 10; index++ ) {
-            var name = prefix + index
-            if( !(name in _super))
-                return name
-        }
-        return undefined
-    }
-
-    //var scaleIndex = makeUniqueIndex( 'y')
-    //var scaleY = 'y' + scaleIndex
-    var scaleName = makeUniqueName( 'y')
+    var scaleName = _config.axis
+    var accessData = _config[scaleName]
     var scale = d3.scale.linear()
 
-    function scaleLinearY( _selection) {
+    _super.minRangeMargin( _config.axis, _config.minRangeMargin)
+
+
+    function scaleLinear( _selection) {
         _selection.each(function(_data) {
             var element = this
 
-            var maxY = d3.max( _data, function(s) { return d3.max( _config.seriesData(s), _config.y1); })
-            scale.domain([0, maxY])
+            // Get array of extents for each series.
+            var extents = _data.map( function(s) { return d3.extent( _config.seriesData(s), accessData)})
+            var min = d3.min( extents, function(e) { return e[0] }) // the minimums of each extent
+            var max = d3.max( extents, function(e) { return e[1] }) // the maximums of each extent
+            //var max = d3.max( _data, function(s) { return d3.max( _config.seriesData(s), accessData); })
+
+            scale.domain([min, max])
                 .range([_super.chartHeight(), 0]);
         })
     }
-    scaleLinearY[scaleName] = function() {
+    scaleLinear[scaleName] = function() {
         return scale;
     };
-    scaleLinearY.update = function() {
+    scaleLinear.update = function() {
         if( _super.update)
             _super.update()
-//        var maxY = d3.max( _data, function(s) { return d3.max( _config.seriesData(s), _config.y1); })
-//        scale.domain([0, maxY])
+//        var max = d3.max( _data, function(s) { return d3.max( _config.seriesData(s), accessData); })
+//        scale.domain([0, max])
 //            .range([_super.chartHeight(), 0]);
         return this;
     };
 
 
-    _super.onChartResized( scaleName, scaleLinearY)
+    _super.onChartResized( scaleName, scaleLinear)
 
-    return scaleLinearY;
+    return scaleLinear;
 }
 
-if( ! traits.scale.linear)
-    traits.scale.linear = {}
 if( ! traits.scale.ordinal)
     traits.scale.ordinal = {}
 if( ! traits.scale.ordinal.bars)
     traits.scale.ordinal.bars = {}
-if( ! traits.scale.time)
-    traits.scale.time = {}
-if( ! traits.scale.time.trend)
-    traits.scale.time.trend = {}
+if( ! traits.scale.trend)
+    traits.scale.trend = {}
 
-traits.scale.linear.y = _scaleLinearY
+traits.scale.linear = _scaleLinear
 traits.scale.ordinal.bars.x = _scaleOrdinalBarsX
-traits.scale.time.x = _scaleTimeX
-traits.scale.time.trend.x = _scaleTimeTrendX
+traits.scale.time = _scaleTime
+traits.scale.trend.x = _scaleTimeTrendX
 
 }(d3, d3.traits));

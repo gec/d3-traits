@@ -51,38 +51,38 @@ function makeOrdinalX1() {
     return scale
 }
 
-it('axis.y should call _super y1, ease, and plusMarginLeft', function() {
+it('axis.linear should call _super y1, ease, and plusMarginLeft', function() {
     makeChartContainer( selection)
     var _super = {
         y1: makeLinearY1,
         ease: function() { return 'cubic-in-out'},
         plusMarginLeft: function( value) {},
         onChartResized: function() {},
-        onX1Resized: function() {}
+        onRangeMarginChanged: function() {}
     }
     spyOn( _super, 'plusMarginLeft').andCallThrough()
     spyOn( _super, 'onChartResized').andCallThrough()
-    spyOn( _super, 'onX1Resized').andCallThrough()
+    spyOn( _super, 'onRangeMarginChanged').andCallThrough()
 
-    var axis = d3.traits.axis.y( _super, {})
+    var axis = d3.traits.axis.linear( _super, { axis: 'y1'})
     selection.call( axis)
     expect( _super.plusMarginLeft).toHaveBeenCalledWith( 30)
-    expect( _super.onChartResized).toHaveBeenCalledWith( 'axisY', axis)
-    expect( _super.onX1Resized).toHaveBeenCalledWith( 'axisY', axis)
+    expect( _super.onChartResized).toHaveBeenCalledWith( 'axisLinear-y1', axis)
+    expect( _super.onRangeMarginChanged).toHaveBeenCalledWith( 'axisLinear-y1', axis)
 })
 
-it('axis.y should create g.y-axis-group', function() {
+it('axis.linear should create g.axis-y1', function() {
 
     selection.datum( data)
         .traitConfig( config)
         .trait( d3.traits.chart.base)
-        .trait( d3.traits.scale.linear.y)
-        .trait( d3.traits.axis.y)
+        .trait( d3.traits.scale.linear, {axis: 'y1'})
+        .trait( d3.traits.axis.linear, {axis: 'y1'})
 
     var div = selection[0][0]
     var container = div._container[0][0]
 
-    var $yAxisGroup = $(container).children( ".y-axis-group")
+    var $yAxisGroup = $(container).children( ".axis-y1")
     expect($yAxisGroup.size()).toBe( 1)
 })
 
@@ -94,19 +94,19 @@ it('axis.month.x should call _super x1, ease, and plusMarginLeft', function() {
         plusMarginBottom: function( value) {},
         chartHeight: function() {return 190},
         onChartResized: function() {},
-        onX1Resized: function() {}
+        onRangeMarginChanged: function() {}
     }
     spyOn( _super, 'plusMarginBottom').andCallThrough()
     spyOn( _super, 'chartHeight').andCallThrough()
     spyOn( _super, 'onChartResized').andCallThrough()
-    spyOn( _super, 'onX1Resized').andCallThrough()
+    spyOn( _super, 'onRangeMarginChanged').andCallThrough()
 
     var axis = d3.traits.axis.month.x( _super, {})
     selection.call( axis)
     expect( _super.plusMarginBottom).toHaveBeenCalledWith( 30)
     expect( _super.chartHeight).toHaveBeenCalled()
     expect( _super.onChartResized).toHaveBeenCalledWith( 'axisMonthX', axis)
-    expect( _super.onX1Resized).toHaveBeenCalledWith( 'axisMonthX', axis)
+    expect( _super.onRangeMarginChanged).toHaveBeenCalledWith( 'axisMonthX', axis)
 })
 
 it('axis.month.x should create g.x-axis-group', function() {

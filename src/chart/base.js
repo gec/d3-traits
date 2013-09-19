@@ -22,6 +22,8 @@
 
 function _chartBase( _super, _config) {
 
+
+
     var margin = {top: 5, right: 5, bottom: 5, left: 5}
     if( _config.margin) {
         margin.top = _config.margin.top || margin.top
@@ -31,11 +33,59 @@ function _chartBase( _super, _config) {
     }
 
     // Margin for adjusting the x1-scale range
+    // Example: { x1: {left: 5, right: 5} }
     // Without this margin, the outer bars on a bar chart may be half off the chart.
-    var x1Margin = { left: 0, right: 0}
-    if( _config.x1Margin) {
-        x1Margin.left = _config.x1Margin.left || x1Margin.left
-        x1Margin.right = _config.x1Margin.right || x1Margin.right
+    var minRangeMargins = {}
+
+    var MIN_RANGE_MARGIN_DEFAULT = {left: 0, right: 0, top: 0, bottom: 0}
+    function initMinRangeMargin( axis) {
+        if( ! minRangeMargins[axis])
+            minRangeMargins[axis] = traits.utils.clone( MIN_RANGE_MARGIN_DEFAULT)
+    }
+
+    // Whomever needs the largest margins will get their way.
+    // This avoids cyclic events (ex: two traits setting 3 then 4 then 3 ...)
+    function minRangeMargin( axis, rangeMargin) {
+        if( !arguments.length) return {}
+
+        initMinRangeMargin( axis)
+
+        if( arguments.length === 1)
+            return minRangeMargins[axis]
+
+        if( ! rangeMargin)
+            return this
+
+        var m = minRangeMargins[axis],
+            changed = false;
+
+        if( rangeMargin.left && rangeMargin.left < m.left) {
+            m.left = rangeMargin.left
+            changed = true
+        }
+        if( rangeMargin.right && rangeMargin.right < m.right) {
+            m.right = rangeMargin.right
+            changed = true
+        }
+        if( rangeMargin.top && rangeMargin.top < m.top) {
+            m.top = rangeMargin.top
+            changed = true
+        }
+        if( rangeMargin.bottom && rangeMargin.bottom < m.bottom) {
+            m.bottom = rangeMargin.bottom
+            changed = true
+        }
+
+        if( changed)
+            dispatch.rangeMarginChanged()
+
+        return this;
+    }
+
+    if( _config.minRangeMargin) {
+        for( var axis in _config.minRangeMargin) {
+            minRangeMargin( axis, _config.minRangeMargin[ axis])
+        }
     }
 
     var ease = 'cubic-in-out'
@@ -47,8 +97,8 @@ function _chartBase( _super, _config) {
     var svg, select, duration = 0
     var selection
     var ChartResized = 'chartResized'
-    var X1Resized = 'x1Resized'
-    var dispatch = d3.dispatch( ChartResized, X1Resized)
+    var RangeMarginChanged = 'rangeMarginChanged'
+    var dispatch = d3.dispatch( ChartResized, RangeMarginChanged)
 
     function appendClipPathDef( selected, svgDefs) {
         selected._chartGroupClipPath = svgDefs.append("clipPath")
@@ -125,16 +175,6 @@ function _chartBase( _super, _config) {
         height = chartHeight + margin.top + margin.bottom
         if( prev.width !== width || prev.height !== height)
             dispatch.chartResized()
-    }
-
-    function updateX1Margin( left, right) {
-        // Whomever needs the largest margins will get their way.
-        // This avoids cyclic events (ex: two traits setting 3 then 4 then 3 ...)
-        if( x1Margin.left < left || x1Margin.right < right) {
-            x1Margin.left = left
-            x1Margin.right = right
-            dispatch.x1Resized()
-        }
     }
 
     chartBase.svg = function() {
@@ -243,19 +283,31 @@ function _chartBase( _super, _config) {
         })
     }
 
-    chartBase.x1MarginLeft = function(marginLeft) {
-        if (!arguments.length) return x1Margin.left;
-        updateX1Margin( marginLeft, x1Margin.right)
-        return this;
-    };
-    chartBase.x1MarginRight = function(marginRight) {
-        if (!arguments.length) return x1Margin.right;
-        updateX1Margin( x1Margin.left, marginRight)
-        return this;
-    };
+    chartBase.minRangeMargin = minRangeMargin
 
-    chartBase.onX1Resized = function( namespace, traitInstance) {
-        var event = X1Resized
+    chartBase.minRangeMarginLeft = function( axis, marginLeft) {
+        if( !arguments.length) return 0
+        if( arguments.length === 1) return minRangeMargins[axis] ? minRangeMargins[axis].left : 0
+        initMinRangeMargin( axis)
+        if( minRangeMargins[axis].left < marginLeft) {
+            minRangeMargins[axis].left = marginLeft
+            dispatch.rangeMarginChanged()
+        }
+        return this;
+    }
+    chartBase.minRangeMarginRight = function( axis, marginRight) {
+        if( !arguments.length) return 0
+        if( arguments.length === 1) return minRangeMargins[axis] ? minRangeMargins[axis].left : 0
+        initMinRangeMargin( axis)
+        if( minRangeMargins[axis].right < marginRight) {
+            minRangeMargins[axis].right = marginRight
+            dispatch.rangeMarginChanged()
+        }
+        return this;
+    }
+
+    chartBase.onRangeMarginChanged = function( namespace, traitInstance) {
+        var event = RangeMarginChanged
         if( namespace && namespace.length > 0)
             event = event + "." + namespace
         dispatch.on( event, function() {

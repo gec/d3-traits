@@ -20,36 +20,44 @@
  */
 (function (d3, traits) {
 
-    function _axisY( _super, config) {
-        var yAxisGroup
-        var yAxis
+    function _axisLinear( _super, _config) {
+        var group
+        var axis
 
-        _super.plusMarginLeft( 30)
+        var axisName = _config.axis       // x1, y1, x2, etc.
+        var axisAxis = axisName.charAt(0) // x | y
+        var accessData = _config[axisName]
 
-        function axisY( _selection) {
+        var margin = _config.margin || 30
+        if( axisAxis === 'x')
+            _super.plusMarginBottom( margin)
+        else
+            _super.plusMarginLeft( margin)
+
+        function axisLinear( _selection) {
             _selection.each(function(_data) {
                 var element = this
 
-                if( !yAxisGroup) {
-                    yAxisGroup = this._container.append('g').classed('y-axis-group axis', true)
-                    yAxis = d3.svg.axis()
+                if( !group) {
+                    group = this._container.append('g').classed('axis axis-' + axisName, true)
+                    axis = d3.svg.axis()
                 }
 
-                yAxis.scale( _super.y1())
+                axis.scale( _super[axisName]())
                     .orient('left');
 
-                yAxisGroup
+                group
                     .transition()
                     .duration( 500)
                     .ease( _super.ease())
-                    .call(yAxis);
+                    .call(axis);
             })
         }
 
-        _super.onChartResized( 'axisY', axisY)
-        _super.onX1Resized( 'axisY', axisY)
+        _super.onChartResized( 'axisLinear-' + axisName, axisLinear)
+        _super.onRangeMarginChanged( 'axisLinear-' + axisName, axisLinear)
 
-        return axisY;
+        return axisLinear;
     }
 
     function tickValuesForMonthDays( x) {
@@ -116,7 +124,7 @@
             return this;
         };
         _super.onChartResized( 'axisMonthX', axisMonthX)
-        _super.onX1Resized( 'axisMonthX', axisMonthX)
+        _super.onRangeMarginChanged( 'axisMonthX', axisMonthX)
 
 
         return axisMonthX;
@@ -203,13 +211,13 @@
 
 
         _super.onChartResized( 'axisTimeTrendX', axisTimeTrendX)
-        _super.onX1Resized( 'axisTimeTrendX', axisTimeTrendX)
+        _super.onRangeMarginChanged( 'axisTimeTrendX', axisTimeTrendX)
 
 
         return axisTimeTrendX;
     }
 
-    traits.axis.y = _axisY
+    traits.axis.linear = _axisLinear
 
     if( ! traits.axis.month)
         traits.axis.month = {}
