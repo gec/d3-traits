@@ -114,7 +114,7 @@ it('axis.time.month should create g.axis-x1', function() {
     selection.datum( data)
         .traitConfig( config)
         .trait( d3.trait.chart.base)
-        .trait( d3.trait.scale.ordinal.bars.x)
+        .trait( d3.trait.scale.ordinal.bars, {axis: 'x1'})
         .trait( d3.trait.axis.time.month, {axis: 'x1'})
 
     var div = selection[0][0]

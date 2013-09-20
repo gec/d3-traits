@@ -23,11 +23,11 @@ beforeEach(function() {
     selection = d3.select( ".chart-div")
 })
 
-it('scale.ordinal.bars.x should setup domain and range', function() {
+it('scale.ordinal.bars should setup domain and range', function() {
     selection.datum( data)
         .traitConfig( config)
         .trait( d3.trait.chart.base)
-        .trait( d3.trait.scale.ordinal.bars.x)
+        .trait( d3.trait.scale.ordinal.bars, {axis: 'x1'})
 
     var scale = selection.traits[1].x1()
 

@@ -35,7 +35,7 @@ it('should create g.chart-line, g.series, and path.line', function() {
     selection.datum( data)
         .traitConfig( config)
         .trait( d3.trait.chart.base)
-        .trait( d3.trait.scale.ordinal.bars.x)
+        .trait( d3.trait.scale.ordinal.bars, {axis: 'x1'})
         .trait( d3.trait.scale.linear, {axis: 'y1'})
         .trait( d3.trait.chart.line)
         //.trait( d3.trait.axis.linear, {axis: 'y1'})

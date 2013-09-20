@@ -20,23 +20,28 @@
  */
 (function (d3, trait) {
 
-function _scaleOrdinalBarsX( _super, _config) {
-    var x1 = d3.scale.ordinal()
+function _scaleOrdinalBars( _super, _config) {
+    var scaleName = _config.axis,
+        axisChar = scaleName.charAt(0), // x | y
+        accessData = _config[scaleName],
+        scale = d3.scale.ordinal()
 
-    function scaleOrdinalBarsX( _selection) {
+    function scaleOrdinalBars( _selection) {
         _selection.each(function(_data) {
             var element = this
 
+            var rangeMax = axisChar === 'x' ? _super.chartWidth() : _super.chartHeight()
+            scale.rangeRoundBands([0, rangeMax], 0.1)
+
             // Use the first series for the ordinals. TODO: should we merge the series ordinals?
-            var ordinals = _data[0].map( _config.x1)
-            x1.rangeRoundBands([0, _super.chartWidth()], 0.1)
-                .domain( ordinals);
+            var ordinals = _data[0].map( accessData)
+            scale.domain( ordinals);
         })
     }
-    scaleOrdinalBarsX.x1 = function() {
-        return x1;
+    scaleOrdinalBars[scaleName] = function() {
+        return scale;
     };
-    return scaleOrdinalBarsX;
+    return scaleOrdinalBars;
 }
 
 function _scaleTime( _super,  _config) {
@@ -94,12 +99,12 @@ function _scaleTimeTrendX( _super,  _config) {
     function getDomain( config) {
         var result, now, then
 
-        if( _config.domain) {
-            if( Array.isArray( _config.domain)) {
-                result = _config.domain.clone()
+        if( config.domain) {
+            if( Array.isArray( config.domain)) {
+                result = config.domain.clone()
             } else {
                 now = new Date()
-                then = new Date( now.getTime() - _config.domain)
+                then = new Date( now.getTime() - config.domain)
                 result = [ then, now]
             }
         } else {
@@ -126,14 +131,6 @@ function _scaleTimeTrendX( _super,  _config) {
         return [ then, now]
     }
     var theData
-    function makeDomainSpanFromMax() {
-        var last, then, domain
-        var maxX = d3.Max( theData.map( function(s) { return d3.max( _config.seriesData(s), _config.x1)}))
-//        domain = x1.domain()
-//        last = domain[ domain.length - 1]
-        then = new Date( maxX - domainTimeSpan)
-        return [ then, maxX]
-    }
 
     _super.minRangeMargin( "x1", _config.minRangeMargin)
 
@@ -195,7 +192,6 @@ function _scaleTimeTrendX( _super,  _config) {
         if( tracking === TRACKING_CURRENT_TIME)
             x1.domain( makeDomainTimeNow())
         else if( tracking === TRACKING_DOMAIN_MAX) {
-            //x1.domain( makeDomainSpanFromMax())
 
             // Reset the range to the physical chart coordinates.
             var rangeMin = _super.minRangeMarginLeft()
@@ -203,7 +199,6 @@ function _scaleTimeTrendX( _super,  _config) {
             x1ForAxis.range( x1.range())
 
             var currentDomain = x1.domain()
-            //var currentDateMax = currentDomain[currentDomain.length-1]
 
             var maxX = d3.max( theData.map( function(s) { return d3.max( _config.seriesData(s), _config.x1)}))
             var translateNew = maxX.getTime() - oldMax.getTime()
@@ -309,7 +304,7 @@ if( ! trait.scale.trend)
     trait.scale.trend = {}
 
 trait.scale.linear = _scaleLinear
-trait.scale.ordinal.bars.x = _scaleOrdinalBarsX
+trait.scale.ordinal.bars = _scaleOrdinalBars
 trait.scale.time = _scaleTime
 trait.scale.trend.x = _scaleTimeTrendX
 
