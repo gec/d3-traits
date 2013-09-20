@@ -1,5 +1,5 @@
 
-describe('d3.traits.chart.line', function() {
+describe('d3.trait.chart.line', function() {
 
 var chartDiv
 var selection
@@ -26,7 +26,7 @@ beforeEach(function() {
 it('should register with onChartResized', function() {
 
     var _super = jasmine.createSpyObj('_super', ['x1', 'y1', 'onChartResized']);
-    var chartLine = d3.traits.chart.line( _super, {})
+    var chartLine = d3.trait.chart.line( _super, {})
     expect( _super.onChartResized).toHaveBeenCalledWith( 'chartLine', chartLine)
 })
 
@@ -34,11 +34,11 @@ it('should create g.chart-line, g.series, and path.line', function() {
 
     selection.datum( data)
         .traitConfig( config)
-        .trait( d3.traits.chart.base)
-        .trait( d3.traits.scale.ordinal.bars.x)
-        .trait( d3.traits.scale.linear, {axis: 'y1'})
-        .trait( d3.traits.chart.line)
-        //.trait( d3.traits.axis.linear, {axis: 'y1'})
+        .trait( d3.trait.chart.base)
+        .trait( d3.trait.scale.ordinal.bars.x)
+        .trait( d3.trait.scale.linear, {axis: 'y1'})
+        .trait( d3.trait.chart.line)
+        //.trait( d3.trait.axis.linear, {axis: 'y1'})
 
     var div = selection[0][0]
     var chartGroup = div._chartGroup[0][0]

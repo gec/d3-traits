@@ -18,7 +18,7 @@
  *
  * Author: Flint O'Brien
  */
-(function (d3, traits) {
+(function (d3, trait) {
 
 function _scaleOrdinalBarsX( _super, _config) {
     var x1 = d3.scale.ordinal()
@@ -301,16 +301,16 @@ function _scaleLinear( _super,  _config) {
     return scaleLinear;
 }
 
-if( ! traits.scale.ordinal)
-    traits.scale.ordinal = {}
-if( ! traits.scale.ordinal.bars)
-    traits.scale.ordinal.bars = {}
-if( ! traits.scale.trend)
-    traits.scale.trend = {}
+if( ! trait.scale.ordinal)
+    trait.scale.ordinal = {}
+if( ! trait.scale.ordinal.bars)
+    trait.scale.ordinal.bars = {}
+if( ! trait.scale.trend)
+    trait.scale.trend = {}
 
-traits.scale.linear = _scaleLinear
-traits.scale.ordinal.bars.x = _scaleOrdinalBarsX
-traits.scale.time = _scaleTime
-traits.scale.trend.x = _scaleTimeTrendX
+trait.scale.linear = _scaleLinear
+trait.scale.ordinal.bars.x = _scaleOrdinalBarsX
+trait.scale.time = _scaleTime
+trait.scale.trend.x = _scaleTimeTrendX
 
-}(d3, d3.traits));
+}(d3, d3.trait));

@@ -1,5 +1,5 @@
 
-describe('d3.traits.scale', function() {
+describe('d3.trait.scale', function() {
 
 var chartDiv
 var selection
@@ -26,8 +26,8 @@ beforeEach(function() {
 it('scale.ordinal.bars.x should setup domain and range', function() {
     selection.datum( data)
         .traitConfig( config)
-        .trait( d3.traits.chart.base)
-        .trait( d3.traits.scale.ordinal.bars.x)
+        .trait( d3.trait.chart.base)
+        .trait( d3.trait.scale.ordinal.bars.x)
 
     var scale = selection.traits[1].x1()
 
@@ -56,8 +56,8 @@ it('scale.time should setup domain and range', function() {
 
     selection.datum( data)
         .traitConfig( config)
-        .trait( d3.traits.chart.base)
-        .trait( d3.traits.scale.time, { axis: 'x1', nice: d3.time.month})
+        .trait( d3.trait.chart.base)
+        .trait( d3.trait.scale.time, { axis: 'x1', nice: d3.time.month})
 
     var scale = selection.traits[1].x1()
 
@@ -70,8 +70,8 @@ it('scale.time should setup domain and range', function() {
 it('scale.linear should setup domain and range', function() {
     selection.datum( data)
         .traitConfig( config)
-        .trait( d3.traits.chart.base)
-        .trait( d3.traits.scale.linear, {axis: 'y1'})
+        .trait( d3.trait.chart.base)
+        .trait( d3.trait.scale.linear, {axis: 'y1'})
 
     var scale = selection.traits[1].y1()
     expect( scale).toBeDefined()

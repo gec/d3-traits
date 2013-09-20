@@ -1,5 +1,5 @@
 
-describe('d3.traits.axis', function() {
+describe('d3.trait.axis', function() {
 
 var chartDiv
 var selection
@@ -64,7 +64,7 @@ it('axis.linear should call _super y1, ease, and plusMarginLeft', function() {
     spyOn( _super, 'onChartResized').andCallThrough()
     spyOn( _super, 'onRangeMarginChanged').andCallThrough()
 
-    var axis = d3.traits.axis.linear( _super, { axis: 'y1'})
+    var axis = d3.trait.axis.linear( _super, { axis: 'y1'})
     selection.call( axis)
     expect( _super.plusMarginLeft).toHaveBeenCalledWith( 30)
     expect( _super.onChartResized).toHaveBeenCalledWith( 'axisLinear-y1', axis)
@@ -75,9 +75,9 @@ it('axis.linear should create g.axis-y1', function() {
 
     selection.datum( data)
         .traitConfig( config)
-        .trait( d3.traits.chart.base)
-        .trait( d3.traits.scale.linear, {axis: 'y1'})
-        .trait( d3.traits.axis.linear, {axis: 'y1'})
+        .trait( d3.trait.chart.base)
+        .trait( d3.trait.scale.linear, {axis: 'y1'})
+        .trait( d3.trait.axis.linear, {axis: 'y1'})
 
     var div = selection[0][0]
     var container = div._container[0][0]
@@ -101,7 +101,7 @@ it('axis.time.month should call _super x1, ease, and plusMarginLeft', function()
     spyOn( _super, 'onChartResized').andCallThrough()
     spyOn( _super, 'onRangeMarginChanged').andCallThrough()
 
-    var axis = d3.traits.axis.time.month( _super, {axis: 'x1'})
+    var axis = d3.trait.axis.time.month( _super, {axis: 'x1'})
     selection.call( axis)
     expect( _super.plusMarginBottom).toHaveBeenCalledWith( 30)
     expect( _super.chartHeight).toHaveBeenCalled()
@@ -113,9 +113,9 @@ it('axis.time.month should create g.axis-x1', function() {
 
     selection.datum( data)
         .traitConfig( config)
-        .trait( d3.traits.chart.base)
-        .trait( d3.traits.scale.ordinal.bars.x)
-        .trait( d3.traits.axis.time.month, {axis: 'x1'})
+        .trait( d3.trait.chart.base)
+        .trait( d3.trait.scale.ordinal.bars.x)
+        .trait( d3.trait.axis.time.month, {axis: 'x1'})
 
     var div = selection[0][0]
     var container = div._container[0][0]

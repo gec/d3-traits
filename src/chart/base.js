@@ -18,7 +18,7 @@
  *
  * Author: Flint O'Brien
  */
-(function (d3, traits) {
+(function (d3, trait) {
 
 function _chartBase( _super, _config) {
 
@@ -40,7 +40,7 @@ function _chartBase( _super, _config) {
     var MIN_RANGE_MARGIN_DEFAULT = {left: 0, right: 0, top: 0, bottom: 0}
     function initMinRangeMargin( axis) {
         if( ! minRangeMargins[axis])
-            minRangeMargins[axis] = traits.utils.clone( MIN_RANGE_MARGIN_DEFAULT)
+            minRangeMargins[axis] = trait.utils.clone( MIN_RANGE_MARGIN_DEFAULT)
     }
 
     // Whomever needs the largest margins will get their way.
@@ -322,6 +322,6 @@ function _chartBase( _super, _config) {
 //if( ! traits.chart)
 //    traits.chart = {}
 
-traits.chart.base = _chartBase
+trait.chart.base = _chartBase
 
-}(d3, d3.traits));
+}(d3, d3.trait));

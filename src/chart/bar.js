@@ -18,7 +18,7 @@
  *
  * Author: Flint O'Brien
  */
-(function (d3, traits) {
+(function (d3, trait) {
 
 function _chartBar( _super,  _config) {
     // Store the group element here so we can have multiple bar charts in one chart.
@@ -132,6 +132,6 @@ function _chartBar( _super,  _config) {
 
 }
 
-traits.chart.bar = _chartBar
+trait.chart.bar = _chartBar
 
-}(d3, d3.traits));
+}(d3, d3.trait));

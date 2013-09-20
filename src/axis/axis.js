@@ -18,7 +18,7 @@
  *
  * Author: Flint O'Brien
  */
-(function (d3, traits) {
+(function (d3, trait) {
 
     function orientFromConfig( axisChar, orient) {
         if( orient)
@@ -233,15 +233,15 @@
         return axisTimeTrendX;
     }
 
-    traits.axis.linear = _axisLinear
+    trait.axis.linear = _axisLinear
 
 
-    if( ! traits.axis.time)
-        traits.axis.time = {}
-    traits.axis.time.month = _axisMonth
+    if( ! trait.axis.time)
+        trait.axis.time = {}
+    trait.axis.time.month = _axisMonth
 
-    if( ! traits.axis.time.trend)
-        traits.axis.time.trend = {}
-    traits.axis.time.trend.x = _axisTimeTrendX
+    if( ! trait.axis.time.trend)
+        trait.axis.time.trend = {}
+    trait.axis.time.trend.x = _axisTimeTrendX
 
-}(d3, d3.traits));
+}(d3, d3.trait));

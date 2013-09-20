@@ -18,7 +18,7 @@
  *
  * Author: Flint O'Brien
  */
-(function (d3, traits) {
+(function (d3, trait) {
 
 function _trendline( _super, _config) {
     // Store the group element here so we can have multiple line charts in one chart.
@@ -112,6 +112,6 @@ function _trendline( _super, _config) {
 
 }
 
-traits.chart.trendline = _trendline
+trait.chart.trendline = _trendline
 
-}(d3, d3.traits));
+}(d3, d3.trait));

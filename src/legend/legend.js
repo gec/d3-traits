@@ -18,7 +18,7 @@
  *
  * Author: Flint O'Brien
  */
-(function (d3, traits) {
+(function (d3, trait) {
 
 function _legendSeries( _super, _config) {
     // Store the group element here so we can have multiple line charts in one chart.
@@ -123,8 +123,8 @@ function _legendSeries( _super, _config) {
 
 }
 
-if( ! traits.legend)
-    traits.legend = {}
-traits.legend.series = _legendSeries
+if( ! trait.legend)
+    trait.legend = {}
+trait.legend.series = _legendSeries
 
-}(d3, d3.traits));
+}(d3, d3.trait));

@@ -1,5 +1,5 @@
 
-describe('d3.traits.chart.base', function() {
+describe('d3.trait.chart.base', function() {
 
 var chartDiv
 var selection
@@ -16,7 +16,7 @@ beforeEach(function() {
 
 it('should append svg.chart and g.container-group', function() {
     selection.datum( data)
-        .trait( d3.traits.chart.base)
+        .trait( d3.trait.chart.base)
     var div = selection[0][0]
     expect( div.tagName).toBe( "DIV")
     expect( div.firstChild.tagName).toBe( "svg")
@@ -41,7 +41,7 @@ it('should append svg.chart and g.container-group', function() {
 
 it('should define a clip path and apply it to chart-group', function() {
     selection.datum( data)
-        .trait( d3.traits.chart.base)
+        .trait( d3.trait.chart.base)
     var svgElem = selection.traits[0].svg()[0][0]
 
     // Clip path defined
@@ -66,7 +66,7 @@ it('should define a clip path and apply it to chart-group', function() {
 it('should get/update width, height, chartWidth and chartHeight', function() {
 
     selection.datum( data)
-        .trait( d3.traits.chart.base)
+        .trait( d3.trait.chart.base)
     var traitInstance = selection.traits[0]
 
     var chartResizedCount = 0
@@ -104,18 +104,18 @@ it('should get/update width, height, chartWidth and chartHeight', function() {
     expect( traitInstance.chartHeight()).toBe( 300)
 
 
-//        .trait( d3.traits.scale.linear, {axis: 'y1'})
-//        .trait( d3.traits.scale.time.x)
-//        .trait( d3.traits.axis.month.x)
-//        .trait( d3.traits.chart.bar, { seriesFilter: function( s, i) { return i == 0} })
-//        .trait( d3.traits.chart.line2)
-//        .trait( d3.traits.axis.linear, {axis: 'y1'})
+//        .trait( d3.trait.scale.linear, {axis: 'y1'})
+//        .trait( d3.trait.scale.time.x)
+//        .trait( d3.trait.axis.month.x)
+//        .trait( d3.trait.chart.bar, { seriesFilter: function( s, i) { return i == 0} })
+//        .trait( d3.trait.chart.line2)
+//        .trait( d3.trait.axis.linear, {axis: 'y1'})
 
 });
 it('margin update should effect chartWidth and chartHeight', function() {
 
     selection.datum( data)
-        .trait( d3.traits.chart.base)
+        .trait( d3.trait.chart.base)
     var traitInstance = selection.traits[0]
 
     var chartResizedCount = 0

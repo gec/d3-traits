@@ -1,5 +1,5 @@
 
-describe('d3.traits.chart.bar', function() {
+describe('d3.trait.chart.bar', function() {
 
 var chartDiv
 var selection
@@ -31,11 +31,11 @@ it('should create g.chart-bar and rect.bar', function() {
 
     selection.datum( data)
         .traitConfig( config)
-        .trait( d3.traits.chart.base)
-        .trait( d3.traits.scale.ordinal.bars.x)
-        .trait( d3.traits.scale.linear, {axis: 'y1'})
-        .trait( d3.traits.chart.bar)
-        //.trait( d3.traits.axis.linear, {axis: 'y1'})
+        .trait( d3.trait.chart.base)
+        .trait( d3.trait.scale.ordinal.bars.x)
+        .trait( d3.trait.scale.linear, {axis: 'y1'})
+        .trait( d3.trait.chart.bar)
+        //.trait( d3.trait.axis.linear, {axis: 'y1'})
 
     var div = selection[0][0]
     var chartGroup = div._chartGroup[0][0]

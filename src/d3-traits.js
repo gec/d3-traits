@@ -27,13 +27,6 @@ Array.prototype.clone = function() {
     return this.slice(0);
 };
 
-// Export traits to d3
-d3.traits = {
-    chart: {},
-    scale: {},
-    axis: {}
-}
-
 /**
  * Copy all the properties for the super to the new trait.
  * @param superTrait
@@ -156,11 +149,6 @@ Trait.prototype = {
 }
 Trait.prototype.constructor = Trait
 
-function traitsTrait( trait, config) {
-    return new Trait( trait, config).getImp()
-}
-d3.traits.trait = traitsTrait
-
 d3.selection.prototype.trait = function( trait, config)
 {
     if( Array.isArray( trait) ) {
@@ -217,8 +205,19 @@ d3.selection.prototype.traitConfig = function( config)
     return this
 }
 
-d3.traits.utils = {
+function trait( aTrait, config) {
+    return new Trait( aTrait, config).getImp()
+}
+
+// Export traits to d3
+d3.trait = trait
+d3.trait.chart = {}
+d3.trait.scale = {}
+d3.trait.axis = {}
+
+d3.trait.utils = {
     clone: clone,
     extend: extendObject
 }
+
 }(d3));
