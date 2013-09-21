@@ -100,12 +100,15 @@
         var everyDate = d3.time.day.range(minDate, maxDate);
         return everyDate.filter(function (d, i) {
             var date = d.getDate()
-            return date === 1 || date % 5 === 0;
+            //return date === 1 || date % 5 === 0;
+            return date % 5 === 0;
         });
     }
 
     function _axisMonth( _super, _config) {
-        var group, axis,
+        var group, lastDomainMax,
+            axis = d3.svg.axis(),
+            scaleForUpdate = d3.time.scale(),
             c = axisConfig( _config)
 
         adjustChartMarginForAxis( _super, c)
@@ -116,15 +119,24 @@
 
                 if( !group) {
                     group = this._container.append('g').classed('axis axis-' + c.name, true)
-                    axis = d3.svg.axis()
                 }
 
                 var scale = _super[c.name]()
+                var domain = scale.domain()
+
+                scaleForUpdate.range( scale.range())
+                scaleForUpdate.domain( scale.domain())
+                    .nice( d3.time.day)
+
+                scale = scaleForUpdate
+
 
                 axis.scale(scale)
                     .orient( c.orient )
                     .tickFormat(d3.time.format('%e')) // %d is 01, 02. %e is \b1, \b2
-                    .tickValues( tickValuesForMonthDays( scale))
+                    //.tickValues( tickValuesForMonthDays( scale))
+                    .ticks( 15)
+                    //.tickSubdivide(4)
 
 
                 group.transition()
@@ -134,7 +146,7 @@
                     .call(axis);
 
                 var extension = group.selectAll( "path.axis-extension")
-                    .data( [scale.domain()[0]])
+                    .data( [domain[0]])
 
                 extension.transition()
                     .attr("class", "axis-extension")
@@ -148,8 +160,41 @@
                     .attr( "d", function( d) {
                         return "M0,0L" + scale(d) + ",0";
                     })
+                lastDomainMax = d3.trait.utils.extentMax( domain)
+
             })
         }
+//        function pd( d) {
+//            var m, day
+//            m = d.getMonth() + 1
+//            day = d.getDate()
+//            return "" + m + "-" + day
+//        }
+
+        axisMonth.update = function() {
+            if( _super.update)
+                _super.update()
+
+            var scale2 = _super[c.name]()
+            scaleForUpdate.range( d3.trait.utils.getChartRange( _super, c.name))
+
+            var domain = scale2.domain()
+            var domainMax = d3.trait.utils.extentMax( domain)
+            var delta = domainMax.getTime() - lastDomainMax.getTime()
+            var min = new Date( domain[0].getTime() + delta)
+            scaleForUpdate.domain( [min, domainMax])
+            lastDomainMax = domainMax
+
+//            console.log( "axis.update domain [min, domMax]: " + pd( min) + " " + pd( domainMax))
+
+            // slide the x-axis left for trends
+            group.transition()
+                .duration( _super.duration())
+                .ease( "linear")
+                .call( axis);
+            return this;
+        }
+
         _super.onChartResized( 'axisMonth-' + c.name, axisMonth)
         _super.onRangeMarginChanged( 'axisMonth-' + c.name, axisMonth)
 
@@ -157,81 +202,6 @@
         return axisMonth;
     }
 
-    function _axisTimeTrendX( _super, _config) {
-        var group
-
-        var x1 = _super.x1ForAxis()
-        var xAxis = d3.svg.axis()
-            .scale(x1)
-
-        _super.plusMarginBottom( 30)
-
-
-        function axisTimeTrendX( _selection) {
-            _selection.each(function(_data) {
-                var element = this
-
-                if( !group) {
-                    group = this._container.append('g').classed('x-axis-group axis', true)
-                }
-
-                var extent = x1.domain()
-                var minDate = extent[0]
-                var maxDate = extent[extent.length-1]
-
-                xAxis.orient('bottom')
-                    .ticks( d3.time.days, 5)
-//                    .tickFormat(d3.time.format('%e')) // %d is 01, 02. %e is \b1, \b2
-
-                group
-                    .transition()
-                    .duration( _super.duration())
-                    .ease( _super.ease())
-                    .attr({transform: 'translate(0,' + _super.chartHeight() + ')'})
-                    .call(xAxis);
-
-                var extension = group.selectAll( "path.axis-extension")
-                    .data( [minDate])
-
-                extension.transition()
-                    .attr("class", "axis-extension")
-                    .attr( "d", function( d) {
-                        return "M0,0L" + x1(d) + ",0";
-                    })
-
-                extension.enter()
-                    .append( "path")
-                    .attr("class", "axis-extension")
-                    .attr( "d", function( d) {
-                        return "M0,0L" + x1(d) + ",0";
-                    })
-
-                // slide the x-axis left for tends
-//                xAxisGroup.transition()
-//                    .duration( _super.duration())
-//                    .ease( "linear")
-//                    .call( xAxis);
-            })
-        }
-        axisTimeTrendX.update = function() {
-            if( _super.update)
-                _super.update()
-
-            // slide the x-axis left for trends
-            group.transition()
-                .duration( _super.duration())
-                .ease( "linear")
-                .call( xAxis);
-            return this;
-        };
-
-
-        _super.onChartResized( 'axisTimeTrendX', axisTimeTrendX)
-        _super.onRangeMarginChanged( 'axisTimeTrendX', axisTimeTrendX)
-
-
-        return axisTimeTrendX;
-    }
 
     trait.axis.linear = _axisLinear
 
@@ -239,9 +209,5 @@
     if( ! trait.axis.time)
         trait.axis.time = {}
     trait.axis.time.month = _axisMonth
-
-    if( ! trait.axis.time.trend)
-        trait.axis.time.trend = {}
-    trait.axis.time.trend.x = _axisTimeTrendX
 
 }(d3, d3.trait));

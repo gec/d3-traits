@@ -33,11 +33,7 @@ function _trendline( _super, _config) {
         .y(function(d) { return y1( _config.y1(d)); });
 
     var color = d3.scale.category10()
-    var timeLast
-
-    function getTimeLastFromDomain( domain) {
-        return domain[ domain.length - 1]
-    }
+    var lastDomainMax
 
     var dispatch = d3.dispatch('customHover');
     function trendline( _selection) {
@@ -72,7 +68,7 @@ function _trendline( _super, _config) {
                     .attr("d", function(d) { return line( _config.seriesData(d)); })
                     .style("stroke", function(d, i) { return color(i); });
 
-            timeLast = getTimeLastFromDomain( x1.domain())
+            lastDomainMax = d3.trait.utils.extentMax( x1.domain())
         })
     }
     trendline.update = function() {
@@ -82,7 +78,8 @@ function _trendline( _super, _config) {
         // TODO: The x1.range() needs to be wider, so we draw the new line off the right
         // then translate it to the left with a transition animation.
 
-          var translateX = x1(timeLast) - x1( x1.domain()[1])
+        var domainMax = d3.trait.utils.extentMax( x1.domain())
+        var translateX = x1(lastDomainMax) - x1( domainMax)
 
         // redraw the line and no transform
         series.attr( "transform", null)
@@ -97,7 +94,7 @@ function _trendline( _super, _config) {
             .attr("transform", "translate(" + translateX + ")")
             //.each("end", tick);
 
-        timeLast = getTimeLastFromDomain( x1.domain())
+        lastDomainMax = d3.trait.utils.extentMax( x1.domain())
 
         // pop the data off the front (off the left side of chart)
 

@@ -20,6 +20,182 @@
  */
 (function (d3, trait) {
 
+var TRACKING_NONE = "none"
+
+// Force domain to follow current wall-time (i.e. domain max = current time).
+var TRACKING_CURRENT_TIME = "current-time"
+
+// Force domain to follow latest date in data (i.e. domain max = _data.max().
+var TRACKING_DOMAIN_MAX = "domain-max"
+
+
+var timeIntervals = [
+    d3.time.second,
+    d3.time.minute,
+    d3.time.hour,
+    d3.time.day,
+    d3.time.week,
+    d3.time.month,
+    d3.time.year
+]
+function isTimeInterval( d) { return timeIntervals.indexOf( d) >= 0 }
+
+function getMillisFromDomain( domain) { return domain[ domain.length-1].getTime() - domain[0].getTime() }
+
+function makeAccessorsFromConfig( config, axisName) {
+    return {
+        series: config.seriesData,
+        data: config[axisName]
+    }
+}
+
+/**
+ * Return an object with interval and count or null
+ *
+ * { interval: d3.time.minute,
+ *   intervalCount: 15
+ * }
+ *
+ * @param config  {interval: d3.time.interval, intervalCount: 1}
+ * @returns null or {interval: d3.time.interval, count: number}
+ */
+function makeIntervalFromConfig( config) {
+
+    return ! config.interval ? null
+        : {
+            interval: config.interval,
+            count: config.intervalCount || 1
+        }
+}
+
+function calculateDomainFromData( data, access) {
+    var extents, min, max
+
+    // Get array of extents for each series.
+    extents = data.map( function(s) { return d3.extent( access.series(s), access.data)})
+    min = d3.min( extents, function(e) { return e[0] }) // the minimums of each extent
+    max = d3.max( extents, function(e) { return e[1] }) // the maximums of each extent
+    //var min = d3.min( data, function(s) { return d3.min( _config.seriesData(s), accessData); })
+    //var max = d3.max( data, function(s) { return d3.max( _config.seriesData(s), accessData); })
+
+    return [min, max]
+}
+
+function maxFromData( data, access) {
+    return d3.max( data.map( function(s) { return d3.max( access.series(s), access.data)}))
+}
+
+/**
+ *
+ *
+ *
+ * @param domainConfig Config object with domain, interval, tracking
+ * @param data The chart data
+ * @param access object containing series, data
+ * @returns {*}
+ */
+function getDomain( domainConfig, data, access) {
+    var min, max, dataDomain
+
+    // if domainConfig.domain is specified, it trumps other configs
+    if( domainConfig.domain)
+        return domainConfig.domain
+
+    if( domainConfig.tracking === TRACKING_CURRENT_TIME) {
+        max = new Date()
+        min = domainConfig.interval.interval.offset( max, 0 - domainConfig.interval.count)
+        return [min, max]
+    }
+
+    // TODO: on some updates, we don't need to calculate min. use maxFromData
+    dataDomain = calculateDomainFromData( data, access)
+
+    if( domainConfig.interval) {
+
+        // tracking is domain-max or none. In either case, since a time interval
+        // is specified, we'll do domain-max
+        //
+        max = dataDomain[ dataDomain.length - 1]
+        min = domainConfig.interval.interval.offset( max, 0 - domainConfig.interval.count)
+        return [min, max]
+
+    } else {
+
+        return dataDomain
+    }
+
+}
+
+//function pd( d) {
+//    var m, day
+//    m = d.getMonth() + 1
+//    day = d.getDate()
+//    return "" + m + "-" + day
+//}
+
+
+// 1. reset the range to chart dimensions
+// 2. get new max from data or date now
+// 3. domainTranslateNew = max - oldMax
+// 4. newDomain = shift domain by domainTranslateLast
+// 5. newRangeMax = scale( max)
+// 6. domain = [newDomain[0], max]
+// 7. extend range to newRangeMax
+// 8. save oldMax and domainTranslateLast
+//
+function updateScale( scale, range, domainConfig, data, access) {
+    var min, max, dataDomain, oldDomain, oldMax, newRangeMax
+
+    scale.range( range)
+
+    // if domainConfig.domain is specified, it trumps other configs
+    if( domainConfig.domain) {
+        scale.domain( domainConfig.domain)
+        return
+    }
+
+    oldDomain = scale.domain()
+    oldMax = oldDomain[ oldDomain.length - 1]
+
+
+    if( domainConfig.tracking === TRACKING_CURRENT_TIME) {
+        max = new Date()
+        min = domainConfig.interval.interval.offset( max, 0 - domainConfig.interval.count)
+    } else {
+
+        if( domainConfig.interval) {
+
+            // tracking is domain-max or none. In either case, since a time interval
+            // is specified, we'll do domain-max
+            //
+
+            max = maxFromData( data, access)
+
+            // The scale is translated off to the left.
+            // Reset domain with oldMax to get rid of the part not visible.
+            min = domainConfig.interval.interval.offset( oldMax, 0 - domainConfig.interval.count)
+            scale.domain( [min, oldMax])
+            //console.log( "updateScale domain [min, oldMax]: " + pd( min) + " " + pd( oldMax))
+
+            newRangeMax = scale( max)
+
+            // Expand the domain to the right with the new max.
+            min = domainConfig.interval.interval.offset( max, 0 - domainConfig.interval.count)
+            scale.domain( [min, max])
+            //console.log( "updateScale domain [min,    max]: " + pd(min) + " " + pd( max) + " end")
+            // Expand the range to the right, so we can scroll it slowly to the left.
+            scale.range( [range[0], newRangeMax])
+
+        } else {
+            dataDomain = calculateDomainFromData( data, access)
+            scale.domain( dataDomain)
+        }
+    }
+
+
+}
+
+
 function _scaleOrdinalBars( _super, _config) {
     var scaleName = _config.axis,
         axisChar = scaleName.charAt(0), // x | y
@@ -46,138 +222,44 @@ function _scaleOrdinalBars( _super, _config) {
 
 function _scaleTime( _super,  _config) {
 
-    var scaleName = _config.axis
-    var accessData = _config[scaleName]
-    var scale = d3.time.scale()
+    var scaleName = _config.axis,
+        axisChar = scaleName.charAt(0 ),
+        access = makeAccessorsFromConfig( _config, scaleName ),
+        domainConfig = {
+            domain: _config.domain,
+            interval: makeIntervalFromConfig( _config),
+            tracking: _config.tracking
+        },
+        scale = d3.time.scale(),
+        theData
+    ;
 
     _super.minRangeMargin( scaleName, _config.minRangeMargin)
 
+    function getChartRange( name) {
+        if( d3.trait.utils.isX( name))
+            return [ _super.minRangeMarginLeft( name), _super.chartWidth() - _super.minRangeMarginRight( name)]
+        else
+            return [ _super.minRangeMarginTop( name), _super.chartHeight() - _super.minRangeMarginBottom( name)]
+    }
+
     function scaleTime( _selection) {
         _selection.each(function(_data, i , j) {
-            var element = this
+            var currentDomain,
+                element = this
+            theData = _data // TODO: store this in each selection.
 
-            // Get array of extents for each series.
-            var extents = _data.map( function(s) { return d3.extent( _config.seriesData(s), accessData)})
-            var min = d3.min( extents, function(e) { return e[0] }) // the minimums of each extent
-            var max = d3.max( extents, function(e) { return e[1] }) // the maximums of each extent
-            //var min = d3.min( _data, function(s) { return d3.min( _config.seriesData(s), accessData); })
-            //var max = d3.max( _data, function(s) { return d3.max( _config.seriesData(s), accessData); })
+            scale.domain( getDomain( domainConfig, _data, access))
 
-            scale.domain([min, max])
+            // TODO: nice overlaps wth interval. Maybe it's one or the other?
             if( _config.nice)
-                scale.nice( _config.nice)// start and end on month. Ex Jan 1 00:00 to Feb 1 00:00
-            scale.range([ _super.minRangeMarginLeft(), _super.chartWidth() - _super.minRangeMarginRight()])
+                scale.nice( _config.nice) // start and end on month. Ex Jan 1 00:00 to Feb 1 00:00
+            scale.range( d3.trait.utils.getChartRange( _super, scaleName))
         })
     }
     scaleTime[scaleName] = function() {
         return scale;
-    };
-
-    _super.onChartResized( 'scaleTime' + scaleName, scaleTime)
-    _super.onRangeMarginChanged( 'scaleTime-' + scaleName, scaleTime)
-
-    return scaleTime;
-}
-
-var TRACKING_NONE = "none"
-var TRACKING_CURRENT_TIME = "current-time"
-var TRACKING_DOMAIN_MAX = "domain-max"
-
-    /**
-     * scale.time.trend.x
-     *
-     * @param _super
-     * @param _config
-     * @returns {Function}
-     * @private
-     */
-function _scaleTimeTrendX( _super,  _config) {
-    var ONE_DAY = 1000 * 60 * 60 * 24
-    var tracking = _config.tracking || TRACKING_CURRENT_TIME
-    var oldMax, translateLast = 0
-
-    function getDomain( config) {
-        var result, now, then
-
-        if( config.domain) {
-            if( Array.isArray( config.domain)) {
-                result = config.domain.clone()
-            } else {
-                now = new Date()
-                then = new Date( now.getTime() - config.domain)
-                result = [ then, now]
-            }
-        } else {
-            now = new Date()
-            then = new Date( now.getTime() - ONE_DAY)
-            result = [ then, now]
-        }
-        return result
     }
-
-    var x1 = d3.time.scale()
-        .domain( getDomain( _config))
-        .nice( d3.time.day)
-    var x1ForAxis = d3.time.scale()
-        .domain( x1.domain())
-        .nice( d3.time.day)
-    function getTimeSpanFromDomain( domain) { return domain[ domain.length-1].getTime() - domain[0].getTime() }
-    var domainTimeSpan = getTimeSpanFromDomain( x1.domain())
-
-    function makeDomainTimeNow() {
-        var now, then
-        now = new Date()
-        then = new Date( now.getTime() - domainTimeSpan)
-        return [ then, now]
-    }
-    var theData
-
-    _super.minRangeMargin( "x1", _config.minRangeMargin)
-
-    function scaleTimeTrendX( _selection) {
-        _selection.each(function(_data, i , j) {
-            var element = this
-            theData = _data
-
-            if( tracking === TRACKING_CURRENT_TIME)
-                x1.domain( makeDomainTimeNow())
-            else if( tracking === TRACKING_DOMAIN_MAX) {
-                // Get array of extents for each series.
-                var extents = _data.map( function(s) { return d3.extent( _config.seriesData(s), _config.x1)})
-                var minX = d3.min( extents, function(e) { return e[0] }) // this minimums of each extent
-                var maxX = d3.max( extents, function(e) { return e[1] }) // the maximums of each extent
-
-                minX = new Date( maxX - domainTimeSpan)
-                x1.domain([minX, maxX])
-
-            }
-            var theDomain = x1.domain()
-            oldMax = theDomain[ theDomain.length - 1]
-
-            var theRange = [ _super.minRangeMarginLeft(), _super.chartWidth() - _super.minRangeMarginRight()]
-            x1.range( theRange)
-
-            x1ForAxis.domain( theDomain)
-            x1ForAxis.range( theRange)
-        })
-    }
-    scaleTimeTrendX.x1 = function() {
-        return x1;
-    };
-    scaleTimeTrendX.x1ForAxis = function() {
-        return x1ForAxis;
-    };
-    scaleTimeTrendX.x1Tracking = function( track) {
-        if (!arguments.length) return tracking;
-        tracking = track;
-        return this;
-    };
-
-    scaleTimeTrendX.x1TimeSpan= function( span) {
-        if (!arguments.length) return domainTimeSpan;
-        domainTimeSpan = span;
-        return this;
-    };
 
     function shiftExtentMin( extent, translate) {
         var r0 = new Date( extent[0].getTime() + translate)
@@ -185,52 +267,27 @@ function _scaleTimeTrendX( _super,  _config) {
         return [r0, r1]
     }
 
-    var firsty = true;
-    scaleTimeTrendX.update = function() {
+    scaleTime.update = function() {
+
         if( _super.update)
             _super.update()
-        if( tracking === TRACKING_CURRENT_TIME)
-            x1.domain( makeDomainTimeNow())
-        else if( tracking === TRACKING_DOMAIN_MAX) {
 
-            // Reset the range to the physical chart coordinates.
-            var rangeMin = _super.minRangeMarginLeft()
-            x1.range([ rangeMin, _super.chartWidth() - _super.minRangeMarginRight()])
-            x1ForAxis.range( x1.range())
+        // Reset the range to the physical chart coordinates. We'll use this range to
+        // calculate newRangeMax below, then we'll extend the range to that.
+        var range = d3.trait.utils.getChartRange( _super, scaleName)
 
-            var currentDomain = x1.domain()
-
-            var maxX = d3.max( theData.map( function(s) { return d3.max( _config.seriesData(s), _config.x1)}))
-            var translateNew = maxX.getTime() - oldMax.getTime()
-
-            // The domain was shifted via translate, but now the translate will be null.
-            // We need to shift the domain the same amount as the last translate.
-            var newDomain = shiftExtentMin( currentDomain, translateLast)
-            x1.domain( newDomain)
-            var newRangeMax = x1( maxX)
-
-
-            // expand the domain to the right.
-            x1.domain( [newDomain[0], maxX])
-            // Grow the range to the right, so we can scroll it slowly to the left.
-            x1.range( [rangeMin, newRangeMax])
-
-            x1ForAxis.domain( [new Date( newDomain[0].getTime() + translateNew), maxX])
-
-            oldMax = maxX
-            translateLast = translateNew
-
-        }
+        updateScale( scale, range, domainConfig, theData, access)
 
         return this;
     };
 
 
-    _super.onChartResized( 'scaleTimeTrendX', scaleTimeTrendX)
-    _super.onRangeMarginChanged( 'scaleTimeTrendX', scaleTimeTrendX)
+    _super.onChartResized( 'scaleTime' + scaleName, scaleTime)
+    _super.onRangeMarginChanged( 'scaleTime-' + scaleName, scaleTime)
 
-    return scaleTimeTrendX;
+    return scaleTime;
 }
+
 
 /**
  * Each time this trait is stacked it produces an addition yScale (ex: y1, y2, ... y10)
@@ -298,14 +355,9 @@ function _scaleLinear( _super,  _config) {
 
 if( ! trait.scale.ordinal)
     trait.scale.ordinal = {}
-if( ! trait.scale.ordinal.bars)
-    trait.scale.ordinal.bars = {}
-if( ! trait.scale.trend)
-    trait.scale.trend = {}
 
 trait.scale.linear = _scaleLinear
 trait.scale.ordinal.bars = _scaleOrdinalBars
 trait.scale.time = _scaleTime
-trait.scale.trend.x = _scaleTimeTrendX
 
 }(d3, d3.trait));

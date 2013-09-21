@@ -41,7 +41,32 @@ var stackTrait = function(superTrait, newTrait) {
     }
 };
 
-function clone( obj) {
+/**
+ * Is this an x scale, axis, etc.
+ * @param scaleName  'x1', 'x2', etc.
+ * @returns {boolean}
+ */
+function isX( scaleName) { return scaleName.charAt(0) === 'x'}
+
+/**
+ * Is this a y scale, axis, etc.
+ * @param scaleName  'y1', 'y2', etc.
+ * @returns {boolean}
+ */
+function isY( scaleName) { return scaleName.charAt(0) === 'y'}
+
+function extentMax( extent) { return extent[ extent.length - 1] }
+
+function getChartRange( _super, name) {
+    if( d3.trait.utils.isX( name))
+        return [ _super.minRangeMarginLeft( name), _super.chartWidth() - _super.minRangeMarginRight( name)]
+    else
+        return [ _super.minRangeMarginTop( name), _super.chartHeight() - _super.minRangeMarginBottom( name)]
+}
+
+
+
+    function clone( obj) {
     if (null == obj || "object" !== typeof obj) return obj;
     var copy = obj.constructor();
     for (var attr in obj) {
@@ -217,7 +242,11 @@ d3.trait.axis = {}
 
 d3.trait.utils = {
     clone: clone,
-    extend: extendObject
+    extend: extendObject,
+    isX: isX,
+    isY: isY,
+    extentMax: extentMax,
+    getChartRange: getChartRange
 }
 
 }(d3));

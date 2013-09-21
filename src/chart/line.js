@@ -23,17 +23,14 @@
 function _chartLine( _super, _config) {
     // Store the group element here so we can have multiple line charts in one chart.
     // A second "line chart" might have a different y-axis, style or orientation.
-    var group
-
-    var x1 = _super.x1()
-    var y1 = _super.y1()
-    var line = d3.svg.line()
-        .interpolate( _config.interpolate || "linear")
-        .x(function(d) { return x1( _config.x1(d)); })
-        .y(function(d) { return y1( _config.y1(d)); });
-
-    var color = d3.scale.category10()
-
+    var group, series, lastDomainMax,
+        x1 = _super.x1(),
+        y1 = _super.y1(),
+        color = d3.scale.category10(),
+        line = d3.svg.line()
+            .interpolate( _config.interpolate || "linear")
+            .x(function(d) { return x1( _config.x1(d)); })
+            .y(function(d) { return y1( _config.y1(d)); });
 
     var dispatch = d3.dispatch('customHover');
     function chartLine( _selection) {
@@ -50,7 +47,7 @@ function _chartLine( _super, _config) {
             color.domain( filtered)
 
             // DATA JOIN
-            var series = group.selectAll( ".series")
+            series = group.selectAll( ".series")
                 .data( filtered)
 
             // UPDATE
@@ -67,8 +64,39 @@ function _chartLine( _super, _config) {
                     .attr("class", "line")
                     .attr("d", function(d) { return line( _config.seriesData(d)); })
                     .style("stroke", function(d, i) { return color(i); });
+
+            lastDomainMax = d3.trait.utils.extentMax( x1.domain())
         })
     }
+    chartLine.update = function() {
+        if( _super.update)
+            _super.update()
+
+        // TODO: The x1.range() needs to be wider, so we draw the new line off the right
+        // then translate it to the left with a transition animation.
+
+        var domainMax = d3.trait.utils.extentMax( x1.domain())
+        var translateX = x1(lastDomainMax) - x1( domainMax)
+
+        // redraw the line and no transform
+        series.attr( "transform", null)
+        series.selectAll("path")
+            .attr("d", function(d) { return line( _config.seriesData(d)); })
+
+
+        // slide the line left
+        series.transition()
+            .duration( _super.duration())
+            .ease("linear")
+            .attr("transform", "translate(" + translateX + ")")
+        //.each("end", tick);
+
+        lastDomainMax = d3.trait.utils.extentMax( x1.domain())
+
+        // Could pop the data off the front (off the left side of chart)
+
+        return this;
+    };
 
     d3.rebind(chartLine, dispatch, 'on');
     _super.onChartResized( 'chartLine', chartLine)

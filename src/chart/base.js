@@ -305,6 +305,26 @@ function _chartBase( _super, _config) {
         }
         return this;
     }
+    chartBase.minRangeMarginTop = function( axis, marginTop) {
+        if( !arguments.length) return 0
+        if( arguments.length === 1) return minRangeMargins[axis] ? minRangeMargins[axis].top : 0
+        initMinRangeMargin( axis)
+        if( minRangeMargins[axis].top < marginTop) {
+            minRangeMargins[axis].top = marginTop
+            dispatch.rangeMarginChanged()
+        }
+        return this;
+    }
+    chartBase.minRangeMarginBottom = function( axis, marginBottom) {
+        if( !arguments.length) return 0
+        if( arguments.length === 1) return minRangeMargins[axis] ? minRangeMargins[axis].bottom : 0
+        initMinRangeMargin( axis)
+        if( minRangeMargins[axis].bottom < marginBottom) {
+            minRangeMargins[axis].bottom = marginBottom
+            dispatch.rangeMarginChanged()
+        }
+        return this;
+    }
 
     chartBase.onRangeMarginChanged = function( namespace, traitInstance) {
         var event = RangeMarginChanged
