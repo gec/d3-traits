@@ -49,7 +49,7 @@ it('should define a clip path and apply it to chart-group', function() {
     expect( defs.tagName).toBe( "defs")
     var clipPath = defs.firstChild
     expect( clipPath.tagName).toBe( "clipPath")
-    expect( clipPath.id).toBe( "chart-group-clip-path")
+    expect( clipPath.id).toMatch( /chart-group-clip-path/)
     var rect = clipPath.firstChild
     expect( rect.tagName).toBe( "rect")
     expect( rect.getAttribute( "width")).toBe( "290")
@@ -59,7 +59,7 @@ it('should define a clip path and apply it to chart-group', function() {
     var containerGroup = svgElem.childNodes[1]
     var chartGroup = containerGroup.firstChild
     expect( chartGroup.tagName).toBe( "g")
-    expect( chartGroup.getAttribute( "clip-path")).toBe( "url(#chart-group-clip-path)")
+    expect( chartGroup.getAttribute( "clip-path")).toMatch( /chart-group-clip-path/)
 
 });
 

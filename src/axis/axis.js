@@ -62,7 +62,8 @@
 
     function _axisLinear( _super, _config) {
         var group, axis,
-            c = axisConfig( _config)
+            c = axisConfig( _config ),
+            scale = _super[c.name]()  // ex: x1()
 
         adjustChartMarginForAxis( _super, c)
 
@@ -75,7 +76,7 @@
                     axis = d3.svg.axis()
                 }
 
-                axis.scale( _super[c.name]())
+                axis.scale( scale)
                     .orient( c.orient);
 
                 group
@@ -109,7 +110,9 @@
         var group, lastDomainMax,
             axis = d3.svg.axis(),
             scaleForUpdate = d3.time.scale(),
-            c = axisConfig( _config)
+            c = axisConfig( _config ),
+            scale = _super[c.name]()
+
 
         adjustChartMarginForAxis( _super, c)
 
@@ -121,7 +124,6 @@
                     group = this._container.append('g').classed('axis axis-' + c.name, true)
                 }
 
-                var scale = _super[c.name]()
                 var domain = scale.domain()
 
                 scaleForUpdate.range( scale.range())
@@ -134,8 +136,8 @@
                 axis.scale(scale)
                     .orient( c.orient )
                     .tickFormat(d3.time.format('%e')) // %d is 01, 02. %e is \b1, \b2
+                    //.ticks( 15)
                     //.tickValues( tickValuesForMonthDays( scale))
-                    .ticks( 15)
                     //.tickSubdivide(4)
 
 

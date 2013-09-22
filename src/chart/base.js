@@ -20,6 +20,9 @@
  */
 (function (d3, trait) {
 
+var chartGroupClipPathNextId = 1
+
+
 function _chartBase( _super, _config) {
 
 
@@ -101,11 +104,16 @@ function _chartBase( _super, _config) {
     var dispatch = d3.dispatch( ChartResized, RangeMarginChanged)
 
     function appendClipPathDef( selected, svgDefs) {
+        var pathId = "chart-group-clip-path-" + chartGroupClipPathNextId
+
         selected._chartGroupClipPath = svgDefs.append("clipPath")
-            .attr("id", "chart-group-clip-path")
+            .attr("id", pathId )
         selected._chartGroupClipPathRect = selected._chartGroupClipPath.append("rect")
             .attr("width", chartWidth)
             .attr("height", chartHeight)
+
+        chartGroupClipPathNextId ++
+        return pathId
     }
 
     function chartBase( _selection) {
@@ -130,7 +138,7 @@ function _chartBase( _super, _config) {
                     .attr("height", height)
                 this._svgDefs = svg.append("defs")
 
-                appendClipPathDef( this, this._svgDefs)
+                var clipId = appendClipPathDef( this, this._svgDefs)
 
                 // Outer container group for charts, axes, labels, etc.
                 this._container = svg.append('g').classed('container-group', true)
@@ -139,7 +147,7 @@ function _chartBase( _super, _config) {
                 this._chartGroup = this._container.append('g').classed('chart-group', true);
 
                 // Clip all chart innards to chartWidth and chartHeight
-                this._chartGroup.attr("clip-path", "url(#chart-group-clip-path)")
+                this._chartGroup.attr("clip-path", "url(#" + clipId + ")")
             }
 
             svg.transition()

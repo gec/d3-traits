@@ -236,12 +236,6 @@ function _scaleTime( _super,  _config) {
 
     _super.minRangeMargin( scaleName, _config.minRangeMargin)
 
-    function getChartRange( name) {
-        if( d3.trait.utils.isX( name))
-            return [ _super.minRangeMarginLeft( name), _super.chartWidth() - _super.minRangeMarginRight( name)]
-        else
-            return [ _super.minRangeMarginTop( name), _super.chartHeight() - _super.minRangeMarginBottom( name)]
-    }
 
     function scaleTime( _selection) {
         _selection.each(function(_data, i , j) {
@@ -260,13 +254,11 @@ function _scaleTime( _super,  _config) {
     scaleTime[scaleName] = function() {
         return scale;
     }
-
-    function shiftExtentMin( extent, translate) {
-        var r0 = new Date( extent[0].getTime() + translate)
-        var r1 = extent[ extent.length - 1]  // don't translate
-        return [r0, r1]
+    scaleTime[scaleName + 'Domain'] = function( newDomain) {
+        domainConfig.domain = newDomain
+        scale.domain( newDomain)
+        // TODO: domain update event?
     }
-
     scaleTime.update = function() {
 
         if( _super.update)

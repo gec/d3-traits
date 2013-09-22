@@ -123,8 +123,6 @@ function _legendSeries( _super, _config) {
 
 }
 
-if( ! trait.legend)
-    trait.legend = {}
 trait.legend.series = _legendSeries
 
 }(d3, d3.trait));

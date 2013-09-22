@@ -239,6 +239,8 @@ d3.trait = trait
 d3.trait.chart = {}
 d3.trait.scale = {}
 d3.trait.axis = {}
+d3.trait.legend = {}
+d3.trait.control = {}
 
 d3.trait.utils = {
     clone: clone,
