@@ -136,13 +136,13 @@ function Trait( _traitFunction, config, _super) {
 
     this.getImp = function() { return self.imp}
 
-    config = extendTraitsConfig( config, this.getBaseConfig())
+    config = extendTraitsConfig( config, this.__getRoot()._config)
     self.imp = _traitFunction( _super, config )
     stackTrait( _super, self.imp)
     //self.imp.prototype = Trait.prototype
     self.imp.call = Trait.prototype.call
     self.imp.trait = Trait.prototype.trait
-    self.imp.getBaseConfig = Trait.prototype.getBaseConfig
+    self.imp.__getRoot = Trait.prototype.__getRoot
     self.imp._super = _super
     self.imp._config = config
 }
@@ -156,16 +156,19 @@ Trait.prototype = {
         return imp
     },
 
-    getBaseConfig: function() {
+    __getRoot: function() {
         if( this._super)
-            return this._super.getBaseConfig()
+            return this._super.__getRoot()
         else
-            return this._config
+            return this
     },
 
-    call: function( _selection) {
+    call: function( _selection, leafTrait) {
+        if( ! leafTrait)
+            leafTrait = this
+        this.__leafTrait = leafTrait
         if( this._super)
-            this._super.call( _selection)
+            this._super.call( _selection, leafTrait)
         _selection.call( this)
         return this
     }

@@ -70,6 +70,7 @@ it('axis.linear should call _super y1, ease, and plusMarginLeft', function() {
     var _super = {
         y1: makeLinearY1,
         ease: function() { return 'cubic-in-out'},
+        plusMarginTop: function( value) {},
         plusMarginLeft: function( value) {},
         onChartResized: function() {},
         onRangeMarginChanged: function() {}

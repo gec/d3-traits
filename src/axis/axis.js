@@ -26,6 +26,13 @@
         else
             return axisChar === 'x' ? 'bottom' : 'left'
     }
+
+    /**
+     * extentTicks: T: ticks on each extent. Overrides ticks.
+     * ticks: Approximate number of ticks
+     * @param config
+     * @returns {{name: (*|Function|d3.trait.axis|d3.trait.axis|Function|Function), axisChar: string, accessData: *, axisMargin: (*|number), orient: *, ticks: (*|Function|Function|Function|Function|Function|Function|Function|Function|Function|Function|Function|Function|Function|Function|Function|Function|Function|Function|Function|null), extentTicks: (*|boolean)}}
+     */
     function axisConfig( config) {
         var name = config.axis,        // x1, y1, x2, etc.
             axisChar = name.charAt(0) // x | y
@@ -34,16 +41,26 @@
             axisChar: axisChar,
             accessData: config[name],
             axisMargin: config.axisMargin || 30,
-            orient: orientFromConfig( axisChar, config.orient)
+            orient: orientFromConfig( axisChar, config.orient),
+            ticks: config.ticks,
+            extentTicks: config.extentTicks || false,
+            tickSize: config.tickSize,
+            tickPadding: config.tickPadding
         }
     }
 
     function adjustChartMarginForAxis( _super, c) {
         switch( c.orient) {
-            case 'left': _super.plusMarginLeft( c.axisMargin); break;
+            case 'left':
+                _super.plusMarginTop( 2) // Make room for top extent label
+                _super.plusMarginLeft( c.axisMargin)
+                break;
             case 'bottom': _super.plusMarginBottom( c.axisMargin); break;
             case 'top': _super.plusMarginTop( c.axisMargin); break;
-            case 'right': _super.plusMarginRight( c.axisMargin); break;
+            case 'right':
+                _super.plusMarginTop( 2) // Make room for top extent label
+                _super.plusMarginRight( c.axisMargin);
+                break;
             default:
         }
     }
@@ -60,6 +77,30 @@
         }
     }
 
+    function applyTickConfig( axis, scale, c) {
+        if( c.extentTicks)
+            axis.tickValues( scale.domain())
+        else if( c.ticks)
+            axis.ticks( c.ticks)
+
+        if( c.tickSize)
+            axis.tickSize( c.tickSize)
+        if( c.tickPadding)
+            axis.tickPadding( c.tickPadding)
+    }
+
+    /**
+     *
+     * config.ticks
+     *  ticks(d3.time.years) -- tick every year for time scale
+     *  tickValues(x.domain())
+     *  tickSubdivide(9) -- 10 subticks per tick
+     *  tickSubdivide(9).tickSize(6, 3, 10) -- 10 (smaller) subticks and longer start/end ticks
+     * @param _super
+     * @param _config
+     * @returns {Function}
+     * @private
+     */
     function _axisLinear( _super, _config) {
         var group, axis,
             c = axisConfig( _config ),
@@ -76,8 +117,9 @@
                     axis = d3.svg.axis()
                 }
 
-                axis.scale( scale)
-                    .orient( c.orient);
+                axis.scale( scale )
+                    .orient( c.orient)
+                applyTickConfig( axis, scale, c)
 
                 group
                     .transition()
