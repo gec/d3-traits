@@ -68,7 +68,7 @@ function makeIntervalFromConfig( config) {
         }
 }
 
-function calculateDomainFromData( data, access) {
+function extentFromData( data, access) {
     var extents, min, max
 
     // Get array of extents for each series.
@@ -83,6 +83,59 @@ function calculateDomainFromData( data, access) {
 
 function maxFromData( data, access) {
     return d3.max( data.map( function(s) { return d3.max( access.series(s), access.data)}))
+}
+
+// trendDomain: { interval: d3.time.month, count: 1 }
+// trendDomain: { interval: milliseconds, count: 1 }
+function getTrendMin( max, trendDomain) {
+    var min,
+        count = trendDomain.count || 1
+
+    if( isTimeInterval( trendDomain.interval))
+        min = trendDomain.interval.offset( max, 0 - count)
+    else if( max instanceof Date)
+        min = max.getTime() - (trendDomain.interval * count)
+    else
+        min = max - (trendDomain.interval * count)
+
+    return min
+}
+
+/**
+ * { track: "domain-max", domain: { interval: d3.time.month, count: 1 } }
+ * @param trend
+ * @param data
+ * @param access
+ * @returns {*}
+ */
+function getDomainTrend( trend, data, access) {
+    var min, max, domain
+
+    if( trend.track === TRACKING_CURRENT_TIME) {
+
+        max = new Date()
+        min = getTrendMin( max, trend.domain)
+        domain = [min, max]
+
+    } else {
+
+        // assume TRACKING_DOMAIN_MAX
+
+        if( trend.domain && trend.domain.interval) {
+
+            // tracking is domain-max or none. In either case, since a time interval
+            // is specified, we'll do domain-max
+            //
+            max = maxFromData( data, access)
+            min = getTrendMin( max, trend.domain)
+            domain = [min, max]
+
+        } else {
+
+            domain = extentFromData( data, access)
+        }
+    }
+    return domain
 }
 
 /**
@@ -101,29 +154,14 @@ function getDomain( domainConfig, data, access) {
     if( domainConfig.domain)
         return domainConfig.domain
 
-    if( domainConfig.tracking === TRACKING_CURRENT_TIME) {
-        max = new Date()
-        min = domainConfig.interval.interval.offset( max, 0 - domainConfig.interval.count)
-        return [min, max]
-    }
+    var domain
 
-    // TODO: on some updates, we don't need to calculate min. use maxFromData
-    dataDomain = calculateDomainFromData( data, access)
+    if( domainConfig.trend)
+        domain = getDomainTrend( domainConfig, data, access)
+    else
+        domain = extentFromData( data, access)
 
-    if( domainConfig.interval) {
-
-        // tracking is domain-max or none. In either case, since a time interval
-        // is specified, we'll do domain-max
-        //
-        max = dataDomain[ dataDomain.length - 1]
-        min = domainConfig.interval.interval.offset( max, 0 - domainConfig.interval.count)
-        return [min, max]
-
-    } else {
-
-        return dataDomain
-    }
-
+    return domain
 }
 
 //function pd( d) {
@@ -157,41 +195,49 @@ function updateScale( scale, range, domainConfig, data, access) {
     oldDomain = scale.domain()
     oldMax = oldDomain[ oldDomain.length - 1]
 
+    if( domainConfig.trend) {
+        var trend = domainConfig.trend
 
-    if( domainConfig.tracking === TRACKING_CURRENT_TIME) {
-        max = new Date()
-        min = domainConfig.interval.interval.offset( max, 0 - domainConfig.interval.count)
-    } else {
+        if( trend.track === TRACKING_CURRENT_TIME) {
 
-        if( domainConfig.interval) {
-
-            // tracking is domain-max or none. In either case, since a time interval
-            // is specified, we'll do domain-max
-            //
-
-            max = maxFromData( data, access)
-
-            // The scale is translated off to the left.
-            // Reset domain with oldMax to get rid of the part not visible.
-            min = domainConfig.interval.interval.offset( oldMax, 0 - domainConfig.interval.count)
-            scale.domain( [min, oldMax])
-            //console.log( "updateScale domain [min, oldMax]: " + pd( min) + " " + pd( oldMax))
-
-            newRangeMax = scale( max)
-
-            // Expand the domain to the right with the new max.
-            min = domainConfig.interval.interval.offset( max, 0 - domainConfig.interval.count)
+            max = new Date()
+            min = getTrendMin( max, trend.domain)
             scale.domain( [min, max])
-            //console.log( "updateScale domain [min,    max]: " + pd(min) + " " + pd( max) + " end")
-            // Expand the range to the right, so we can scroll it slowly to the left.
-            scale.range( [range[0], newRangeMax])
 
         } else {
-            dataDomain = calculateDomainFromData( data, access)
-            scale.domain( dataDomain)
-        }
-    }
+            if( trend.domain && trend.domain.interval) {
 
+                // track is domain-max or none. In either case, since a time interval
+                // is specified, we'll do domain-max
+                //
+
+                max = maxFromData( data, access)
+
+                // The scale is translated off to the left.
+                // Reset domain with oldMax to get rid of the part not visible.
+                min = getTrendMin( oldMax, trend.domain)
+                scale.domain( [min, oldMax])
+                //console.log( "updateScale domain [min, oldMax]: " + pd( min) + " " + pd( oldMax))
+
+                newRangeMax = scale( max)
+
+                // Expand the domain to the right with the new max.
+                min = getTrendMin( max, trend.domain)
+                scale.domain( [min, max])
+                //console.log( "updateScale domain [min,    max]: " + pd(min) + " " + pd( max) + " end")
+                // Expand the range to the right, so we can scroll it slowly to the left.
+                scale.range( [range[0], newRangeMax])
+
+            } else {
+                dataDomain = extentFromData( data, access)
+                scale.domain( dataDomain)
+            }
+        }
+
+    } else {
+        dataDomain = extentFromData( data, access)
+        scale.domain( dataDomain)
+    }
 
 }
 
@@ -227,8 +273,7 @@ function _scaleTime( _super,  _config) {
         access = makeAccessorsFromConfig( _config, scaleName ),
         domainConfig = {
             domain: _config.domain,
-            interval: makeIntervalFromConfig( _config),
-            tracking: _config.tracking
+            trend: _config.trend
         },
         scale = d3.time.scale(),
         theData
