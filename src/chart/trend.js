@@ -71,9 +71,9 @@ function _trendline( _super, _config) {
             lastDomainMax = d3.trait.utils.extentMax( x1.domain())
         })
     }
-    trendline.update = function() {
+    trendline.update = function( type, duration) {
         if( _super.update)
-            _super.update()
+            _super.update( type, duration)
 
         // TODO: The x1.range() needs to be wider, so we draw the new line off the right
         // then translate it to the left with a transition animation.

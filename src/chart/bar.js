@@ -118,9 +118,9 @@ function _chartBar( _super,  _config) {
 
         })
     }
-    chartBar.update = function() {
+    chartBar.update = function( type, duration) {
         if( _super.update)
-            _super.update()
+            _super.update( type, duration)
 
         // TODO: The x1.range() needs to be wider, so we draw the new line off the right
         // then translate it to the left with a transition animation.
@@ -146,12 +146,17 @@ function _chartBar( _super,  _config) {
             .remove();
 
 
-        // slide the line left
-        series.transition()
-            .duration( _super.duration())
-            .ease("linear")
-            .attr("transform", "translate(" + translateX + ")")
-        //.each("end", tick);
+        // slide the bars left
+        if( duration === 0) {
+            series.attr("transform", "translate(" + translateX + ")")
+        } else {
+
+            series.transition()
+                .duration( duration || _super.duration())
+                .ease("linear")
+                .attr("transform", "translate(" + translateX + ")")
+            //.each("end", tick);
+        }
 
         lastDomainMax = d3.trait.utils.extentMax( x1.domain())
 

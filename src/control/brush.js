@@ -47,7 +47,7 @@ function _controlBrush( _super, _config) {
         var extent = brush.empty() ? scale.domain() : brush.extent()
         target[ targetAxis + "Domain"]( extent)
         //targetScale.domain( extent);
-        target.update( "brushed")
+        target.update( "domain", 0)
 //        focus.select("path").attr("d", area);
 //        focus.select(".x.axis").call(xAxis);
     }
@@ -72,9 +72,9 @@ function _controlBrush( _super, _config) {
 
         })
     }
-    controlBrush.update = function() {
+    controlBrush.update = function( type, duration) {
         if( _super.update)
-            _super.update()
+            _super.update( type, duration)
 
         return this;
     };

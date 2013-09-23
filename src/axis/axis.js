@@ -215,9 +215,9 @@
 //            return "" + m + "-" + day
 //        }
 
-        axisMonth.update = function() {
+        axisMonth.update = function( type, duration) {
             if( _super.update)
-                _super.update()
+                _super.update( type, duration)
 
             var scale2 = _super[c.name]()
             scaleForUpdate.range( d3.trait.utils.getChartRange( _super, c.name))
@@ -232,10 +232,14 @@
 //            console.log( "axis.update domain [min, domMax]: " + pd( min) + " " + pd( domainMax))
 
             // slide the x-axis left for trends
-            group.transition()
-                .duration( _super.duration())
-                .ease( "linear")
-                .call( axis);
+            if( duration === 0) {
+                group.call( axis);
+            } else {
+                group.transition()
+                    .duration( duration || _super.duration())
+                    .ease( "linear")
+                    .call( axis);
+            }
             return this;
         }
 

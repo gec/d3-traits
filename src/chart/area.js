@@ -70,9 +70,9 @@ function _chartArea( _super, _config) {
             lastDomainMax = d3.trait.utils.extentMax( x1.domain())
         })
     }
-    chartArea.update = function() {
+    chartArea.update = function( type, duration) {
         if( _super.update)
-            _super.update()
+            _super.update( type, duration)
 
         // TODO: The x1.range() needs to be wider, so we draw the new area off the right
         // then translate it to the left with a transition animation.
@@ -87,11 +87,16 @@ function _chartArea( _super, _config) {
 
 
         // slide the area left
-        series.transition()
-            .duration( _super.duration())
-            .ease("linear")
-            .attr("transform", "translate(" + translateX + ")")
-        //.each("end", tick);
+        if( duration === 0) {
+            series.attr("transform", "translate(" + translateX + ")")
+        } else {
+
+            series.transition()
+                .duration( duration || _super.duration())
+                .ease("linear")
+                .attr("transform", "translate(" + translateX + ")")
+            //.each("end", tick);
+        }
 
         lastDomainMax = d3.trait.utils.extentMax( x1.domain())
 

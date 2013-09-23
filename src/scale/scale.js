@@ -304,10 +304,10 @@ function _scaleTime( _super,  _config) {
         scale.domain( newDomain)
         // TODO: domain update event?
     }
-    scaleTime.update = function() {
+    scaleTime.update = function( type, duration) {
 
         if( _super.update)
-            _super.update()
+            _super.update( type, duration)
 
         // Reset the range to the physical chart coordinates. We'll use this range to
         // calculate newRangeMax below, then we'll extend the range to that.
@@ -375,9 +375,9 @@ function _scaleLinear( _super,  _config) {
     scaleLinear[scaleName] = function() {
         return scale;
     };
-    scaleLinear.update = function() {
+    scaleLinear.update = function( type, duration) {
         if( _super.update)
-            _super.update()
+            _super.update( type, duration)
 //        var max = d3.max( _data, function(s) { return d3.max( _config.seriesData(s), accessData); })
 //        scale.domain([0, max])
 //            .range([_super.chartHeight(), 0]);
