@@ -32,7 +32,7 @@
 function _controlBrush( _super, _config) {
     // Store the group element here so we can have multiple line charts in one chart.
     // A second "line chart" might have a different y-axis, style or orientation.
-    var group, brushChart,
+    var group, lastDomainMax,
 //        x1 = _super.x1(),
 //        y1 = _super.y1(),
         name= _config.axis,
@@ -70,12 +70,15 @@ function _controlBrush( _super, _config) {
                 .attr("y", -6)
                 .attr("height", _super.chartHeight() + 7);
 
+            lastDomainMax = d3.trait.utils.extentMax( scale.domain())
         })
     }
     controlBrush.update = function( type, duration) {
         if( _super.update)
             _super.update( type, duration)
 
+
+        lastDomainMax = d3.trait.utils.extentMax( scale.domain())
         return this;
     };
 

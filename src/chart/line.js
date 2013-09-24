@@ -68,35 +68,14 @@ function _chartLine( _super, _config) {
             lastDomainMax = d3.trait.utils.extentMax( x1.domain())
         })
     }
+
     chartLine.update = function( type, duration) {
         if( _super.update)
             _super.update( type, duration)
 
-        // TODO: The x1.range() needs to be wider, so we draw the new line off the right
-        // then translate it to the left with a transition animation.
-
-        var domainMax = d3.trait.utils.extentMax( x1.domain())
-        var translateX = x1(lastDomainMax) - x1( domainMax)
-
-        // redraw the line and no transform
-        series.attr( "transform", null)
-        series.selectAll("path")
-            .attr("d", function(d) { return line( _config.seriesData(d)); })
-
-
-        // slide the line left
-        if( duration === 0) {
-            series.attr("transform", "translate(" + translateX + ")")
-        } else {
-
-            series.transition()
-                .duration( duration || _super.duration())
-                .ease("linear")
-                .attr("transform", "translate(" + translateX + ")")
-            //.each("end", tick);
-        }
-
-        lastDomainMax = d3.trait.utils.extentMax( x1.domain())
+        var dur = duration || _super.duration()
+        var attrD = function(d) { return line( _config.seriesData(d)); }
+        lastDomainMax = trait.chart.utils.updatePathWithTrend( type, dur, x1, series, attrD, lastDomainMax)
 
         // Could pop the data off the front (off the left side of chart)
 

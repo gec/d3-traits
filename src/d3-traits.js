@@ -239,7 +239,7 @@ function trait( aTrait, config) {
 
 // Export traits to d3
 d3.trait = trait
-d3.trait.chart = {}
+d3.trait.chart = { utils: {} }
 d3.trait.scale = {}
 d3.trait.axis = {}
 d3.trait.legend = {}
