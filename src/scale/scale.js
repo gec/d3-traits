@@ -49,7 +49,15 @@ function makeAccessorsFromConfig( config, axisName) {
     }
 }
 
-/**
+function makeDomainConfig( config) {
+    return {
+        domain: config.domain,
+        trend: config.trend
+    }
+}
+
+
+    /**
  * Return an object with interval and count or null
  *
  * { interval: d3.time.minute,
@@ -268,15 +276,12 @@ function _scaleOrdinalBars( _super, _config) {
 
 function _scaleTime( _super,  _config) {
 
-    var scaleName = _config.axis,
+    var theData,
+        scaleName = _config.axis,
         axisChar = scaleName.charAt(0 ),
         access = makeAccessorsFromConfig( _config, scaleName ),
-        domainConfig = {
-            domain: _config.domain,
-            trend: _config.trend
-        },
-        scale = d3.time.scale(),
-        theData
+        domainConfig = makeDomainConfig( _config),
+        scale = d3.time.scale()
     ;
 
     _super.minRangeMargin( scaleName, _config.minRangeMargin)
@@ -351,9 +356,11 @@ function _scaleLinear( _super,  _config) {
 //        return undefined
 //    }
 
-    var scaleName = _config.axis
-    var accessData = _config[scaleName]
-    var scale = d3.scale.linear()
+    var theData,
+        scaleName = _config.axis,
+        access = makeAccessorsFromConfig( _config, scaleName ),
+        domainConfig = makeDomainConfig( _config),
+        scale = d3.scale.linear()
 
     _super.minRangeMargin( _config.axis, _config.minRangeMargin)
 
@@ -361,9 +368,10 @@ function _scaleLinear( _super,  _config) {
     function scaleLinear( _selection) {
         _selection.each(function(_data) {
             var element = this
+            theData = _data
 
             // Get array of extents for each series.
-            var extents = _data.map( function(s) { return d3.extent( _config.seriesData(s), accessData)})
+            var extents = _data.map( function(s) { return d3.extent( access.series(s), access.data)})
             var min = d3.min( extents, function(e) { return e[0] }) // the minimums of each extent
             var max = d3.max( extents, function(e) { return e[1] }) // the maximums of each extent
             //var max = d3.max( _data, function(s) { return d3.max( _config.seriesData(s), accessData); })
@@ -378,9 +386,9 @@ function _scaleLinear( _super,  _config) {
     scaleLinear.update = function( type, duration) {
         if( _super.update)
             _super.update( type, duration)
-//        var max = d3.max( _data, function(s) { return d3.max( _config.seriesData(s), accessData); })
-//        scale.domain([0, max])
-//            .range([_super.chartHeight(), 0]);
+        var range = d3.trait.utils.getChartRange( _super, scaleName)
+        updateScale( scale, range, domainConfig, theData, access)
+
         return this;
     };
 

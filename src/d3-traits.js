@@ -64,9 +64,23 @@ function getChartRange( _super, name) {
         return [ _super.minRangeMarginTop( name), _super.chartHeight() - _super.minRangeMarginBottom( name)]
 }
 
+function configFloat( valueConfig, valueDefault) {
+    var vc = parseFloat( valueConfig)
+    return isNaN( vc) ? valueDefault : vc
+}
+function configMargin( marginConfig, marginDefault) {
+    if( ! marginConfig)
+        return marginDefault
 
+    var margin = {}
+    margin.top = configFloat( marginConfig.top, marginDefault.top)
+    margin.right = configFloat( marginConfig.right, marginDefault.right)
+    margin.bottom = configFloat( marginConfig.bottom, marginDefault.bottom)
+    margin.left = configFloat( marginConfig.left, marginDefault.left)
+    return margin
+}
 
-    function clone( obj) {
+function clone( obj) {
     if (null == obj || "object" !== typeof obj) return obj;
     var copy = obj.constructor();
     for (var attr in obj) {
@@ -128,7 +142,7 @@ function extendTraitsConfig( config, defaultConfig) {
 }
 
 function Trait( _traitFunction, config, _super) {
-    console.log( "trait( " + _traitFunction.name + ")")
+    //console.log( "trait( " + _traitFunction.name + ")")
 
     var self = this
     this._config = config
@@ -150,7 +164,7 @@ function Trait( _traitFunction, config, _super) {
 Trait.prototype = {
 
     trait: function( _trait, config) {
-        console.log( ".trait( " + _trait.name + ")")
+        //console.log( ".trait( " + _trait.name + ")")
         var t = new Trait( _trait, config, this)
         var imp = t.getImp()
         return imp
@@ -183,7 +197,7 @@ d3.selection.prototype.trait = function( trait, config)
         for( var index in trait)
             this.trait( trait[index])
     } else {
-        console.log( ".trait( " + trait.name + ")")
+        //console.log( ".trait( " + trait.name + ")")
         this._traitsInitialize()
 
         var traitCount = this.traits.length
@@ -206,7 +220,7 @@ d3.selection.prototype.callTraits = function() {
 
     for( var index in this.traits) {
         var traitInstance = this.traits[ index]
-        console.log( ".callTraits  " + index + " " + traitInstance.name)
+        //console.log( ".callTraits  " + index + " " + traitInstance.name)
         this.call( traitInstance)
     }
     return this
@@ -251,7 +265,9 @@ d3.trait.utils = {
     isX: isX,
     isY: isY,
     extentMax: extentMax,
-    getChartRange: getChartRange
+    getChartRange: getChartRange,
+    configMargin: configMargin,
+    configFloat: configFloat
 }
 
 }(d3));

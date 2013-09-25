@@ -27,13 +27,7 @@ function _chartBase( _super, _config) {
 
 
 
-    var margin = {top: 5, right: 5, bottom: 5, left: 5}
-    if( _config.margin) {
-        margin.top = _config.margin.top || margin.top
-        margin.right = _config.margin.right || margin.right
-        margin.bottom = _config.margin.bottom || margin.bottom
-        margin.left = _config.margin.left || margin.left
-    }
+    var margin = d3.trait.utils.configMargin( _config.margin, {top: 5, right: 5, bottom: 5, left: 5})
 
     // Margin for adjusting the x1-scale range
     // Example: { x1: {left: 5, right: 5} }
