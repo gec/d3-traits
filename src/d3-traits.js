@@ -61,7 +61,7 @@ function getChartRange( _super, name) {
     if( d3.trait.utils.isX( name))
         return [ _super.minRangeMarginLeft( name), _super.chartWidth() - _super.minRangeMarginRight( name)]
     else
-        return [ _super.minRangeMarginTop( name), _super.chartHeight() - _super.minRangeMarginBottom( name)]
+        return [ _super.chartHeight() - _super.minRangeMarginBottom( name), _super.minRangeMarginTop( name)]
 }
 
 function configFloat( valueConfig, valueDefault) {
