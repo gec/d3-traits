@@ -179,6 +179,26 @@ function _chartBase( _super, _config) {
             dispatch.chartResized()
     }
 
+    /**
+     * Remove everything that was added to element.
+     */
+    chartBase.remove = function() {
+        selection.each(function(_data) {
+            var element = this // the div element
+
+            if( element._svg) {
+                element._svg.remove();
+                delete element._svg;
+                delete element._svgDefs;
+                delete element._container;
+                delete element._chartGroup;
+                delete element._chartGroupClipPath;
+                delete element._chartGroupClipPathRect;
+            }
+        })
+
+    };
+
     // Return a list of points in focus.
     chartBase.focus = function( point) {
         return []

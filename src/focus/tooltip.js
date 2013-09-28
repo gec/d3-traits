@@ -70,41 +70,59 @@
 
     var formatDate = d3.time.format("%Y-%m-%d");
 
+    /**
+     * Tooltip will call focus super. Any charts traits can return a list of items that need tooltips.
+     * For example a line chart with two series can return two times.
+     *
+     * Configure
+     *  Closest x & y
+     *  Closest in x
+     *  Point within distance. Distance can be in domain or range.
+     *
+     *  distance: 6  -- x & y range
+     *  axis: 'x'
+     */
     function _tooltip( _super, _config) {
-        // Store the group element here so we can have multiple line charts in one chart.
-        // A second "line chart" might have a different y-axis, style or orientation.
+
+        var distance = d3.trait.utils.configFloat( _config.distance, 12)
+        var axis = _config.axis
 
         var dispatch = d3.dispatch('customHover');
         function tooltip( _selection) {
             _selection.each(function(_data) {
                 var element = this
 
-
-                this._chartGroup.on("mousemove", function() {
-                    var p1 = d3.mouse( this),
+                this._svg.on("mousemove", function() {
+                    var p1 = d3.mouse( element._chartGroup.node()),
                         point = { x: p1[0], y: p1[1]}
 
-                    var foci =_super.focus.call( element, point)
+                    var foci =_super.focus.call( element, point, distance, axis)
                     foci.forEach( function( item, index, array) {
-                        console.log( "foci: " + item.point.x + " distance: " + item.distance)
+                        //console.log( "foci: " + item.point.x + " distance: " + item.distance)
 
                         var w = 40,
                             h = 30,
-                            name = 'tooltip' + index
-                        if( ! element[name]) {
+                            ttGroup = '_tooltip_g_' + index,
+                            ttPath = '_tooltip_path_' + index,
+                            ttText = '_tooltip_text_' + index,
+                            tx = item.point.x, // - _super.marginLeft(),
+                            ty = item.point.y, //- _super.marginTop(),
+                            formattedText = formatDate( _config.x1( item.item)) + " " + _config.y1(item.item)
+
+                        if( ! element[ttGroup]) {
+
 
                             var ttip = element._container.append('g')
                                 .attr({
                                     'id': 'tooltip',
                                     'opacity': 0,
-                                    'transform': 'translate(' + item.point.x + ',' + item.point.y + ')'
+                                    'transform': 'translate(' + tx + ',' + ty + ')'
                                 });
 
-                            var path = ttip.append('path')
+                            element[ttPath] = ttip.append('path')
                                 .attr('fill', 'darkgray')
 
-                            var formattedText = formatDate( _config.x1( item.item)) + " " + _config.y1(item.item)
-                            var text = ttip.append('text')
+                            element[ttText] = ttip.append('text')
                                 .attr({
                                     'width': h,
                                     'height': w,
@@ -115,22 +133,20 @@
                                 })
                                 .text( formattedText);
 
-                            var bbox = text.node().getBBox()
+                            var bbox = element[ttText].node().getBBox()
                             console.log( "bbox: " + bbox.width + ", " + bbox.height)
-                            path.attr('d', getPathRightCallout( bbox.width, bbox.height*2, 4))
 
+                            element[ttPath].attr('d', getPathRightCallout( bbox.width, bbox.height*2, 4))
 
-                            element[name] = ttip
-
-
+                            element[ttGroup] = ttip
                         }
 
-                        element[name].transition()
+                        element[ttGroup].transition()
                             .attr({
                                 'opacity': 1.0,
-                                'transform': 'translate(' + item.point.x + ',' + item.point.y + ')'
+                                'transform': 'translate(' + tx + ',' + ty + ')'
                             });
-
+                        element[ttText].text ( formattedText );
                     })
                 });
 

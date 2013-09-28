@@ -21,7 +21,7 @@ it('should append svg.chart and g.container-group', function() {
     expect( div.tagName).toBe( "DIV")
     expect( div.firstChild.tagName).toBe( "svg")
 
-    var svgElem = selection.traits[0].svg()[0][0]
+    var svgElem = selection[0][0].firstChild
     expect( svgElem.tagName).toBe( "svg")
     expect( svgElem.className.baseVal).toBe( "chart")
     expect( svgElem.getAttribute( "width")).toBe( "300")
@@ -42,7 +42,8 @@ it('should append svg.chart and g.container-group', function() {
 it('should define a clip path and apply it to chart-group', function() {
     selection.datum( data)
         .trait( d3.trait.chart.base)
-    var svgElem = selection.traits[0].svg()[0][0]
+    var svgElem = selection[0][0].firstChild
+
 
     // Clip path defined
     var defs = svgElem.firstChild

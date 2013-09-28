@@ -160,47 +160,67 @@ function _chartLine( _super, _config) {
 
         return this;
     }
+    function distanceX( p1, p2) {
+        return p2.x > p1.x ?  p2.x - p1.x : p1.x - p2.x
+    }
+    function distanceY( p1, p2) {
+        return p2.y > p1.y ?  p2.y - p1.y : p1.y - p2.y
+    }
     function distance( p1, p2) {
-        var dx = p2.x > p1.x ?  p2.x - p1.x : p1.x - p2.x,
-            dy = p2.y > p1.y ?  p2.y - p1.y : p1.y - p2.y
+        var dx = distanceX( p1, p2),
+            dy = distanceY( p1, p2)
         return Math.sqrt( dx * dx + dy * dy)
     }
-    function getFocusItem( data, index, point) {
-        var item, p, dist
+    function getFocusItem( data, index, targetRange) {
+        var item, domainPoint, rangePoint, dist, distX
         item = data[index]
-        p = { x: x1( _config.x1(item)), y: y1( _config.y1(item))}
-        dist = distance( p, point)
+        //domainPoint = { x: _config.x1(item), y: _config.y1(item)}
+        rangePoint = { x: x1( _config.x1(item)), y: y1( _config.y1(item))}
+        dist = distance( rangePoint, targetRange)
+        distX = distanceX( rangePoint, targetRange)
         return {
             index: index,
             item: item,
-            point: p,
-            distance: dist
+            point: rangePoint,
+            distance: dist,
+            distanceX: distX
         }
     }
-    chartLine.focus = function( rangePoint) {
-        var foci = _super.focus( rangePoint)
+    chartLine.focus = function( targetRange, distance, axis) {
+        var foci = _super.focus( targetRange)
 
-        var point = {
-            x: x1.invert( rangePoint.x ),
-            y: y1.invert( rangePoint.y)
+        // Search the domain for the closest point in x
+        var targetDomain = {
+            x: x1.invert( targetRange.x ),
+            y: y1.invert( targetRange.y)
         }
         var bisectLeft = d3.bisector( _config.x1 ).left
 
         filteredData.forEach( function( series, seriesIndex, array) {
-            var indexRight,
+            var alterIndex,
                 data = _config.seriesData( series ),
-                index = bisectLeft( data, point.x ),
-                found = getFocusItem( data, index, point)
+                // search the domain for the closest point in x
+                index = bisectLeft( data, targetDomain.x ),
+                found = getFocusItem( data, index, targetRange)
 
-            indexRight = found.index + 1
-            if( indexRight < data.length) {
-                var alter = getFocusItem( data, indexRight, point)
-                if( alter.distance < found.distance)
-                    found = alter
+            alterIndex = found.index - 1
+            if( alterIndex >= 0) {
+                var alter = getFocusItem( data, alterIndex, targetRange)
+//                console.log( "found x=" + _config.x1( found.item) + " y=" + _config.y1( found.item) + " d=" + found.distance + "  " + targetDomain.x + " " + targetDomain.y)
+//                console.log( "alter x=" + _config.x1( alter.item) + " y=" + _config.y1( alter.item) + " d=" + alter.distance + "  " + targetDomain.x + " " + targetDomain.y)
+                if( axis === 'x') {
+                    if( alter.distanceX < found.distanceX)
+                        found = alter
+                } else {
+                    if( alter.distance < found.distance)
+                        found = alter
+                }
             }
 
-            found.color = color( seriesIndex)
-            foci.push( found)
+            if( found.distance <= distance) {
+                found.color = color( seriesIndex)
+                foci.push( found)
+            }
         })
 
         return foci
