@@ -88,7 +88,7 @@
                         .attr( circleAttr( _config, x1, y1))
                         //.on('mouseover', dispatch.customHover);
                         .on("mouseover", function(d, i) {
-                            return _super.svg().append("text").text( "data: " + _config.y1(d ).toFixed(1))
+                            return element._svg.append("text").text( "data: " + _config.y1(d ).toFixed(1))
                                 .attr("id", "tooltip")
                                 .attr("x", x1( _config.x1(d)) + 10)
                                 .attr("y", y1( _config.y1(d)))

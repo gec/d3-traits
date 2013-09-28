@@ -58,6 +58,7 @@ function isY( scaleName) { return scaleName.charAt(0) === 'y'}
 function extentMax( extent) { return extent[ extent.length - 1] }
 
 function getChartRange( _super, name) {
+    // SVG origin is top-left
     if( d3.trait.utils.isX( name))
         return [ _super.minRangeMarginLeft( name), _super.chartWidth() - _super.minRangeMarginRight( name)]
     else
@@ -141,24 +142,40 @@ function extendTraitsConfig( config, defaultConfig) {
     return extendObjectNoOverwrite( obj, defaultConfig)
 }
 
-function Trait( _traitFunction, config, _super) {
-    //console.log( "trait( " + _traitFunction.name + ")")
+function Trait( trait, config, _super) {
+    //console.log( "trait( " + trait.name + ")")
 
-    var self = this
-    this._config = config
-    this._super = _super
 
-    this.getImp = function() { return self.imp}
 
-    config = extendTraitsConfig( config, this.__getRoot()._config)
-    self.imp = _traitFunction( _super, config )
-    stackTrait( _super, self.imp)
-    //self.imp.prototype = Trait.prototype
-    self.imp.call = Trait.prototype.call
-    self.imp.trait = Trait.prototype.trait
-    self.imp.__getRoot = Trait.prototype.__getRoot
-    self.imp._super = _super
-    self.imp._config = config
+    var id, imp,
+        self = this,
+        traitIndex = 0
+
+    self._config = config
+    self._super = _super
+    self._traitIndex = 0
+    if( _super)
+        self._traitIndex = _super.__traitIndex + 1
+
+    self.getTraitId = function( name, index) { return "_" + name + "_" + index }
+
+
+    self.getImp = function() { return self.imp}
+
+    config = extendTraitsConfig( config, self.__getRoot()._config)
+    id = self.getTraitId( trait.name, self._traitIndex)
+    imp = trait( _super, config, id)
+    stackTrait( _super, imp)
+    //imp.prototype = Trait.prototype
+    imp.call = Trait.prototype.call
+    imp.callInstance = Trait.prototype.callInstance
+    imp.trait = Trait.prototype.trait
+    imp.__traitIndex = traitIndex
+    imp.__traitId = id
+    imp.__getRoot = Trait.prototype.__getRoot
+    imp._super = _super
+    imp._config = config
+    self.imp = imp
 }
 
 Trait.prototype = {
@@ -177,12 +194,28 @@ Trait.prototype = {
             return this
     },
 
+    callInstance: function( _selection) {
+        var self = this
+        _selection.call( function( selection) {
+            selection.each( function( _data) {
+//                if( ! this[self.__traitId])
+//                    this[self.__traitId] = {}
+//                self( _data, selection, this[self.__traitId]) // callee example: traitName( selection, data, traitStore)
+                self( _data, selection) // callee example: traitName( selection, data, traitStore)
+                //self.apply( this[self.__traitId], [this, _data, selection] ) // callee example: traitName( element, data, selection)
+            })
+
+        })
+    },
+
     call: function( _selection, leafTrait) {
         if( ! leafTrait)
             leafTrait = this
         this.__leafTrait = leafTrait
         if( this._super)
             this._super.call( _selection, leafTrait)
+
+        //this.callInstance( _selection)
         _selection.call( this)
         return this
     }
@@ -253,11 +286,12 @@ function trait( aTrait, config) {
 
 // Export traits to d3
 d3.trait = trait
-d3.trait.chart = { utils: {} }
 d3.trait.scale = {}
+d3.trait.chart = { utils: {} }
 d3.trait.axis = {}
-d3.trait.legend = {}
 d3.trait.control = {}
+d3.trait.focus = {}
+d3.trait.legend = {}
 
 d3.trait.utils = {
     clone: clone,

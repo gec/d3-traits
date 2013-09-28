@@ -45,7 +45,9 @@
             ticks: config.ticks,
             extentTicks: config.extentTicks || false,
             tickSize: config.tickSize,
-            tickPadding: config.tickPadding
+            tickPadding: config.tickPadding,
+            tickFormat: config.tickFormat,
+            nice: config.nice
         }
     }
 
@@ -87,6 +89,9 @@
             axis.tickSize( c.tickSize)
         if( c.tickPadding)
             axis.tickPadding( c.tickPadding)
+
+        if( c.tickFormat)
+            axis.tickFormat( c.tickFormat)
     }
 
     /**
@@ -170,14 +175,17 @@
 
                 scaleForUpdate.range( scale.range())
                 scaleForUpdate.domain( scale.domain())
-                    .nice( d3.time.day)
+                if( c.nice)
+                    scaleForUpdate.nice( c.nice)
 
                 scale = scaleForUpdate
 
 
                 axis.scale(scale)
                     .orient( c.orient )
-                    .tickFormat(d3.time.format('%e')) // %d is 01, 02. %e is \b1, \b2
+                applyTickConfig( axis, scale, c)
+
+                //.tickFormat(d3.time.format('%e')) // %d is 01, 02. %e is \b1, \b2
                     //.ticks( 15)
                     //.tickValues( tickValuesForMonthDays( scale))
                     //.tickSubdivide(4)
@@ -208,12 +216,6 @@
 
             })
         }
-//        function pd( d) {
-//            var m, day
-//            m = d.getMonth() + 1
-//            day = d.getDate()
-//            return "" + m + "-" + day
-//        }
 
         axisMonth.update = function( type, duration) {
             if( _super.update)
@@ -228,8 +230,6 @@
             var min = new Date( domain[0].getTime() + delta)
             scaleForUpdate.domain( [min, domainMax])
             lastDomainMax = domainMax
-
-//            console.log( "axis.update domain [min, domMax]: " + pd( min) + " " + pd( domainMax))
 
             // slide the x-axis left for trends
             if( duration === 0) {

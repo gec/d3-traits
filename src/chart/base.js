@@ -91,7 +91,7 @@ function _chartBase( _super, _config) {
     var chartWidth = width - margin.left - margin.right,
         chartHeight = height - margin.top - margin.bottom;
 
-    var svg, select, duration = 0
+    var select, duration = 0
     var selection
     var ChartResized = 'chartResized'
     var RangeMarginChanged = 'rangeMarginChanged'
@@ -113,44 +113,44 @@ function _chartBase( _super, _config) {
     function chartBase( _selection) {
         selection = _selection
         _selection.each(function(_data) {
+            var element = this // the div element
 
-            // this == the div
-            select = d3.select(this)
-//            width = this.parentElement.offsetWidth || width
-//            height = this.parentElement.offsetHeight || height
-            width = this.offsetWidth || width
-            height = this.offsetHeight || height
+            select = d3.select(element)
+//            width = element.parentElement.offsetWidth || width
+//            height = element.parentElement.offsetHeight || height
+            width = element.offsetWidth || width
+            height = element.offsetHeight || height
 
             chartWidth = width - margin.left - margin.right
             chartHeight = height - margin.top - margin.bottom
 
-            if(!svg) {
-                svg = d3.select(this)
+            if( !element._svg) {
+                element._svg = d3.select(element)
                     .append("svg")
                     .classed('chart', true)
                     .attr("width", width)
                     .attr("height", height)
-                this._svgDefs = svg.append("defs")
+                element._svgDefs = element._svg.append("defs")
 
-                var clipId = appendClipPathDef( this, this._svgDefs)
+                var clipId = appendClipPathDef( element, element._svgDefs)
 
                 // Outer container group for charts, axes, labels, etc.
-                this._container = svg.append('g').classed('container-group', true)
+                element._container = element._svg.append('g').classed('container-group', true)
 
                 // Inner container group for actual chart data paths, rectangles, circles, etc.
-                this._chartGroup = this._container.append('g').classed('chart-group', true);
+                element._chartGroup = element._container.append('g').classed('chart-group', true);
 
                 // Clip all chart innards to chartWidth and chartHeight
-                this._chartGroup.attr("clip-path", "url(#" + clipId + ")")
+                element._chartGroup.attr("clip-path", "url(#" + clipId + ")")
             }
 
-            svg.transition()
+            element._svg.transition()
                 .duration(duration)
                 .attr({width: width, height: height})
-            svg.select('.container-group')
+            element._svg.select('.container-group')
                 .attr({transform: 'translate(' + margin.left + ',' + margin.top + ')'});
 
-            this._chartGroupClipPathRect.attr("width", chartWidth).attr("height", chartHeight)
+            element._chartGroupClipPathRect.attr("width", chartWidth).attr("height", chartHeight)
 
             duration = 500;
         })
@@ -179,8 +179,9 @@ function _chartBase( _super, _config) {
             dispatch.chartResized()
     }
 
-    chartBase.svg = function() {
-        return svg;
+    // Return a list of points in focus.
+    chartBase.focus = function( point) {
+        return []
     };
 
     chartBase.select = function() {
