@@ -171,7 +171,7 @@ function _chartLine( _super, _config) {
             dy = distanceY( p1, p2)
         return Math.sqrt( dx * dx + dy * dy)
     }
-    function getFocusItem( data, index, targetRange) {
+    function getFocusItem( series, data, index, targetRange) {
         var item, domainPoint, rangePoint, dist, distX
         item = data[index]
         //domainPoint = { x: _config.x1(item), y: _config.y1(item)}
@@ -179,6 +179,7 @@ function _chartLine( _super, _config) {
         dist = distance( rangePoint, targetRange)
         distX = distanceX( rangePoint, targetRange)
         return {
+            series: series,
             index: index,
             item: item,
             point: rangePoint,
@@ -201,11 +202,11 @@ function _chartLine( _super, _config) {
                 data = _config.seriesData( series ),
                 // search the domain for the closest point in x
                 index = bisectLeft( data, targetDomain.x ),
-                found = getFocusItem( data, index, targetRange)
+                found = getFocusItem( series, data, index, targetRange)
 
             alterIndex = found.index - 1
             if( alterIndex >= 0) {
-                var alter = getFocusItem( data, alterIndex, targetRange)
+                var alter = getFocusItem( series, data, alterIndex, targetRange)
 //                console.log( "found x=" + _config.x1( found.item) + " y=" + _config.y1( found.item) + " d=" + found.distance + "  " + targetDomain.x + " " + targetDomain.y)
 //                console.log( "alter x=" + _config.x1( alter.item) + " y=" + _config.y1( alter.item) + " d=" + alter.distance + "  " + targetDomain.x + " " + targetDomain.y)
                 if( axis === 'x') {
