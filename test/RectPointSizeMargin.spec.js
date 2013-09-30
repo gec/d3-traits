@@ -76,6 +76,31 @@ describe('d3-traits.layout', function() {
         expect( r.anchor.y).toBe( 0)
     });
 
+    it('should create a Rect( origin, size)', function() {
+        var o = new d3.trait.Point( 1, 2 ),
+            s = new d3.trait.Size( 3, 4 ),
+            r = new d3.trait.Rect( o, s)
+        expect( r.origin.x).toBe( 1)
+        expect( r.origin.y).toBe( 2)
+        expect( r.size.width).toBe( 3)
+        expect( r.size.height).toBe( 4)
+        expect( r.anchor.x).toBe( 0)
+        expect( r.anchor.y).toBe( 0)
+    });
+
+    it('should create a Rect( origin, size, anchor)', function() {
+        var o = new d3.trait.Point( 1, 2 ),
+            s = new d3.trait.Size( 3, 4 ),
+            a = new d3.trait.Point( 5, 6 ),
+            r = new d3.trait.Rect( o, s, a)
+        expect( r.origin.x).toBe( 1)
+        expect( r.origin.y).toBe( 2)
+        expect( r.size.width).toBe( 3)
+        expect( r.size.height).toBe( 4)
+        expect( r.anchor.x).toBe( 5)
+        expect( r.anchor.y).toBe( 6)
+    });
+
     it('should create a Rect( x, y, w, h, ax, ay)', function() {
         var r = new d3.trait.Rect( 1, 2, 3, 4, 5, 6)
         expect( r.origin.x).toBe( 1)

@@ -97,6 +97,16 @@
                 this.size = new Size( 0, 0)
                 this.anchor = new Point( 0, 0)
                 break;
+            case 2:
+                this.origin = new Point( x.x, x.y)
+                this.size = new Size( y.width, y.height)
+                this.anchor = new Point( 0, 0)
+                break;
+            case 3:
+                this.origin = new Point( x.x, x.y)
+                this.size = new Size( y.width, y.height)
+                this.anchor = new Point( w.x, w.y)
+                break;
             case 4:
                 this.origin = new Point( x, y)
                 this.size = new Size( w, h)
@@ -223,7 +233,7 @@
             if( itemSpaceOnTop > 0) {
                 // end of last span or start of new span
 
-                if( spanCount >= 1) {
+                if( spanCount > 0) {
                     // work the span
                     yOffsetAve = yOffsetSum / spanCount
                     if( yOffsetAve < -1 || yOffsetAve > 1) {
@@ -317,7 +327,7 @@
 
         if( totalSpacing > 0) {
             listNudgeUpFromBottom( itemsWithRect, height)
-            listBalanceFromTop( itemsWithRect, originalYs)
+            listBalanceFromTop( itemsWithRect, height, originalYs)
         }
     }
 
@@ -362,9 +372,17 @@
         })
 
         return [left, right]
-//        layoutVertical( left, height)
-//        layoutVertical( right, height)
     }
+
+    function layoutVerticalAnchorLeftRight( itemsWithRect, width, height) {
+        var leftRight = adjustOrientationToFitWidth( itemsWithRect, width )
+        layoutVertical( leftRight[0], height)
+        layoutVertical( leftRight[1], height)
+    }
+
+    ///////////////////////////////////
+    // Export to d3.trait
+    //
 
     if( ! trait.layout)
         trait.layout = { utils: {} }
@@ -376,6 +394,7 @@
 
     trait.layout.adjustOrientationToFitWidth = adjustOrientationToFitWidth
     trait.layout.vertical = layoutVertical
+    trait.layout.verticalAnchorLeftRight = layoutVerticalAnchorLeftRight
     trait.layout.utils.listNudgeUpFromBottom = listNudgeUpFromBottom
     trait.layout.utils.removeOverlapFromTop = removeOverlapFromTop
     trait.layout.utils.listBalanceFromTop = listBalanceFromTop

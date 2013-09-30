@@ -26,28 +26,38 @@
 
     // // call-out half size (half width and half height)
     function getCalloutPointerHalfHeight( h) {
-        return Math.max( h * 0.16, 5)
+        return Math.max( h * 0.16, 6)
     }
-    function getCalloutRightPath( w, h, r, cp2) {
+
+    /**
+     *
+     * @param w Width
+     * @param h Height
+     * @param r Radius for rounded corners
+     * @param cp2  Half of the call-out point's width and height
+     * @param anchor  Distinguishes left or right.
+     * @param offsetY  Nudge the call-out point up or down to point to original focus (before layout adjustments)
+     * @returns {string}
+     */
+    function getCalloutRightPath( w, h, r, cp2, anchor, offsetY) {
         // Start at the left on the callout point and go clockwise
         //
         //<path d="m10,0 L90,0 Q100,0 100,10 L100,90" fill="none" stroke="red"/>
         //
-        var //c2 = Math.floor(  ),  // call-out half size (half width and half height)
-            //h2 = Math.floor( h/2 ),
+        var dx = anchor.x < 0.5 ? 1 : -1,
             ht = Math.floor( h/2 - cp2 - r ),// h top (i.e. callout to radius)
             ih = ht * 2 + cp2*2,// inner height (i.e. height - radii)
             iw = Math.floor( w - r - r ), // inner width
-            p = m( 0, 0) +
-                l( cp2*2, -cp2) +
+            p = m( 0, 0 + offsetY) +
+                l( dx*cp2*2, -cp2 - offsetY) +
                 l( 0, -ht) +
-                q( 0, -r, r, -r) +  // top-left corner
-                l( iw, 0) +
-                q( r, 0, r, r) + // top-right corner
+                q( 0, -r, dx*r, -r) +  // top-left corner
+                l( dx*iw, 0) +
+                q( dx*r, 0, dx*r, r) + // top-right corner
                 l( 0, ih) +
-                q( 0, r, -r, r) + // bottom-right corner
-                l( -iw, 0) +
-                q( -r, 0, -r, -r) + // bottom-left corner
+                q( 0, r, dx*-r, r) + // bottom-right corner
+                l( dx*-iw, 0) +
+                q( dx*-r, 0, dx*-r, -r) + // bottom-left corner
                 l( 0, -ht) +
                 'z'  // close path
 
@@ -55,6 +65,57 @@
     }
 
     var formatDate = d3.time.format("%Y-%m-%d");
+
+    function markTooltipsForRemoval( tooltips) {
+        tooltips.forEach( function( item) {
+            if( item)
+                item.remove = true
+        })
+    }
+    function removeUnusedTooltips( tooltips) {
+        tooltips.forEach( function( item, index) {
+            if( item && item.remove) {
+                item.group.remove()
+                tooltips[index] = null
+            }
+        })
+    }
+    function removeAllTooltips( element) {
+
+        delete element._tooltipLastFoci;
+
+        if( ! element._tooltips)
+            return
+        element._tooltips.forEach( function( item, index) {
+            if( item) {
+                item.group.remove()
+                element._tooltips[index] = null
+            }
+        })
+    }
+    function fociAreTheSame( last, current) {
+        if( !last || last.length !== current.length)
+            return false
+
+        var l, c,
+            index = last.length - 1
+
+        for( ; index >=0; index--) {
+            l = last[index]
+            c = current[index]
+            if( l.index !== c.index || l.point.x !== c.point.x || l.point.y !== c.point.y)
+                return false
+        }
+        return true
+    }
+
+    function mouseNotOnChart( mousePoint, chartWidth, chartHeight) {
+        return  mousePoint[0] < 0 ||
+                mousePoint[0] > chartWidth ||
+                mousePoint[1] < 0 ||
+                mousePoint[1] > chartHeight
+
+    }
 
     /**
      * Tooltip will call focus super. Any charts traits can return a list of items that need tooltips.
@@ -79,89 +140,119 @@
         function tooltip( _selection) {
             _selection.each(function(_data) {
                 var element = this
+                element._tooltips = _data.map( function(d) { return null})
+
+                this._svg.on("mouseout", function() {
+                    var mousePoint = d3.mouse( element._chartGroup.node())
+                    if( mouseNotOnChart( mousePoint,  _super.chartWidth(), _super.chartHeight()) ) {
+                        removeAllTooltips( element)
+                    }
+                })
 
                 this._svg.on("mousemove", function() {
-                    var p1 = d3.mouse( element._chartGroup.node()),
-                        focusPoint = { x: p1[0], y: p1[1]}
+                    var mousePoint = d3.mouse( element._chartGroup.node())
+
+                    if( mouseNotOnChart( mousePoint,  _super.chartWidth(), _super.chartHeight()) ) {
+                        removeAllTooltips( element)
+                        return
+                    }
+
+                    var focusPoint = new d3.trait.Point( mousePoint[0], mousePoint[1] ),
+                        anchorMidY = new d3.trait.Point( 0, 0.5 )
 
                     var foci =_super.focus.call( element, focusPoint, distance, axis)
+
+                    if( foci.length <= 0) {
+                        removeAllTooltips( element)
+                        return
+                    }
+                    if( fociAreTheSame( element._tooltipLastFoci, foci))
+                        return
+
+                    markTooltipsForRemoval( element._tooltips)
+
                     foci.forEach( function( item, index, array) {
                         //console.log( "foci: " + item.point.x + " distance: " + item.distance)
 
                         var seriesIndex = _data.indexOf( item.series),
-                            w = 40,
-                            h = 30,
-                            ttGroup = '_tooltip_g_' + seriesIndex,
-                            ttPath = '_tooltip_path_' + seriesIndex,
-                            ttText = '_tooltip_text_' + seriesIndex,
+                            ttip = element._tooltips[ seriesIndex],
                             formattedText = formatDate( _config.x1( item.item)) + " " + _config.y1(item.item)
 
-                        if( ! element[ttGroup]) {
+                        if( ! ttip) {
+                            ttip = { newby: true}
 
-                            var ttip = element._container.append('g')
+                            ttip.group = element._container.append('g')
                                 .attr({
                                     'id': 'tooltip',
-                                    'opacity': 0//,
-                                    //'transform': 'translate(' + tx + ',' + ty + ')'
+                                    'opacity': 0
                                 });
 
-                            element[ttPath] = ttip.append('path')
+                            ttip.path = ttip.group.append('path')
                                 .attr('fill', 'darkgray')
 
-                            element[ttText] = ttip.append('text')
+                            ttip.text = ttip.group.append('text')
                                 .attr({
-                                    'width': h,
-                                    'height': w,
                                     'font-family': 'monospace',
                                     'font-size': 10,
                                     'fill': 'black',
                                     'text-rendering': 'geometric-precision'
                                 })
 
-                            element[ttGroup] = ttip
+                            element._tooltips[ seriesIndex] = ttip
                         }
 
-                        element[ttText].text( formattedText );
-                        var bbox = element[ttText].node().getBBox()
-                        var boxHeight = bbox.height * 2 + margin * 2
-                        item.bbox = { width: bbox.width + margin * 2, height: boxHeight}
+                        ttip.remove = false
+
+                        ttip.text.text( formattedText );
+                        var bbox = ttip.text.node().getBBox()
+                        bbox.height = bbox.height * 2 + margin * 2
+                        bbox.width += margin * 2 + getCalloutPointerHalfHeight( bbox.height)
+                        item.rect = new d3.trait.Rect( item.point, bbox, anchorMidY)
+//                        item.bbox = { width: bbox.width + margin * 2, height: boxHeight}
                     })
 
                     //layoutLeftAndRight( foci, _super.chartWidth(), _super.chartHeight(), focusPoint)
+                    d3.trait.layout.verticalAnchorLeftRight( foci, _super.chartWidth(), _super.chartHeight())
 
                     foci.forEach( function( item, index, array) {
                         var seriesIndex = _data.indexOf( item.series),
-                            ttGroup = '_tooltip_g_' + seriesIndex,
-                            ttPath = '_tooltip_path_' + seriesIndex,
-                            ttText = '_tooltip_text_' + seriesIndex
+                            ttip = element._tooltips[ seriesIndex]
 
                         //var pathFill = d3.rgb( item.color ).brighter().toString()
                         var pathStroke = d3.rgb( item.color ).darker(1.4).toString()
 
                         //console.log( "bbox: " + bbox.width + ", " + bbox.height)
-                        var calloutPointerHalfHeight = getCalloutPointerHalfHeight( item.bbox.height)
-                        var calloutPath = getCalloutRightPath( item.bbox.width, item.bbox.height, radius, calloutPointerHalfHeight)
+                        var offsetY = item.point.y - item.rect.origin.y
+                        var calloutPointerHalfHeight = getCalloutPointerHalfHeight( item.rect.size.height)
+                        var calloutPath = getCalloutRightPath( item.rect.size.width, item.rect.size.height, radius, calloutPointerHalfHeight, item.rect.anchor, offsetY)
 
-                        var tx = item.tx + item.point.x,
-                            ty = item.ty + item.point.y
+                        var textMargin = calloutPointerHalfHeight * 2 + margin,
+                            tx = item.rect.anchor.x < 0.5 ? textMargin : -item.rect.size.width - textMargin
 
-                        element[ttGroup].transition()
-                            .attr({
+                        ttip.text.attr ( 'transform', 'translate(' + tx + ',' + 0 + ')' )
+
+                        if( ttip.newby) {
+                            ttip.group.attr( 'transform', 'translate(' + item.rect.origin.x + ',' + item.rect.origin.y + ')')
+                            ttip.group.transition().attr ( 'opacity', 1 );
+                        } else {
+                            ttip.group.transition().attr({
                                 'opacity': 1,
-                                'transform': 'translate(' + tx + ',' + ty + ')'
-                            });
-                        element[ttText].transition()
-                            .attr( 'transform', 'translate(' + (calloutPointerHalfHeight * 2 + margin) + ',' + 0 + ')' )
+                                'transform': 'translate(' + item.rect.origin.x + ',' + item.rect.origin.y + ')'
+                            })
+                        }
 
-                        element[ttPath].transition()
+                        ttip.path.transition()
                             .attr({
                                 'opacity': 0.72,
                                 'fill': item.color,
                                 'stroke': pathStroke,
                                 'd': calloutPath
                             })
-
+                        ttip.newby = false
                     })
+
+                    removeUnusedTooltips( element._tooltips)
+                    element._tooltipLastFoci = foci
                 });
 
             })

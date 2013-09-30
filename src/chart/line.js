@@ -171,13 +171,13 @@ function _chartLine( _super, _config) {
             dy = distanceY( p1, p2)
         return Math.sqrt( dx * dx + dy * dy)
     }
-    function getFocusItem( series, data, index, targetRange) {
+    function getFocusItem( series, data, index, focusPoint) {
         var item, domainPoint, rangePoint, dist, distX
         item = data[index]
         //domainPoint = { x: _config.x1(item), y: _config.y1(item)}
-        rangePoint = { x: x1( _config.x1(item)), y: y1( _config.y1(item))}
-        dist = distance( rangePoint, targetRange)
-        distX = distanceX( rangePoint, targetRange)
+        rangePoint = new d3.trait.Point( x1( _config.x1(item)), y1( _config.y1(item)))
+        dist = distance( rangePoint, focusPoint)
+        distX = distanceX( rangePoint, focusPoint)
         return {
             series: series,
             index: index,
@@ -187,26 +187,26 @@ function _chartLine( _super, _config) {
             distanceX: distX
         }
     }
-    chartLine.focus = function( targetRange, distance, axis) {
-        var foci = _super.focus( targetRange)
+    chartLine.focus = function( focusPoint, distanceMax, axis) {
+        var foci = _super.focus( focusPoint)
 
         // Search the domain for the closest point in x
-        var targetDomain = {
-            x: x1.invert( targetRange.x ),
-            y: y1.invert( targetRange.y)
-        }
+        var targetDomain = new d3.trait.Point( x1.invert( focusPoint.x ), y1.invert ( focusPoint.y) )
         var bisectLeft = d3.bisector( _config.x1 ).left
 
         filteredData.forEach( function( series, seriesIndex, array) {
-            var alterIndex,
+            var found, alterIndex,
                 data = _config.seriesData( series ),
                 // search the domain for the closest point in x
-                index = bisectLeft( data, targetDomain.x ),
-                found = getFocusItem( series, data, index, targetRange)
+                index = bisectLeft( data, targetDomain.x )
+
+            if( index >= data.length)
+                index = data.length - 1
+            found = getFocusItem( series, data, index, focusPoint)
 
             alterIndex = found.index - 1
             if( alterIndex >= 0) {
-                var alter = getFocusItem( series, data, alterIndex, targetRange)
+                var alter = getFocusItem( series, data, alterIndex, focusPoint)
 //                console.log( "found x=" + _config.x1( found.item) + " y=" + _config.y1( found.item) + " d=" + found.distance + "  " + targetDomain.x + " " + targetDomain.y)
 //                console.log( "alter x=" + _config.x1( alter.item) + " y=" + _config.y1( alter.item) + " d=" + alter.distance + "  " + targetDomain.x + " " + targetDomain.y)
                 if( axis === 'x') {
@@ -218,7 +218,7 @@ function _chartLine( _super, _config) {
                 }
             }
 
-            if( found.distance <= distance) {
+            if( found.distance <= distanceMax) {
                 found.color = color( seriesIndex)
                 foci.push( found)
             }

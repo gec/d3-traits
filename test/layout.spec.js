@@ -157,11 +157,39 @@ describe('d3-traits.layout', function() {
 
     it( 'listBalanceFromTop should translate three items up', function() {
         var items = [
+                { name: 'toolow', rect: new d3.trait.Rect( 10,   0, 10, 10) },
+                { name: 'toolow', rect: new d3.trait.Rect( 10,  10, 10, 10) },
+                { name: 'toolow', rect: new d3.trait.Rect( 10,  22, 10, 10) }
+            ],
+            originalYs = [ 10, 20, 0]
+
+        var array = d3.trait.layout.utils.listBalanceFromTop( items, 100, originalYs)
+        expect( items[0].rect.origin.y).toBe(  0)
+        expect( items[1].rect.origin.y).toBe( 10)
+        expect( items[2].rect.origin.y).toBe( 20)
+    });
+
+    it( 'listBalanceFromTop should translate three items down', function() {
+        var items = [
                 { name: 'toohigh', rect: new d3.trait.Rect( 10,   0, 10, 10) },
                 { name: 'toohigh', rect: new d3.trait.Rect( 10,  10, 10, 10) },
                 { name: 'static',  rect: new d3.trait.Rect( 10,  22, 10, 10) }
             ],
-            originalYs = [ 10, 20, 0]
+            originalYs = [ 10, 20, 30]
+
+        var array = d3.trait.layout.utils.listBalanceFromTop( items, 100, originalYs)
+        expect( items[0].rect.origin.y).toBe( 10)
+        expect( items[1].rect.origin.y).toBe( 20)
+        expect( items[2].rect.origin.y).toBe( 30)
+    });
+
+    it( 'listBalanceFromTop should see three items in tension, but balanced', function() {
+        var items = [
+                { name: 'static', rect: new d3.trait.Rect( 10,   0, 10, 10) },
+                { name: 'static', rect: new d3.trait.Rect( 10,  10, 10, 10) },
+                { name: 'static', rect: new d3.trait.Rect( 10,  20, 10, 10) }
+            ],
+            originalYs = [ 10, 10, 10]
 
         var array = d3.trait.layout.utils.listBalanceFromTop( items, 100, originalYs)
         expect( items[0].rect.origin.y).toBe(  0)
