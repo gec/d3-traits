@@ -41,6 +41,15 @@ var stackTrait = function(superTrait, newTrait) {
     }
 };
 
+function getTraitCache( element, traitInstanceId) {
+    var elStore = element[traitInstanceId]
+    if( !elStore) {
+        element[traitInstanceId] = {}
+        elStore = element[traitInstanceId]
+    }
+    return elStore
+}
+
 /**
  * Is this an x scale, axis, etc.
  * @param scaleName  'x1', 'x2', etc.
@@ -300,6 +309,7 @@ d3.trait.utils = {
     isY: isY,
     extentMax: extentMax,
     getChartRange: getChartRange,
+    getTraitCache: getTraitCache,
     configMargin: configMargin,
     configFloat: configFloat
 }

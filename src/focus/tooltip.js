@@ -30,7 +30,7 @@
     }
 
     /**
-     *
+     * Return a path for a call-out tooltip (has a little pointer pointing to data).
      * @param w Width
      * @param h Height
      * @param r Radius for rounded corners
@@ -39,7 +39,7 @@
      * @param offsetY  Nudge the call-out point up or down to point to original focus (before layout adjustments)
      * @returns {string}
      */
-    function getCalloutRightPath( w, h, r, cp2, anchor, offsetY) {
+    function getCalloutPath( w, h, r, cp2, anchor, offsetY) {
         // Start at the left on the callout point and go clockwise
         //
         //<path d="m10,0 L90,0 Q100,0 100,10 L100,90" fill="none" stroke="red"/>
@@ -80,16 +80,16 @@
             }
         })
     }
-    function removeAllTooltips( element) {
+    function removeAllTooltips( cache) {
 
-        delete element._tooltipLastFoci;
+        delete cache.lastFoci;
 
-        if( ! element._tooltips)
+        if( ! cache.tooltips)
             return
-        element._tooltips.forEach( function( item, index) {
+        cache.tooltips.forEach( function( item, index) {
             if( item) {
                 item.group.remove()
-                element._tooltips[index] = null
+                cache.tooltips[index] = null
             }
         })
     }
@@ -129,23 +129,24 @@
      *  distance: 6  -- x & y range
      *  axis: 'x'
      */
-    function _tooltip( _super, _config) {
+    function _tooltip( _super, _config, _id) {
 
-        var distance = d3.trait.utils.configFloat( _config.distance, 12)
+        var distance = d3.trait.utils.configFloat( _config.distance, 14)
         var axis = _config.axis
         var radius = 4
         var margin = 3
 
-        var dispatch = d3.dispatch('customHover');
         function tooltip( _selection) {
             _selection.each(function(_data) {
                 var element = this
-                element._tooltips = _data.map( function(d) { return null})
+                var cache = d3.trait.utils.getTraitCache( element, _id)
+
+                cache.tooltips = _data.map( function(d) { return null})
 
                 this._svg.on("mouseout", function() {
                     var mousePoint = d3.mouse( element._chartGroup.node())
                     if( mouseNotOnChart( mousePoint,  _super.chartWidth(), _super.chartHeight()) ) {
-                        removeAllTooltips( element)
+                        removeAllTooltips( cache)
                     }
                 })
 
@@ -153,7 +154,7 @@
                     var mousePoint = d3.mouse( element._chartGroup.node())
 
                     if( mouseNotOnChart( mousePoint,  _super.chartWidth(), _super.chartHeight()) ) {
-                        removeAllTooltips( element)
+                        removeAllTooltips( cache)
                         return
                     }
 
@@ -163,19 +164,19 @@
                     var foci =_super.focus.call( element, focusPoint, distance, axis)
 
                     if( foci.length <= 0) {
-                        removeAllTooltips( element)
+                        removeAllTooltips( cache)
                         return
                     }
-                    if( fociAreTheSame( element._tooltipLastFoci, foci))
+                    if( fociAreTheSame( cache.lastFoci, foci))
                         return
 
-                    markTooltipsForRemoval( element._tooltips)
+                    markTooltipsForRemoval( cache.tooltips)
 
                     foci.forEach( function( item, index, array) {
                         //console.log( "foci: " + item.point.x + " distance: " + item.distance)
 
                         var seriesIndex = _data.indexOf( item.series),
-                            ttip = element._tooltips[ seriesIndex],
+                            ttip = cache.tooltips[ seriesIndex],
                             formattedText = formatDate( _config.x1( item.item)) + " " + _config.y1(item.item)
 
                         if( ! ttip) {
@@ -198,7 +199,7 @@
                                     'text-rendering': 'geometric-precision'
                                 })
 
-                            element._tooltips[ seriesIndex] = ttip
+                            cache.tooltips[ seriesIndex] = ttip
                         }
 
                         ttip.remove = false
@@ -208,15 +209,13 @@
                         bbox.height = bbox.height * 2 + margin * 2
                         bbox.width += margin * 2 + getCalloutPointerHalfHeight( bbox.height)
                         item.rect = new d3.trait.Rect( item.point, bbox, anchorMidY)
-//                        item.bbox = { width: bbox.width + margin * 2, height: boxHeight}
                     })
 
-                    //layoutLeftAndRight( foci, _super.chartWidth(), _super.chartHeight(), focusPoint)
                     d3.trait.layout.verticalAnchorLeftRight( foci, _super.chartWidth(), _super.chartHeight())
 
                     foci.forEach( function( item, index, array) {
                         var seriesIndex = _data.indexOf( item.series),
-                            ttip = element._tooltips[ seriesIndex]
+                            ttip = cache.tooltips[ seriesIndex]
 
                         //var pathFill = d3.rgb( item.color ).brighter().toString()
                         var pathStroke = d3.rgb( item.color ).darker(1.4).toString()
@@ -224,7 +223,7 @@
                         //console.log( "bbox: " + bbox.width + ", " + bbox.height)
                         var offsetY = item.point.y - item.rect.origin.y
                         var calloutPointerHalfHeight = getCalloutPointerHalfHeight( item.rect.size.height)
-                        var calloutPath = getCalloutRightPath( item.rect.size.width, item.rect.size.height, radius, calloutPointerHalfHeight, item.rect.anchor, offsetY)
+                        var calloutPath = getCalloutPath( item.rect.size.width, item.rect.size.height, radius, calloutPointerHalfHeight, item.rect.anchor, offsetY)
 
                         var textMargin = calloutPointerHalfHeight * 2 + margin,
                             tx = item.rect.anchor.x < 0.5 ? textMargin : -item.rect.size.width - textMargin
@@ -251,14 +250,12 @@
                         ttip.newby = false
                     })
 
-                    removeUnusedTooltips( element._tooltips)
-                    element._tooltipLastFoci = foci
+                    removeUnusedTooltips( cache.tooltips)
+                    cache.lastFoci = foci
                 });
 
             })
         }
-
-        d3.rebind(tooltip, dispatch, 'on');
 
         return tooltip;
 

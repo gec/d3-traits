@@ -32,7 +32,6 @@ function _chartLine( _super, _config) {
             .x(function(d) { return x1( _config.x1(d)); })
             .y(function(d) { return y1( _config.y1(d)); });
 
-    var dispatch = d3.dispatch('customHover');
     function chartLine( _selection) {
         _selection.each(function(_data) {
 
@@ -66,39 +65,6 @@ function _chartLine( _super, _config) {
 
             lastDomainMax = d3.trait.utils.extentMax( x1.domain())
         })
-    }
-
-    function findProximateIndex(data, access, point, minIndex, maxIndex, direction) {
-
-        var index, d, dx, dy
-
-        if( minIndex === undefined)
-            minIndex = 0
-        if( maxIndex === undefined)
-            maxIndex = data.length - 1
-
-        while (minIndex <= maxIndex) {
-            index = Math.floor( (minIndex + maxIndex) / 2 );
-            d = data[index];
-            dx = access.x( d);
-            dy = access.y( d);
-
-            //   t   t
-            // 2   4   6   8
-            // ^   d    ^
-            if (dx < point.x) {
-                minIndex = index + 1;
-            } else if ( d.x > point.x) {
-                maxIndex = index - 1;
-            } else {
-                return index;
-            }
-        }
-
-        if( direction < 0)
-            return minIndex + direction < 0 ? 0 : minIndex + direction
-        else
-            return maxIndex + direction >= data.length ?  data.length - 1 : maxIndex + direction
     }
 
     function findClosestIndex(data, access, target, direction, minIndex, maxIndex) {
@@ -227,7 +193,6 @@ function _chartLine( _super, _config) {
         return foci
     }
 
-    d3.rebind(chartLine, dispatch, 'on');
     _super.onChartResized( 'chartLine', chartLine)
 
     return chartLine;
