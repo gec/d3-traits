@@ -114,6 +114,8 @@
         adjustChartMarginForAxis( _super, c)
 
         function axisLinear( _selection) {
+            var self = axisLinear
+
             _selection.each(function(_data) {
                 var element = this
 
@@ -129,8 +131,8 @@
                 group
                     .transition()
                     .duration( 500)
-                    .ease( _super.ease())
-                    .attr({transform: axisTransform( _super, c)})
+                    .ease( self.ease())
+                    .attr({transform: axisTransform( self, c)})
                     .call(axis);
             })
         }
@@ -164,6 +166,8 @@
         adjustChartMarginForAxis( _super, c)
 
         function axisMonth( _selection) {
+            var self = axisMonth
+
             _selection.each(function(_data) {
                 var element = this
 
@@ -193,8 +197,8 @@
 
                 group.transition()
                     .duration( 500)
-                    .ease( _super.ease())
-                    .attr({transform: axisTransform( _super, c)})
+                    .ease( self.ease())
+                    .attr({transform: axisTransform( self, c)})
                     .call(axis);
 
                 var extension = group.selectAll( "path.axis-extension")
@@ -218,8 +222,7 @@
         }
 
         axisMonth.update = function( type, duration) {
-            if( _super.update)
-                _super.update( type, duration)
+            this._super( type, duration)
 
             var scale2 = _super[c.name]()
             scaleForUpdate.range( d3.trait.utils.getChartRange( _super, c.name))

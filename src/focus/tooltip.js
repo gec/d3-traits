@@ -137,6 +137,8 @@
         var margin = 3
 
         function tooltip( _selection) {
+            var self = tooltip
+
             _selection.each(function(_data) {
                 var element = this
                 var cache = d3.trait.utils.getTraitCache( element, _id)
@@ -145,7 +147,7 @@
 
                 this._svg.on("mouseout", function() {
                     var mousePoint = d3.mouse( element._chartGroup.node())
-                    if( mouseNotOnChart( mousePoint,  _super.chartWidth(), _super.chartHeight()) ) {
+                    if( mouseNotOnChart( mousePoint,  self.chartWidth(), self.chartHeight()) ) {
                         removeAllTooltips( cache)
                     }
                 })
@@ -153,7 +155,7 @@
                 this._svg.on("mousemove", function() {
                     var mousePoint = d3.mouse( element._chartGroup.node())
 
-                    if( mouseNotOnChart( mousePoint,  _super.chartWidth(), _super.chartHeight()) ) {
+                    if( mouseNotOnChart( mousePoint,  self.chartWidth(), self.chartHeight()) ) {
                         removeAllTooltips( cache)
                         return
                     }
@@ -161,7 +163,7 @@
                     var focusPoint = new d3.trait.Point( mousePoint[0], mousePoint[1] ),
                         anchorMidY = new d3.trait.Point( 0, 0.5 )
 
-                    var foci =_super.focus.call( element, focusPoint, distance, axis)
+                    var foci =self.focus.call( element, focusPoint, distance, axis)
 
                     if( foci.length <= 0) {
                         removeAllTooltips( cache)
@@ -211,7 +213,7 @@
                         item.rect = new d3.trait.Rect( item.point, bbox, anchorMidY)
                     })
 
-                    d3.trait.layout.verticalAnchorLeftRight( foci, _super.chartWidth(), _super.chartHeight())
+                    d3.trait.layout.verticalAnchorLeftRight( foci, self.chartWidth(), self.chartHeight())
 
                     foci.forEach( function( item, index, array) {
                         var seriesIndex = _data.indexOf( item.series),

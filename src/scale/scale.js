@@ -257,10 +257,12 @@ function _scaleOrdinalBars( _super, _config) {
         scale = d3.scale.ordinal()
 
     function scaleOrdinalBars( _selection) {
+        var self = scaleOrdinalBars
+
         _selection.each(function(_data) {
             var element = this
 
-            var rangeMax = axisChar === 'x' ? _super.chartWidth() : _super.chartHeight()
+            var rangeMax = axisChar === 'x' ? self.chartWidth() : self.chartHeight()
             scale.rangeRoundBands([0, rangeMax], 0.1)
 
             // Use the first series for the ordinals. TODO: should we merge the series ordinals?
@@ -288,6 +290,8 @@ function _scaleTime( _super,  _config) {
 
 
     function scaleTime( _selection) {
+        var self = scaleTime
+
         _selection.each(function(_data, i , j) {
             var currentDomain,
                 element = this
@@ -298,7 +302,7 @@ function _scaleTime( _super,  _config) {
             // TODO: nice overlaps wth interval. Maybe it's one or the other?
             if( _config.nice)
                 scale.nice( _config.nice) // start and end on month. Ex Jan 1 00:00 to Feb 1 00:00
-            scale.range( d3.trait.utils.getChartRange( _super, scaleName))
+            scale.range( d3.trait.utils.getChartRange( self, scaleName))
         })
     }
     scaleTime[scaleName] = function() {
@@ -311,8 +315,7 @@ function _scaleTime( _super,  _config) {
     }
     scaleTime.update = function( type, duration) {
 
-        if( _super.update)
-            _super.update( type, duration)
+        this._super( type, duration)
 
         // Reset the range to the physical chart coordinates. We'll use this range to
         // calculate newRangeMax below, then we'll extend the range to that.
@@ -338,24 +341,6 @@ function _scaleTime( _super,  _config) {
  */
 function _scaleLinear( _super,  _config) {
 
-//    function makeUniqueIndex( prefix) {
-//        for( var index = 0; index < 10; index++ ) {
-//            var name = prefix + index
-//            if( !(name in _super))
-//                return index
-//        }
-//        return undefined
-//    }
-//
-//    function makeUniqueName( prefix) {
-//        for( var index = 1; index <= 10; index++ ) {
-//            var name = prefix + index
-//            if( !(name in _super))
-//                return name
-//        }
-//        return undefined
-//    }
-
     var theData,
         scaleName = _config.axis,
         access = makeAccessorsFromConfig( _config, scaleName ),
@@ -366,6 +351,8 @@ function _scaleLinear( _super,  _config) {
 
 
     function scaleLinear( _selection) {
+        var self = scaleLinear
+
         _selection.each(function(_data) {
             var element = this
             theData = _data
@@ -377,15 +364,14 @@ function _scaleLinear( _super,  _config) {
             //var max = d3.max( _data, function(s) { return d3.max( _config.seriesData(s), accessData); })
 
             scale.domain([min, max])
-                .range([_super.chartHeight(), 0]);
+                .range([self.chartHeight(), 0]);
         })
     }
     scaleLinear[scaleName] = function() {
         return scale;
     };
     scaleLinear.update = function( type, duration) {
-        if( _super.update)
-            _super.update( type, duration)
+        this._super( type, duration)
         var range = d3.trait.utils.getChartRange( _super, scaleName)
         updateScale( scale, range, domainConfig, theData, access)
 

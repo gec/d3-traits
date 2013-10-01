@@ -35,6 +35,8 @@ function _chartArea( _super, _config) {
 
     var dispatch = d3.dispatch('customHover');
     function chartArea( _selection) {
+        var self = chartArea
+
         _selection.each(function(_data) {
             var element = this
 
@@ -46,7 +48,7 @@ function _chartArea( _super, _config) {
             var filtered = _config.seriesFilter ? _data.filter( _config.seriesFilter) : _data
 
             color.domain( filtered)
-            area.y0( _super.chartHeight())
+            area.y0( self.chartHeight())
 
             // DATA JOIN
             series = group.selectAll( ".series")
@@ -71,8 +73,7 @@ function _chartArea( _super, _config) {
         })
     }
     chartArea.update = function( type, duration) {
-        if( _super.update)
-            _super.update( type, duration)
+        this._super( type, duration)
 
         var dur = duration || _super.duration()
         var attrD = function(d) { return area( _config.seriesData(d)); }

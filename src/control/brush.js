@@ -55,6 +55,8 @@ function _controlBrush( _super, _config) {
 
     var dispatch = d3.dispatch('customHover');
     function controlBrush( _selection) {
+        var self = controlBrush
+
         _selection.each(function(_data) {
             var element = this
 
@@ -68,14 +70,13 @@ function _controlBrush( _super, _config) {
 
             group.selectAll( "rect")
                 .attr("y", -6)
-                .attr("height", _super.chartHeight() + 7);
+                .attr("height", self.chartHeight() + 7);
 
             lastDomainMax = d3.trait.utils.extentMax( scale.domain())
         })
     }
     controlBrush.update = function( type, duration) {
-        if( _super.update)
-            _super.update( type, duration)
+        this._super( type, duration)
 
 
         lastDomainMax = d3.trait.utils.extentMax( scale.domain())

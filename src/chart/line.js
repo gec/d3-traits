@@ -115,8 +115,7 @@ function _chartLine( _super, _config) {
         return data.slice( indexMin, indexMax)
     }
     chartLine.update = function( type, duration) {
-        if( _super.update)
-            _super.update( type, duration)
+        this._super( type, duration)
 
         var dur = duration || _super.duration()
         var attrD = function(d) { return line( getDataInRange( _config.seriesData(d), x1, _config.x1 )); }
@@ -154,7 +153,7 @@ function _chartLine( _super, _config) {
         }
     }
     chartLine.focus = function( focusPoint, distanceMax, axis) {
-        var foci = _super.focus( focusPoint)
+        var foci = this._super( focusPoint)
 
         // Search the domain for the closest point in x
         var targetDomain = new d3.trait.Point( x1.invert( focusPoint.x ), y1.invert ( focusPoint.y) )

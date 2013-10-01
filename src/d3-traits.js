@@ -20,6 +20,24 @@
  */
 (function (d3) {
 
+//    var a, b, c, d, e
+//
+//    var t1 = d3.trait( a)       // 1
+//            .trait( b, {})      // 1
+//            .trait( c, {})      // 1
+//            .config( { x1: 1})
+//
+//    var t2 = d3.trait( t1 )     // .. 1, 3
+//            .trait( d, {})      // 2, 3
+//            .trait( e, {})      // 2, 3
+//            .config( { x1: 2, y1: 3})
+//
+//    var t3 = d3.trait( c)
+//            .config( { x1: 3})
+//            .trait( d, {})
+//            .trait( e, {})
+//            .config( { x1: 4})
+
 Array.isArray = Array.isArray || function (vArg) {
     return Object.prototype.toString.call(vArg) === "[object Array]";
 };
@@ -32,14 +50,14 @@ Array.prototype.clone = function() {
  * @param superTrait
  * @param newTrait
  */
-var stackTrait = function(superTrait, newTrait) {
+function stackTrait( superTrait, newTrait) {
     //newTrait._super = superTrait
     // Copy the properties over onto the new trait
     for (var name in superTrait) {
         if( !(name in newTrait))
             newTrait[name] = superTrait[ name]
     }
-};
+}
 
 function getTraitCache( element, traitInstanceId) {
     var elStore = element[traitInstanceId]
@@ -151,10 +169,8 @@ function extendTraitsConfig( config, defaultConfig) {
     return extendObjectNoOverwrite( obj, defaultConfig)
 }
 
-function Trait( trait, config, _super) {
+function TraitOld( trait, config, _super) {
     //console.log( "trait( " + trait.name + ")")
-
-
 
     var id, imp,
         self = this,
@@ -185,6 +201,174 @@ function Trait( trait, config, _super) {
     imp._super = _super
     imp._config = config
     self.imp = imp
+}
+function Trait( _trait, _config, _super) {
+    console.log( "trait( " + _trait.name + ")")
+
+    var id, imp,
+        self = this
+
+    self.config = _config
+    self._super = _super
+    self.index = -1
+
+
+    function makeTraitId( name, index) { return "_" + name + "_" + index }
+
+    self.getImp = function() { return imp}
+
+    self.trait = function( _trait, config) {
+        //console.log( ".trait( " + _trait.name + ")")
+        var t = new Trait( _trait, config, imp)
+        return t.getImp()
+    }
+
+//    self.config = function( _config) {
+//        //console.log( ".config( {...})")
+//        if( self._super)
+//            self._super.config( _config)
+//
+//        if( _trait instanceof Trait)
+//            _trait.config( _config)
+//        else
+//            self.configs.push( _config)
+//        return self
+//    }
+
+    self.call = function( _selection) {
+        if( this._super)
+            this._super.call( _selection)
+        _selection.call( imp)
+        return self
+    }
+
+    function makeVirtual( name, fn, _superFn) {
+        console.log( "makeVirtual " + name)
+        return (function(name, fn){
+            return function() {
+                var tmp = this._super;
+
+                // Add a new ._super() method that is the same method
+                // but on the super-class
+                this._super = _superFn;
+
+                // The method only need to be bound temporarily, so we
+                // remove it when we're done executing
+                var ret = fn.apply(this, arguments);
+                this._super = tmp;
+
+                return ret;
+            };
+        })(name, fn)
+    }
+    self.__replaceVirtual = function( name, fn) {
+        if( imp.hasOwnProperty( name))
+            imp[name] = fn
+        if( _super)
+            _super.__replaceVirtual( name, fn)
+    }
+    function hasFunction( name) {
+        return imp.hasOwnProperty( name) && typeof imp[name] === "function"
+    }
+
+    self.__virtualize = function( name, fn) {
+        console.log( "__virtualize begin " + _trait.name + " name=" + name)
+
+        var virtual = null
+        if( hasFunction( name)) {
+            console.log( "__virtualize begin " + _trait.name + " name=" + name + " hasFunction")
+            var original = '__original__' + name
+            virtual = makeVirtual( name, fn, imp[name])
+
+            if( imp.hasOwnProperty( original)) {
+                // Already virtualized
+                if( _super)
+                    _super.__replaceVirtual( name, virtual)
+            } else {
+                imp[original] = imp[name]
+            }
+            imp[name] = virtual
+        } else {
+            console.log( "__virtualize begin " + _trait.name + " name=" + name + " hasFunction NOT  ")
+            if( _super)
+                virtual = _super.__virtualize( name, fn)
+        }
+        return virtual
+    }
+    //       self.a  this._super()
+    // t0 a  t3.a    -
+    // t1    t3.a    t0.a
+    // t2 a  t3.a    t0.a
+    // t3 a  t3.a    t2.a
+    //
+    // t0 a  a
+    //
+    // t0 a  t1.a    -     originals: [ a]
+    // t1 a  t1.a    t0.a
+    //
+    // t0 a  t2.a    -
+    // t1 a  t2.a    t0.a
+    // t2 a  t2.a    t1.a
+    //
+    // _stack[0] is most derived trait imp.
+    //
+    self.__makeVTable = function() {
+        console.log( "__makeVTable begin " + _trait.name)
+
+        var name, virtualized
+
+        for( name in imp) {
+
+            virtualized = _super.__virtualize( name, imp[name])
+            if( virtualized) {
+                console.log( _trait.name +".__makeVTable name " + name + "   virtualized")
+                imp[ '__original__' + name] = imp[name]
+                imp[name] = virtualized
+            } else {
+                console.log( _trait.name +".__makeVTable name " + name + " ! virtualized")
+            }
+
+        }
+
+        // Replicate super methods in imp; no overrides.
+        for( name in _super) {
+            //console.log( _trait.name +".__makeVTable replicate " + name + "  in _super")
+            if( !(name in imp))
+                imp[name] = _super[ name]
+        }
+
+        console.log( "__makeVTable end")
+    }
+
+    self.__getRoot = function() {
+        if( self._super)
+            return self._super.__getRoot()
+        else
+            return self
+    },
+
+    // TODO: make config from configs
+
+//    config = extendTraitsConfig( config, self.__getRoot()._config)
+    id = makeTraitId( _trait.name, self._traitIndex)
+    if( _super)
+        self.config = extendTraitsConfig( _config, self.__getRoot().config)
+
+    imp = _trait( _super, self.config, id)
+
+    if( _super)
+        self.__makeVTable()
+
+
+    imp.call = self.call
+    imp.trait = self.trait
+    imp.getImp = self.getImp
+    imp.config = self.config
+    imp.__makeVTable = self.__makeVTable
+    imp.__virtualize = self.__virtualize
+    imp.__replaceVirtual = self.__replaceVirtual
+    imp.__getRoot = self.__getRoot
+    imp._super = _super
 }
 
 Trait.prototype = {

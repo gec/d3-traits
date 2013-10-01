@@ -49,6 +49,8 @@ function _legendSeries( _super, _config) {
 
     var dispatch = d3.dispatch('customHover');
     function legendSeries( _selection) {
+        var self = legendSeries
+
         _selection.each(function(_data) {
             var element = this
 
@@ -100,13 +102,13 @@ function _legendSeries( _super, _config) {
                         .attr("transform", function(d, i) { return "translate(0," + i * 20 + ")"; })
 
                 legend.append("rect")
-                        .attr("x", _super.chartWidth() - 18)
+                        .attr("x", self.chartWidth() - 18)
                         .attr("width", 18)
                         .attr("height", 18)
                         .style("fill", function(d, i) { return color(i); })
 
                 legend.append("text")
-                    .attr("x", _super.chartWidth() - 24)
+                    .attr("x", self.chartWidth() - 24)
                     .attr("y", 9)
                     .attr("dy", ".35em")
                     .style("text-anchor", "end")

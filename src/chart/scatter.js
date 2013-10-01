@@ -48,6 +48,8 @@
 
         var dispatch = d3.dispatch('customHover');
         function chartScatter( _selection) {
+            var self = chartScatter
+
             _selection.each(function(_data) {
                 var element = this
 
@@ -79,7 +81,7 @@
                 {
                     // UPDATE
                     points.transition()
-                        .duration(500).delay(500).ease(_super.ease())
+                        .duration(500).delay(500).ease(self.ease())
                         .attr( circleAttr( _config, x1, y1));
 
                     // ENTER
@@ -120,8 +122,7 @@
             })
         }
         chartScatter.update = function( type, duration) {
-            if( _super.update)
-                _super.update( type, duration)
+            this._super( type, duration)
 
             // TODO: The x1.range() needs to be wider, so we draw the new line off the right
             // then translate it to the left with a transition animation.

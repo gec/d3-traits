@@ -48,6 +48,71 @@ beforeEach(function() {
     selection = d3.select( ".chart-div")
 })
 
+function _t0( _super, _config, _id) {
+
+    function t0( selection) {
+    }
+    t0.notOverridden = function() {
+        return "notOverridden"
+    }
+    t0.a = function( arg) {
+        return "t0.a(" + arg + ")"
+    }
+    t0.b = function() {
+        return "t0.b"
+    }
+    t0.callA = function(arg) {
+        return this.a(arg)
+    }
+    return t0
+}
+function _t1( _super, _config, _id) {
+
+    function t1( selection) {
+        var self = t1
+       self.a( "t1")
+    }
+    t1.a = function(arg) {
+        return this._super(arg) + " t1.a"
+    }
+    return t1
+}
+function _t2( _super, _config, _id) {
+
+    function t2( selection) {
+
+    }
+    t2.a = function(arg) {
+        return this._super(arg) + " t2.a"
+    }
+    t2.b = function() {
+        return this._super() + " t2.b"
+    }
+    return t2
+}
+
+it('d3.trait() should setup vtable', function() {
+    var t0 = d3.trait( _t0)
+    expect( t0.a('someArg') ).toBe( 't0.a(someArg)')
+
+    var t1 = d3.trait( _t0)
+        .trait( _t1)
+    expect( t1.a('someArg') ).toBe( 't0.a(someArg) t1.a')
+
+    spyOn(t1, 'a').andCallThrough()
+    t1.call( selection)
+    expect( t1.a ).toHaveBeenCalledWith( 't1')
+
+    var t2 = d3.trait( _t0)
+        .trait( _t1)
+        .trait( _t2)
+    expect( t2.a('someArg') ).toBe( 't0.a(someArg) t1.a t2.a')
+    expect( t2.b() ).toBe( 't0.b t2.b')
+    expect( t2.callA('someArg') ).toBe( 't0.a(someArg) t1.a t2.a')
+    expect( t2.notOverridden() ).toBe( 'notOverridden')
+});
+
+
 it('should find the selection', function() {
     expect( selection.length).toBe( 1)
     expect( selection[0].length).toBe( 1)

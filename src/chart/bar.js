@@ -58,6 +58,8 @@ function _chartBar( _super,  _config) {
 
     var dispatch = d3.dispatch('customHover');
     function chartBar( _selection) {
+        var self = chartBar
+
         _selection.each(function(_data) {
             var element = this
 
@@ -65,12 +67,12 @@ function _chartBar( _super,  _config) {
 
             var xBand = d3.scale.ordinal()
                 .domain( getBarCountRange( filtered))
-                .rangeRoundBands([0, _super.chartWidth()], 0.1); // bar padding will be 0.1 * bar width
+                .rangeRoundBands([0, self.chartWidth()], 0.1); // bar padding will be 0.1 * bar width
             var gapSize = xBand.rangeBand() / 100 * gap;
             barW = xBand.rangeBand() - gapSize;
             barOffsetX = Math.round( gapSize / 2 - barW / 2);
             // The bar padding is already .1 * bar width. Let's use * 0.4 for better outer padding
-            _super.minRangeMarginLeft( "x1", Math.ceil( gapSize / 2 + barW * 0.4 + barW / 2))
+            self.minRangeMarginLeft( "x1", Math.ceil( gapSize / 2 + barW * 0.4 + barW / 2))
 
             if( !group) {
                 var classes = _config.chartClass ? "chart-bar " + _config.chartClass : 'chart-bar'
@@ -98,13 +100,13 @@ function _chartBar( _super,  _config) {
             {
                 // UPDATE
                 bars.transition()
-                    .duration(500).delay(500).ease(_super.ease())
-                    .attr( barAttr( _config, barOffsetX, barW, _super.chartHeight(), x1, y1));
+                    .duration(500).delay(500).ease(self.ease())
+                    .attr( barAttr( _config, barOffsetX, barW, self.chartHeight(), x1, y1));
 
                 // ENTER
                 bars.enter().append('rect')
                     .classed('bar', true)
-                    .attr( barAttr( _config, barOffsetX, barW, _super.chartHeight(), x1, y1))
+                    .attr( barAttr( _config, barOffsetX, barW, self.chartHeight(), x1, y1))
                     .on('mouseover', dispatch.customHover);
 
                 // EXIT
@@ -119,8 +121,7 @@ function _chartBar( _super,  _config) {
         })
     }
     chartBar.update = function( type, duration) {
-        if( _super.update)
-            _super.update( type, duration)
+        this._super( type, duration)
 
         // TODO: The x1.range() needs to be wider, so we draw the new line off the right
         // then translate it to the left with a transition animation.

@@ -110,6 +110,12 @@ function _chartBase( _super, _config) {
         return pathId
     }
 
+    function mouseOnChart( mousePoint, chartWidth, chartHeight) {
+        return  mousePoint[0] >= 0 && mousePoint[0] <= chartWidth &&
+                mousePoint[1] >= 0 && mousePoint[1] <= chartHeight
+
+    }
+
     function chartBase( _selection) {
         selection = _selection
         _selection.each(function(_data) {
@@ -142,6 +148,29 @@ function _chartBase( _super, _config) {
 
                 // Clip all chart innards to chartWidth and chartHeight
                 element._chartGroup.attr("clip-path", "url(#" + clipId + ")")
+
+
+//                this._svg.on("mousemove", function() {
+//                    var mousePoint = d3.mouse( element._chartGroup.node() ),
+//                        onChart = mouseOnChart( mousePoint,  chartWidth, chartHeight ),
+//                        focusPoint = new d3.trait.Point( mousePoint[0], mousePoint[1] )
+//
+//                    if( onChart) {
+//                        //dispatchMouseMove( focusPoint)
+//                        var foci = chartBase.__leafTrait.focus.call( element, focusPoint)
+//                        dispatchFocusListener( foci, focusPoint)
+//                    }
+//                })
+//                this._svg.on("mouseout", function() {
+//                    var mousePoint = d3.mouse( element._chartGroup.node() ),
+//                        onChart = mouseOnChart( mousePoint,  chartWidth, chartHeight )
+//                    if( ! onChart) {
+//                        var focusPoint = new d3.trait.Point( mousePoint[0], mousePoint[1] )
+//                        dispatchMouseOut( focusPoint)
+//                    }
+//                })
+
+
             }
 
             element._svg.transition()
@@ -202,6 +231,9 @@ function _chartBase( _super, _config) {
     // Return a list of points in focus.
     chartBase.focus = function( point) {
         return []
+    };
+
+    chartBase.update = function(  type, duration) {
     };
 
     chartBase.select = function() {
