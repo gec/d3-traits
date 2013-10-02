@@ -267,32 +267,34 @@ function Trait( _trait, _config, _super) {
         if( _super)
             _super.__replaceVirtual( name, fn)
     }
-    function hasFunction( name) {
-        return imp.hasOwnProperty( name) && typeof imp[name] === "function"
-    }
 
     self.__virtualize = function( name, fn) {
         console.log( "__virtualize begin " + _trait.name + " name=" + name)
 
         var virtual = null
-        if( hasFunction( name)) {
-            console.log( "__virtualize begin " + _trait.name + " name=" + name + " hasFunction")
-            var original = '__original__' + name
+        if( imp.hasOwnProperty( name) && typeof imp[name] === "function" ) {
+            // The first parent has the same function.
+            // The parent's version could be normal or virtualized.
+            //
+            console.log( "__virtualize " + _trait.name + " name=" + name + " hasFunction")
+//            var original = '__original__' + name
+
+            // imp[name] could be virtualized or normal
             virtual = makeVirtual( name, fn, imp[name])
 
-            if( imp.hasOwnProperty( original)) {
-                // Already virtualized
-                if( _super)
-                    _super.__replaceVirtual( name, virtual)
-            } else {
-                imp[original] = imp[name]
-            }
+//            if( ! imp.hasOwnProperty( original)) {
+//                console.log( "__virtualize " + _trait.name + " name=" + name + " newly virtualized save original")
+//                // save original
+//                imp[original] = imp[name]
+//            }
             imp[name] = virtual
-        } else {
-            console.log( "__virtualize begin " + _trait.name + " name=" + name + " hasFunction NOT  ")
             if( _super)
-                virtual = _super.__virtualize( name, fn)
+                _super.__replaceVirtual( name, virtual)
+        } else {
+            console.log( "__virtualize " + _trait.name + " name=" + name + " hasFunction NOT  ")
         }
+//        if( _super)
+//            virtual = _super.__virtualize( name, fn)
         return virtual
     }
     //       self.a  this._super()
@@ -303,12 +305,12 @@ function Trait( _trait, _config, _super) {
     //
     // t0 a  a
     //
-    // t0 a  t1.a    -     originals: [ a]
-    // t1 a  t1.a    t0.a
+    // t0 a  vt1.a   t0.a  __original__a
+    // t1 a  vt1.a   t0.a  __original__a
     //
-    // t0 a  t2.a    -
-    // t1 a  t2.a    t0.a
-    // t2 a  t2.a    t1.a
+    // t0 a  vt2.a    -
+    // t1 a  vt2.a    vt1.a  t0.a
+    // t2 a  vt2.a    vt1.a  t0.a
     //
     // _stack[0] is most derived trait imp.
     //
@@ -322,7 +324,7 @@ function Trait( _trait, _config, _super) {
             virtualized = _super.__virtualize( name, imp[name])
             if( virtualized) {
                 console.log( _trait.name +".__makeVTable name " + name + "   virtualized")
-                imp[ '__original__' + name] = imp[name]
+//                imp[ '__original__' + name] = imp[name]
                 imp[name] = virtualized
             } else {
                 console.log( _trait.name +".__makeVTable name " + name + " ! virtualized")

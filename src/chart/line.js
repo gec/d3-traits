@@ -27,6 +27,7 @@ function _chartLine( _super, _config) {
         x1 = _super.x1(),
         y1 = _super.y1(),
         color = d3.scale.category10(),
+        focus = d3.trait.chart.utils.configFocus( _config),
         line = d3.svg.line()
             .interpolate( _config.interpolate || "linear")
             .x(function(d) { return x1( _config.x1(d)); })
@@ -152,7 +153,7 @@ function _chartLine( _super, _config) {
             distanceX: distX
         }
     }
-    chartLine.focus = function( focusPoint, distanceMax, axis) {
+    chartLine.getFocusItems = function( focusPoint) {
         var foci = this._super( focusPoint)
 
         // Search the domain for the closest point in x
@@ -174,7 +175,7 @@ function _chartLine( _super, _config) {
                 var alter = getFocusItem( series, data, alterIndex, focusPoint)
 //                console.log( "found x=" + _config.x1( found.item) + " y=" + _config.y1( found.item) + " d=" + found.distance + "  " + targetDomain.x + " " + targetDomain.y)
 //                console.log( "alter x=" + _config.x1( alter.item) + " y=" + _config.y1( alter.item) + " d=" + alter.distance + "  " + targetDomain.x + " " + targetDomain.y)
-                if( axis === 'x') {
+                if( focus.axis === 'x') {
                     if( alter.distanceX < found.distanceX)
                         found = alter
                 } else {
@@ -183,7 +184,7 @@ function _chartLine( _super, _config) {
                 }
             }
 
-            if( found.distance <= distanceMax) {
+            if( found.distance <= focus.distance) {
                 found.color = color( seriesIndex)
                 foci.push( found)
             }

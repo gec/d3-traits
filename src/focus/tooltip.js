@@ -145,32 +145,16 @@
 
                 cache.tooltips = _data.map( function(d) { return null})
 
-                this._svg.on("mouseout", function() {
-                    var mousePoint = d3.mouse( element._chartGroup.node())
-                    if( mouseNotOnChart( mousePoint,  self.chartWidth(), self.chartHeight()) ) {
-                        removeAllTooltips( cache)
-                    }
-                })
+                self.onChartMouseOut( element, function() { removeAllTooltips( cache) })
 
-                this._svg.on("mousemove", function() {
-                    var mousePoint = d3.mouse( element._chartGroup.node())
-
-                    if( mouseNotOnChart( mousePoint,  self.chartWidth(), self.chartHeight()) ) {
-                        removeAllTooltips( cache)
-                        return
-                    }
-
-                    var focusPoint = new d3.trait.Point( mousePoint[0], mousePoint[1] ),
-                        anchorMidY = new d3.trait.Point( 0, 0.5 )
-
-                    var foci =self.focus.call( element, focusPoint, distance, axis)
+                self.onFocusChange( element, function( foci, focusPoint) {
 
                     if( foci.length <= 0) {
                         removeAllTooltips( cache)
                         return
                     }
-                    if( fociAreTheSame( cache.lastFoci, foci))
-                        return
+
+                    var anchorMidY = new d3.trait.Point( 0, 0.5 )
 
                     markTooltipsForRemoval( cache.tooltips)
 
@@ -254,7 +238,8 @@
 
                     removeUnusedTooltips( cache.tooltips)
                     cache.lastFoci = foci
-                });
+
+                })
 
             })
         }

@@ -59,10 +59,14 @@ function _t0( _super, _config, _id) {
         return "t0.a(" + arg + ")"
     }
     t0.b = function() {
+        console.log( "++++++++ t0.b")
         return "t0.b"
     }
     t0.callA = function(arg) {
-        return this.a(arg)
+        return t0.a(arg)
+    }
+    t0.callB = function() {
+        return t0.b()
     }
     return t0
 }
@@ -86,6 +90,7 @@ function _t2( _super, _config, _id) {
         return this._super(arg) + " t2.a"
     }
     t2.b = function() {
+        console.log( "++++++++ t2.b()")
         return this._super() + " t2.b"
     }
     return t2
@@ -103,12 +108,15 @@ it('d3.trait() should setup vtable', function() {
     t1.call( selection)
     expect( t1.a ).toHaveBeenCalledWith( 't1')
 
+    console.log( "+++++++++++++++++++++++++ t0, t1, t2")
     var t2 = d3.trait( _t0)
         .trait( _t1)
         .trait( _t2)
-    expect( t2.a('someArg') ).toBe( 't0.a(someArg) t1.a t2.a')
+    expect( t2.a('someArg1') ).toBe( 't0.a(someArg1) t1.a t2.a')
     expect( t2.b() ).toBe( 't0.b t2.b')
-    expect( t2.callA('someArg') ).toBe( 't0.a(someArg) t1.a t2.a')
+    expect( t2.callA('someArg2') ).toBe( 't0.a(someArg2) t1.a t2.a')
+    console.log( "--------------- t2.callB")
+    expect( t2.callB() ).toBe( 't0.b t2.b')
     expect( t2.notOverridden() ).toBe( 'notOverridden')
 });
 

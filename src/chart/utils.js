@@ -64,7 +64,19 @@
         return domainMax
     }
 
+    function configFocus( config) {
+        var focus = {
+            distance: 14,
+            axis: null
+        }
+        if( config.focus) {
+            focus.distance = d3.trait.utils.configFloat( config.focus.distance, focus.distance )
+            focus.axis = config.focus.axis
+        }
+        return focus
+    }
 
     trait.chart.utils.updatePathWithTrend = updatePathWithTrend
+    trait.chart.utils.configFocus = configFocus
 
 }(d3, d3.trait));

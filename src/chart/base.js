@@ -117,6 +117,7 @@ function _chartBase( _super, _config) {
     }
 
     function chartBase( _selection) {
+        var self = chartBase
         selection = _selection
         _selection.each(function(_data) {
             var element = this // the div element
@@ -150,27 +151,23 @@ function _chartBase( _super, _config) {
                 element._chartGroup.attr("clip-path", "url(#" + clipId + ")")
 
 
-//                this._svg.on("mousemove", function() {
-//                    var mousePoint = d3.mouse( element._chartGroup.node() ),
-//                        onChart = mouseOnChart( mousePoint,  chartWidth, chartHeight ),
-//                        focusPoint = new d3.trait.Point( mousePoint[0], mousePoint[1] )
-//
-//                    if( onChart) {
-//                        //dispatchMouseMove( focusPoint)
-//                        var foci = chartBase.__leafTrait.focus.call( element, focusPoint)
-//                        dispatchFocusListener( foci, focusPoint)
-//                    }
-//                })
-//                this._svg.on("mouseout", function() {
-//                    var mousePoint = d3.mouse( element._chartGroup.node() ),
-//                        onChart = mouseOnChart( mousePoint,  chartWidth, chartHeight )
-//                    if( ! onChart) {
-//                        var focusPoint = new d3.trait.Point( mousePoint[0], mousePoint[1] )
-//                        dispatchMouseOut( focusPoint)
-//                    }
-//                })
+                this._svg.on("mousemove", function() {
+                    var foci,
+                        mousePoint = d3.mouse( element._chartGroup.node() ),
+                        onChart = mouseOnChart( mousePoint,  chartWidth, chartHeight ),
+                        focusPoint = new d3.trait.Point( mousePoint[0], mousePoint[1] )
 
-
+                    foci = onChart ? self.getFocusItems.call( element, focusPoint) : []
+                    if( fociDifferentFromLast( element, foci))
+                        onFocusDispatch( element, foci, focusPoint)
+                    element.__onFocusChangeLastFoci = foci
+                })
+                this._svg.on("mouseout", function() {
+                    var mousePoint = d3.mouse( element._chartGroup.node() ),
+                        onChart = mouseOnChart( mousePoint,  chartWidth, chartHeight )
+                    if( ! onChart)
+                        onChartMouseOutDispatch( element)
+                })
             }
 
             element._svg.transition()
@@ -183,6 +180,55 @@ function _chartBase( _super, _config) {
 
             duration = 500;
         })
+    }
+
+    function fociDifferentFromLast( element, current) {
+        var last = element.__onFocusChangeLastFoci
+        if( !last || last.length !== current.length)
+            return true
+
+        var l, c,
+            index = last.length - 1
+
+        for( ; index >=0; index--) {
+            l = last[index]
+            c = current[index]
+            if( l.index !== c.index || l.point.x !== c.point.x || l.point.y !== c.point.y)
+                return true
+        }
+        return false
+    }
+
+    function onFocusDispatch( element, foci, focusPoint) {
+        elementDispatch( element, '__onFocusChangeListeners', [foci, focusPoint])
+    }
+    function onChartMouseOutDispatch( element) {
+        elementDispatch( element, '__onChartMouseOutListeners', [])
+    }
+    // __onFocusChangeListeners
+    function elementDispatch( element, whichListeners, args) {
+        if( ! element[ whichListeners])
+            return
+        var listener,
+            i = 0,
+            listeners = element[whichListeners],
+            length = listeners.length
+        for( ; i < length; i++) {
+            listener = listeners[ i]
+            listener.apply( element, args)
+        }
+    }
+    chartBase.onFocusChange = function( element, fn) {
+        if( !element.__onFocusChangeListeners)
+            element.__onFocusChangeListeners = []
+        if( fn)
+            element.__onFocusChangeListeners.push( fn)
+    }
+    chartBase.onChartMouseOut = function( element, fn) {
+        if( !element.__onChartMouseOutListeners)
+            element.__onChartMouseOutListeners = []
+        if( fn)
+            element.__onChartMouseOutListeners.push( fn)
     }
 
     function updateChartSize() {
@@ -223,13 +269,15 @@ function _chartBase( _super, _config) {
                 delete element._chartGroup;
                 delete element._chartGroupClipPath;
                 delete element._chartGroupClipPathRect;
+                delete element.__onFocusChangeListeners;
+                delete element.__onChartMouseOutListeners;
             }
         })
 
     };
 
     // Return a list of points in focus.
-    chartBase.focus = function( point) {
+    chartBase.getFocusItems = function( point) {
         return []
     };
 
@@ -385,10 +433,13 @@ function _chartBase( _super, _config) {
         var event = RangeMarginChanged
         if( namespace && namespace.length > 0)
             event = event + "." + namespace
-        dispatch.on( event, function() {
-            if( selection)
-                selection.call( traitInstance)
-        })
+        if( traitInstance)
+            dispatch.on( event, function() {
+                if( selection)
+                    selection.call( traitInstance)
+            })
+        else
+            dispatch.on( event) // remove
     }
 
     return chartBase;
