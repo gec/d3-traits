@@ -343,6 +343,7 @@ function _scaleLinear( _super,  _config) {
 
     var theData,
         scaleName = _config.axis,
+        axisChar = scaleName.charAt(0 ),
         access = makeAccessorsFromConfig( _config, scaleName ),
         domainConfig = makeDomainConfig( _config),
         scale = d3.scale.linear()
@@ -363,8 +364,9 @@ function _scaleLinear( _super,  _config) {
             var max = d3.max( extents, function(e) { return e[1] }) // the maximums of each extent
             //var max = d3.max( _data, function(s) { return d3.max( _config.seriesData(s), accessData); })
 
+            var rangeExtent = axisChar === 'x' ? [0, self.chartWidth()] : [self.chartHeight(), 0]
             scale.domain([min, max])
-                .range([self.chartHeight(), 0]);
+                .range( rangeExtent);
         })
     }
     scaleLinear[scaleName] = function() {

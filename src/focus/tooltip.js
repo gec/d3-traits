@@ -158,6 +158,7 @@
 
                     markTooltipsForRemoval( cache.tooltips)
 
+                    // TODO: Can this huge function be broken up a bit?
                     foci.forEach( function( item, index, array) {
                         //console.log( "foci: " + item.point.x + " distance: " + item.distance)
 

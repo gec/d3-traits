@@ -239,7 +239,7 @@ function Trait( _trait, _config, _super) {
         if( this._super)
             this._super.call( _selection)
         _selection.call( imp)
-        return self
+        return imp
     }
 
     function makeVirtual( name, fn, _superFn) {
