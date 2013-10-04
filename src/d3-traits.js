@@ -41,9 +41,6 @@
 Array.isArray = Array.isArray || function (vArg) {
     return Object.prototype.toString.call(vArg) === "[object Array]";
 };
-Array.prototype.clone = function() {
-    return this.slice(0);
-};
 
 /**
  * Copy all the properties for the super to the new trait.
