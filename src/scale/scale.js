@@ -260,13 +260,14 @@ function _scaleOrdinalBars( _super, _config) {
         var self = scaleOrdinalBars
 
         _selection.each(function(_data) {
-            var element = this
+            var ordinals,
+                element = this
 
             var rangeMax = axisChar === 'x' ? self.chartWidth() : self.chartHeight()
             scale.rangeRoundBands([0, rangeMax], 0.1)
 
             // Use the first series for the ordinals. TODO: should we merge the series ordinals?
-            var ordinals = _data[0].map( accessData)
+            ordinals = _data[0].map( accessData)
             scale.domain( ordinals);
         })
     }
@@ -311,7 +312,7 @@ function _scaleTime( _super,  _config) {
     scaleTime[scaleName + 'Domain'] = function( newDomain) {
         domainConfig.domain = newDomain
         scale.domain( newDomain)
-        // TODO: domain update event?
+        // TODO: domain updated event?
     }
     scaleTime.update = function( type, duration) {
 
@@ -355,13 +356,14 @@ function _scaleLinear( _super,  _config) {
         var self = scaleLinear
 
         _selection.each(function(_data) {
-            var element = this
+            var extents, min, max,
+                element = this
             theData = _data
 
             // Get array of extents for each series.
-            var extents = _data.map( function(s) { return d3.extent( access.series(s), access.data)})
-            var min = d3.min( extents, function(e) { return e[0] }) // the minimums of each extent
-            var max = d3.max( extents, function(e) { return e[1] }) // the maximums of each extent
+            extents = _data.map( function(s) { return d3.extent( access.series(s), access.data)})
+            min = d3.min( extents, function(e) { return e[0] }) // the minimums of each extent
+            max = d3.max( extents, function(e) { return e[1] }) // the maximums of each extent
             //var max = d3.max( _data, function(s) { return d3.max( _config.seriesData(s), accessData); })
 
             var rangeExtent = axisChar === 'x' ? [0, self.chartWidth()] : [self.chartHeight(), 0]

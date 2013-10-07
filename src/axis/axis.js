@@ -67,13 +67,13 @@
         }
     }
 
-    function axisTransform( _super, c) {
+    function axisTransform( self, c) {
 
         switch( c.orient) {
             case 'left': return null;
-            case 'bottom': return 'translate(0,' + _super.chartHeight() + ')';
+            case 'bottom': return 'translate(0,' + self.chartHeight() + ')';
             case 'top': return null;
-            case 'right': return 'translate(' + _super.chartWidth() + ')';
+            case 'right': return 'translate(' + self.chartWidth() + ')';
             default:
                 return null;
         }
@@ -129,12 +129,27 @@
                 applyTickConfig( axis, scale, c)
 
                 group
-                    .transition()
-                    .duration( 500)
-                    .ease( self.ease())
                     .attr({transform: axisTransform( self, c)})
                     .call(axis);
             })
+        }
+        axisLinear.update = function( type, duration) {
+            this._super( type, duration)
+
+            // Need this for extentTicks, maybe others
+            //
+            applyTickConfig( axis, scale, c)
+
+            if( duration === 0) {
+                group.call( axis);
+            } else {
+                group.transition()
+                    .duration( duration || _super.duration())
+                    .ease( "linear")
+                    .call( axis);
+            }
+
+            return this;
         }
 
         _super.onChartResized( 'axisLinear-' + c.name, axisLinear)
@@ -195,9 +210,7 @@
                     //.tickSubdivide(4)
 
 
-                group.transition()
-                    .duration( 500)
-                    .ease( self.ease())
+                group
                     .attr({transform: axisTransform( self, c)})
                     .call(axis);
 

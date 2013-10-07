@@ -281,6 +281,13 @@ function _chartBase( _super, _config) {
         return []
     };
 
+    /**
+     *
+     * @param type  trend - New date for trend. Slide the new data from the right.
+     *              domain - The domain has been updated and all traits need to udpate based on the
+     *                      new domain extent (ex: brush event).
+     * @param duration
+     */
     chartBase.update = function(  type, duration) {
     };
 
