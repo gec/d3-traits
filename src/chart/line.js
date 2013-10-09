@@ -43,8 +43,6 @@ function _chartLine( _super, _config) {
 
             filteredData = _config.seriesFilter ? _data.filter( _config.seriesFilter) : _data
 
-            color.domain( filteredData)
-
             // DATA JOIN
             series = group.selectAll( ".series")
                 .data( filteredData)

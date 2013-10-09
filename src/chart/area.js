@@ -47,7 +47,6 @@ function _chartArea( _super, _config) {
 
             var filtered = _config.seriesFilter ? _data.filter( _config.seriesFilter) : _data
 
-            color.domain( filtered)
             area.y0( self.chartHeight())
 
             // DATA JOIN

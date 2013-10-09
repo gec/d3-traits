@@ -70,7 +70,7 @@ function _legendSeries( _super, _config) {
 
             var filtered = _config.legendFilter ? _data.filter( _config.legendFilter) : _data
 
-            color.domain( filtered)
+            //TODO: Don't assume default colors (i.e. d3.scale.category10()). Get the color from the series.
 
             if( topOrBottom()) {
                 // DATA JOIN

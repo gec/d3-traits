@@ -79,8 +79,6 @@ function _chartBar( _super,  _config) {
                 group = this._chartGroup.append('g').classed( classes, true);
             }
 
-            color.domain( filtered)
-
             // DATA JOIN
             series = group.selectAll(".series")
                 .data( filtered)
