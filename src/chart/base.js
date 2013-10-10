@@ -26,6 +26,8 @@ var chartGroupClipPathNextId = 1
 function _chartBase( _super, _config) {
 
 
+    if( !_config)
+        _config = {}
 
     var margin = d3.trait.utils.configMargin( _config.margin, {top: 5, right: 5, bottom: 5, left: 5})
 
@@ -53,23 +55,25 @@ function _chartBase( _super, _config) {
         if( ! rangeMargin)
             return this
 
-        var m = minRangeMargins[axis],
+        var current = minRangeMargins[axis],
             changed = false;
 
-        if( rangeMargin.left && rangeMargin.left < m.left) {
-            m.left = rangeMargin.left
+        console.log( "=============== rangeMargin=" + rangeMargin + " left=" + rangeMargin.left)
+
+        if( rangeMargin.left && current.left < rangeMargin.left) {
+            current.left = rangeMargin.left
             changed = true
         }
-        if( rangeMargin.right && rangeMargin.right < m.right) {
-            m.right = rangeMargin.right
+        if( rangeMargin.right && current.right < rangeMargin.right) {
+            current.right = rangeMargin.right
             changed = true
         }
-        if( rangeMargin.top && rangeMargin.top < m.top) {
-            m.top = rangeMargin.top
+        if( rangeMargin.top && current.top < rangeMargin.top) {
+            current.top = rangeMargin.top
             changed = true
         }
-        if( rangeMargin.bottom && rangeMargin.bottom < m.bottom) {
-            m.bottom = rangeMargin.bottom
+        if( rangeMargin.bottom && current.bottom < rangeMargin.bottom) {
+            current.bottom = rangeMargin.bottom
             changed = true
         }
 
@@ -407,7 +411,7 @@ function _chartBase( _super, _config) {
     }
     chartBase.minRangeMarginRight = function( axis, marginRight) {
         if( !arguments.length) return 0
-        if( arguments.length === 1) return minRangeMargins[axis] ? minRangeMargins[axis].left : 0
+        if( arguments.length === 1) return minRangeMargins[axis] ? minRangeMargins[axis].right : 0
         initMinRangeMargin( axis)
         if( minRangeMargins[axis].right < marginRight) {
             minRangeMargins[axis].right = marginRight
