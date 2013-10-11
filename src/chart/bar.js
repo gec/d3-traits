@@ -56,23 +56,46 @@ function _chartBar( _super,  _config) {
         return countRange
     }
 
+    function minDistanceBetween( data, access, scale) {
+        var i,
+            min = Number.MAX_VALUE,
+            length = data.length
+
+        if( length < 2)
+            return 0
+
+        var current,
+            last = scale( access( data[0]))
+        for( i = 1; i < length; i++) {
+            current = scale( access( data[i]))
+            min = Math.min( min, current-last)
+            last = current
+        }
+
+        return min
+    }
+
     var dispatch = d3.dispatch('customHover');
     function chartBar( _selection) {
         var self = chartBar
 
         _selection.each(function(_data) {
-            var element = this
+            var element = this,
+                filtered = _config.seriesFilter ? _data.filter( _config.seriesFilter) : _data,
+                minDistanceX = d3.min( filtered, function( s) { return minDistanceBetween( _config.seriesData( s), _config.x1, x1) } )
 
-            var filtered = _config.seriesFilter ? _data.filter( _config.seriesFilter) : _data
+            barW = Math.floor( minDistanceX * 0.9 - gap)
 
-            var xBand = d3.scale.ordinal()
-                .domain( getBarCountRange( filtered))
-                .rangeRoundBands([0, self.chartWidth()], 0.1); // bar padding will be 0.1 * bar width
-            var gapSize = xBand.rangeBand() / 100 * gap;
-            barW = xBand.rangeBand() - gapSize;
-            barOffsetX = Math.round( gapSize / 2 - barW / 2);
+//            var xBand = d3.scale.ordinal()
+//                .domain( getBarCountRange( filtered))
+//                .rangeRoundBands(x1.range(), 0.1); // bar padding will be 0.1 * bar width
+//            var gapSize = xBand.rangeBand() / 100 * gap;
+//            barW = xBand.rangeBand() - gapSize;
+//            barOffsetX = Math.round( gapSize / 2 - barW / 2);
+            barOffsetX = Math.round( gap / 2 - barW / 2);
             // The bar padding is already .1 * bar width. Let's use * 0.4 for better outer padding
-            self.minRangeMarginLeft( "x1", Math.ceil( gapSize / 2 + barW * 0.4 + barW / 2))
+//            self.minRangeMarginLeft( "x1", Math.ceil( gapSize / 2 + barW * 0.4 + barW / 2))
+            self.minRangeMarginLeft( "x1", Math.ceil( gap / 2 + barW * 0.4 + barW / 2))
 
             if( !group) {
                 var classes = _config.chartClass ? "chart-bar " + _config.chartClass : 'chart-bar'

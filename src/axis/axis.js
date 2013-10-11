@@ -197,16 +197,13 @@
                 if( c.nice)
                     scaleForUpdate.nice( c.nice)
 
-                scale = scaleForUpdate
-
-
-                axis.scale(scale)
+                axis.scale(scaleForUpdate)
                     .orient( c.orient )
-                applyTickConfig( axis, scale, c)
+                applyTickConfig( axis, scaleForUpdate, c)
 
                 //.tickFormat(d3.time.format('%e')) // %d is 01, 02. %e is \b1, \b2
                     //.ticks( 15)
-                    //.tickValues( tickValuesForMonthDays( scale))
+                    //.tickValues( tickValuesForMonthDays( scaleForUpdate))
                     //.tickSubdivide(4)
 
 
@@ -220,14 +217,14 @@
                 extension.transition()
                     .attr("class", "axis-extension")
                     .attr( "d", function( d) {
-                        return "M0,0L" + scale(d) + ",0";
+                        return "M0,0L" + scaleForUpdate(d) + ",0";
                     })
 
                 extension.enter()
                     .append( "path")
                     .attr("class", "axis-extension")
                     .attr( "d", function( d) {
-                        return "M0,0L" + scale(d) + ",0";
+                        return "M0,0L" + scaleForUpdate(d) + ",0";
                     })
                 lastDomainMax = d3.trait.utils.extentMax( domain)
 
@@ -237,10 +234,9 @@
         axisMonth.update = function( type, duration) {
             this._super( type, duration)
 
-            var scale2 = _super[c.name]()
             scaleForUpdate.range( d3.trait.utils.getChartRange( _super, c.name))
 
-            var domain = scale2.domain()
+            var domain = scale.domain() // original scale
             var domainMax = d3.trait.utils.extentMax( domain)
             var delta = domainMax.getTime() - lastDomainMax.getTime()
             var min = new Date( domain[0].getTime() + delta)
