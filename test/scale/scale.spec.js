@@ -95,6 +95,93 @@ it('scale.linear should setup X domain and range', function() {
     expect( scale.range()).toEqual( [0, 290])
 });
 
+it('scale.linear should configure domain with min', function() {
+    var chart, scale,
+        min = 0,
+        max = d3.max( data[0], accessY1)
+
+    selection.datum( data)
+    chart = d3.trait( d3.trait.chart.base, config)
+        .trait( d3.trait.scale.linear, {axis: 'y1', domainMin: min})
+        .call( selection)
+
+    scale = chart.y1()
+    expect( scale).toBeDefined( )
+
+    expect( scale.domain()).toEqual( [ min, max])
+    expect( scale.range()).toEqual( [190, 0])
+});
+
+it('scale.linear should configure domain with max', function() {
+    var chart, scale,
+        min = d3.min( data[0], accessY1),
+        max = 0
+
+    selection.datum( data)
+    chart = d3.trait( d3.trait.chart.base, config)
+        .trait( d3.trait.scale.linear, {axis: 'y1', domainMax: max})
+        .call( selection)
+
+    scale = chart.y1()
+    expect( scale).toBeDefined( )
+
+    expect( scale.domain()).toEqual( [ min, max])
+    expect( scale.range()).toEqual( [190, 0])
+});
+
+it('scale.linear should configure domain with min and max', function() {
+    var chart, scale,
+        min = 0,
+        max = 999
+
+    selection.datum( data)
+    chart = d3.trait( d3.trait.chart.base, config)
+        .trait( d3.trait.scale.linear, {axis: 'y1', domainMin: 0, domainMax: 999})
+        .call( selection)
+
+    scale = chart.y1()
+    expect( scale).toBeDefined( )
+
+    expect( scale.domain()).toEqual( [ min, max])
+    expect( scale.range()).toEqual( [190, 0])
+});
+
+it('scale.linear should configure domain with min and max overriding domain', function() {
+    var chart, scale,
+        min = 0,
+        max = 999
+
+    selection.datum( data)
+    chart = d3.trait( d3.trait.chart.base, config)
+        .trait( d3.trait.scale.linear, {axis: 'y1', domain: [2, 3], domainMin: min, domainMax: max})
+        .call( selection)
+
+    scale = chart.y1()
+    expect( scale).toBeDefined( )
+
+    expect( scale.domain()).toEqual( [ min, max])
+    expect( scale.range()).toEqual( [190, 0])
+});
+
+it('scale.linear should configure domain', function() {
+    var chart, scale,
+        min = 0,
+        max = 999
+
+    selection.datum( data)
+    chart = d3.trait( d3.trait.chart.base, config)
+        .trait( d3.trait.scale.linear, {axis: 'y1', domain: [min, max]})
+        .call( selection)
+
+    scale = chart.y1()
+    expect( scale).toBeDefined( )
+
+    expect( scale.domain()).toEqual( [ min, max])
+    expect( scale.range()).toEqual( [190, 0])
+});
+
+
+
 });
 
 

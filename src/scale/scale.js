@@ -49,11 +49,28 @@ function makeAccessorsFromConfig( config, axisName) {
     }
 }
 
+/**
+ * domainMin or domainMax overrides domain.
+ *
+ * @param config
+ * @returns domain config { trend, domain, domainMin, domainMax }
+ */
 function makeDomainConfig( config) {
-    return {
-        domain: config.domain,
-        trend: config.trend
+    var dMin = d3.trait.utils.configFloat( config.domainMin, null),
+        dMax = d3.trait.utils.configFloat( config.domainMax, null),
+        dc = {
+            trend: config.trend
+        }
+
+    if( dMin !== null && dMax !== null) {
+        dc.domain = [dMin, dMax]
+    } else if( dMin !== null || dMax != null) {
+        dc.domainMin = dMin
+        dc.domainMax = dMax
+    } else {
+        dc.domain = config.domain
     }
+    return dc
 }
 
 
@@ -76,6 +93,12 @@ function makeIntervalFromConfig( config) {
         }
 }
 
+function minFromData( data, access) {
+    return d3.min( data, function(s) { return d3.min( access.series(s), access.data); })
+}
+function maxFromData( data, access) {
+    return d3.max( data, function(s) { return d3.max( access.series(s), access.data); })
+}
 function extentFromData( data, access) {
     var extents, min, max
 
@@ -83,14 +106,8 @@ function extentFromData( data, access) {
     extents = data.map( function(s) { return d3.extent( access.series(s), access.data)})
     min = d3.min( extents, function(e) { return e[0] }) // the minimums of each extent
     max = d3.max( extents, function(e) { return e[1] }) // the maximums of each extent
-    //var min = d3.min( data, function(s) { return d3.min( _config.seriesData(s), accessData); })
-    //var max = d3.max( data, function(s) { return d3.max( _config.seriesData(s), accessData); })
 
     return [min, max]
-}
-
-function maxFromData( data, access) {
-    return d3.max( data.map( function(s) { return d3.max( access.series(s), access.data)}))
 }
 
 // trendDomain: { interval: d3.time.month, count: 1 }
@@ -166,6 +183,10 @@ function getDomain( domainConfig, data, access) {
 
     if( domainConfig.trend)
         domain = getDomainTrend( domainConfig, data, access)
+    else if( domainConfig.domainMin != null)
+        domain = [domainConfig.domainMin, maxFromData( data, access)]
+    else if( domainConfig.domainMax != null)
+        domain = [minFromData( data, access), domainConfig.domainMax]
     else
         domain = extentFromData( data, access)
 
@@ -360,15 +381,9 @@ function _scaleLinear( _super,  _config) {
                 element = this
             theData = _data
 
-            // Get array of extents for each series.
-            extents = _data.map( function(s) { return d3.extent( access.series(s), access.data)})
-            min = d3.min( extents, function(e) { return e[0] }) // the minimums of each extent
-            max = d3.max( extents, function(e) { return e[1] }) // the maximums of each extent
-            //var max = d3.max( _data, function(s) { return d3.max( _config.seriesData(s), accessData); })
+            scale.domain( getDomain( domainConfig, _data, access))
+            scale.range( d3.trait.utils.getChartRange( self, scaleName))
 
-            var rangeExtent = axisChar === 'x' ? [0, self.chartWidth()] : [self.chartHeight(), 0]
-            scale.domain([min, max])
-                .range( rangeExtent);
         })
     }
     scaleLinear[scaleName] = function() {
