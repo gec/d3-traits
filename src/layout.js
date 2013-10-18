@@ -1,11 +1,4 @@
 /**
- * Created with IntelliJ IDEA.
- * User: fobrien
- * Date: 9/29/13
- * Time: 2:03 PM
- * To change this template use File | Settings | File Templates.
- */
-/**
  * Copyright 2013 Green Energy Corp.
  *
  * Licensed to Green Energy Corp (www.greenenergycorp.com) under one or more
@@ -28,12 +21,22 @@
 (function (d3, trait) {
 
     function Point( x, y) {
-        this.x = x
-        this.y = y
+        if( arguments.length <= 0) {
+            this.x = 0
+            this.y = 0
+        } else {
+            this.x = x
+            this.y = y
+        }
     }
     function Size( width, height) {
-        this.width = width
-        this.height = height
+        if( arguments.length <= 0) {
+            this.width = 0
+            this.height = 0
+        } else {
+            this.width = width
+            this.height = height
+        }
     }
 
     /**
@@ -380,6 +383,49 @@
         layoutVertical( leftRight[1], height)
     }
 
+    function layoutByOrientation( itemsWithRect, rect, orient, _wrap) {
+        var r, i,
+            coordinate = 0,
+            wrap = _wrap || false
+
+        switch( orient) {
+            case 'left':
+                coordinate = rect.minX()
+                itemsWithRect.forEach( function( item, index, array) {
+                    r = item.rect
+                    r.origin.x += coordinate - r.minX()
+                    coordinate = r.maxX()
+                })
+                break;
+            case 'right':
+                coordinate = rect.maxX()
+                for( i = itemsWithRect.length - 1; i >= 0; i--) {
+                    r = itemsWithRect[i].rect
+                    r.origin.x += coordinate - r.maxX()
+                    coordinate = r.minX()
+                }
+                break;
+            case 'top':
+                coordinate = rect.minY()
+                itemsWithRect.forEach( function( item, index, array) {
+                    r = item.rect
+                    r.origin.y += coordinate - r.minY()
+                    coordinate = r.maxY()
+                })
+                break;
+            case 'bottom':
+                coordinate = rect.maxY()
+                for( i = itemsWithRect.length - 1; i >= 0; i--) {
+                    r = itemsWithRect[i].rect
+                    r.origin.y += coordinate - r.maxY()
+                    coordinate = r.minY()
+                }
+                break;
+            default:
+        }
+    }
+
+
     ///////////////////////////////////
     // Export to d3.trait
     //
@@ -394,6 +440,7 @@
 
     trait.layout.adjustOrientationToFitWidth = adjustOrientationToFitWidth
     trait.layout.vertical = layoutVertical
+    trait.layout.byOrientation = layoutByOrientation
     trait.layout.verticalAnchorLeftRight = layoutVerticalAnchorLeftRight
     trait.layout.utils.listNudgeUpFromBottom = listNudgeUpFromBottom
     trait.layout.utils.removeOverlapFromTop = removeOverlapFromTop
