@@ -70,6 +70,8 @@ it('axis.linear should call _super y1, ease, and plusMarginLeft', function() {
     var _super = {
         y1: makeLinearY1,
         ease: function() { return 'cubic-in-out'},
+        marginTop: function( value) {},
+        marginLeft: function( value) {},
         plusMarginTop: function( value) {},
         plusMarginLeft: function( value) {},
         onChartResized: function() {},
@@ -98,8 +100,10 @@ it('axis.linear should create g.axis-y1', function() {
     var div = selection[0][0]
     var container = div._container[0][0]
 
-    var $axisGroup = $(container).children( ".axis-y1")
+    var $axisGroup = $(container).children( ".axis")
     expect($axisGroup.size()).toBe( 1)
+    var $axisGroupAxis = $axisGroup.children( ".axis-y1")
+    expect($axisGroupAxis.size()).toBe( 1)
 })
 
 it('axis.time.month should call _super x1, ease, and plusMarginLeft', function() {
@@ -107,6 +111,8 @@ it('axis.time.month should call _super x1, ease, and plusMarginLeft', function()
     var _super = {
         x1: makeTimeX1,
         ease: function() { return 'cubic-in-out'},
+        marginTop: function( value) {},
+        marginLeft: function( value) {},
         plusMarginBottom: function( value) {},
         chartHeight: function() {return 190},
         onChartResized: function() {},

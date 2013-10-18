@@ -4,10 +4,22 @@ describe('d3-traits.layout', function() {
     beforeEach(function() {
     })
 
+    it('should create a default Point', function() {
+        var p = new d3.trait.Point()
+        expect( p.x).toBe( 0)
+        expect( p.y).toBe( 0)
+    });
+
     it('should create a Point', function() {
         var p = new d3.trait.Point( 1, 2)
         expect( p.x).toBe( 1)
         expect( p.y).toBe( 2)
+    });
+
+    it('should create a default ', function() {
+        var s = new d3.trait.Size()
+        expect( s.width).toBe( 0)
+        expect( s.height).toBe( 0)
     });
 
     it('should create a Size', function() {
