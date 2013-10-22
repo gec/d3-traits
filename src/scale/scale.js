@@ -272,7 +272,8 @@ function updateScale( scale, range, domainConfig, data, access) {
 
 
 function _scaleOrdinalBars( _super, _config) {
-    var scaleName = _config.axis,
+    var filteredData,
+        scaleName = _config.axis,
         axisChar = scaleName.charAt(0), // x | y
         accessData = _config[scaleName],
         scale = d3.scale.ordinal()
@@ -284,11 +285,13 @@ function _scaleOrdinalBars( _super, _config) {
             var ordinals,
                 element = this
 
+            filteredData = _config.seriesFilter ? _data.filter( _config.seriesFilter) : _data
+
             var rangeMax = axisChar === 'x' ? self.chartWidth() : self.chartHeight()
             scale.rangeRoundBands([0, rangeMax], 0.1)
 
             // Use the first series for the ordinals. TODO: should we merge the series ordinals?
-            ordinals = _data[0].map( accessData)
+            ordinals = filteredData[0].map( accessData)
             scale.domain( ordinals);
         })
     }
@@ -300,7 +303,7 @@ function _scaleOrdinalBars( _super, _config) {
 
 function _scaleTime( _super,  _config) {
 
-    var theData,
+    var filteredData,
         scaleName = _config.axis,
         axisChar = scaleName.charAt(0 ),
         access = makeAccessorsFromConfig( _config, scaleName ),
@@ -317,7 +320,9 @@ function _scaleTime( _super,  _config) {
         _selection.each(function(_data, i , j) {
             var currentDomain,
                 element = this
-            theData = _data // TODO: store this in each selection.
+
+            // TODO: store this in each selection?
+            filteredData = _config.seriesFilter ? _data.filter( _config.seriesFilter) : _data
 
             scale.domain( getDomain( domainConfig, _data, access))
 
@@ -343,7 +348,7 @@ function _scaleTime( _super,  _config) {
         // calculate newRangeMax below, then we'll extend the range to that.
         var range = d3.trait.utils.getChartRange( _super, scaleName)
 
-        updateScale( scale, range, domainConfig, theData, access)
+        updateScale( scale, range, domainConfig, filteredData, access)
 
         return this;
     };
@@ -363,7 +368,7 @@ function _scaleTime( _super,  _config) {
  */
 function _scaleLinear( _super,  _config) {
 
-    var theData,
+    var filteredData,
         scaleName = _config.axis,
         axisChar = scaleName.charAt(0 ),
         access = makeAccessorsFromConfig( _config, scaleName ),
@@ -379,7 +384,8 @@ function _scaleLinear( _super,  _config) {
         _selection.each(function(_data) {
             var extents, min, max,
                 element = this
-            theData = _data
+
+            filteredData = _config.seriesFilter ? _data.filter( _config.seriesFilter) : _data
 
             scale.domain( getDomain( domainConfig, _data, access))
             scale.range( d3.trait.utils.getChartRange( self, scaleName))
@@ -392,7 +398,7 @@ function _scaleLinear( _super,  _config) {
     scaleLinear.update = function( type, duration) {
         this._super( type, duration)
         var range = d3.trait.utils.getChartRange( _super, scaleName)
-        updateScale( scale, range, domainConfig, theData, access)
+        updateScale( scale, range, domainConfig, filteredData, access)
 
         return this;
     };

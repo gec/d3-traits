@@ -24,14 +24,16 @@ function _chartLine( _super, _config) {
     // Store the group element here so we can have multiple line charts in one chart.
     // A second "line chart" might have a different y-axis, style or orientation.
     var group, series, filteredData, lastDomainMax,
+        yAxis = _config.yAxis || 'y1',
         x1 = _super.x1(),
-        y1 = _super.y1(),
+        y = _super[yAxis](),
+        access = { x: _config.x1, y: _config[yAxis]},
         color = d3.scale.category10(),
         focus = d3.trait.chart.utils.configFocus( _config),
         line = d3.svg.line()
             .interpolate( _config.interpolate || "linear")
-            .x(function(d) { return x1( _config.x1(d)); })
-            .y(function(d) { return y1( _config.y1(d)); });
+            .x(function(d) { return x1( access.x(d)); })
+            .y(function(d) { return y( access.y(d)); });
 
     function chartLine( _selection) {
         _selection.each(function(_data) {
@@ -138,8 +140,8 @@ function _chartLine( _super, _config) {
     function getFocusItem( series, data, index, focusPoint) {
         var item, domainPoint, rangePoint, dist, distX
         item = data[index]
-        //domainPoint = { x: _config.x1(item), y: _config.y1(item)}
-        rangePoint = new d3.trait.Point( x1( _config.x1(item)), y1( _config.y1(item)))
+        //domainPoint = { x: _config.x1(item), y: access.y(item)}
+        rangePoint = new d3.trait.Point( x1( _config.x1(item)), y( access.y(item)))
         dist = distance( rangePoint, focusPoint)
         distX = distanceX( rangePoint, focusPoint)
         return {
@@ -155,7 +157,7 @@ function _chartLine( _super, _config) {
         var foci = this._super( focusPoint)
 
         // Search the domain for the closest point in x
-        var targetDomain = new d3.trait.Point( x1.invert( focusPoint.x ), y1.invert ( focusPoint.y) )
+        var targetDomain = new d3.trait.Point( x1.invert( focusPoint.x ), y.invert ( focusPoint.y) )
         var bisectLeft = d3.bisector( _config.x1 ).left
 
         filteredData.forEach( function( series, seriesIndex, array) {
@@ -171,8 +173,8 @@ function _chartLine( _super, _config) {
             alterIndex = found.index - 1
             if( alterIndex >= 0) {
                 var alter = getFocusItem( series, data, alterIndex, focusPoint)
-//                console.log( "found x=" + _config.x1( found.item) + " y=" + _config.y1( found.item) + " d=" + found.distance + "  " + targetDomain.x + " " + targetDomain.y)
-//                console.log( "alter x=" + _config.x1( alter.item) + " y=" + _config.y1( alter.item) + " d=" + alter.distance + "  " + targetDomain.x + " " + targetDomain.y)
+//                console.log( "found x=" + _config.x1( found.item) + " y=" + access.y( found.item) + " d=" + found.distance + "  " + targetDomain.x + " " + targetDomain.y)
+//                console.log( "alter x=" + _config.x1( alter.item) + " y=" + access.y( alter.item) + " d=" + alter.distance + "  " + targetDomain.x + " " + targetDomain.y)
                 if( focus.axis === 'x') {
                     if( alter.distanceX < found.distanceX)
                         found = alter
