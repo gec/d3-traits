@@ -72,19 +72,18 @@ it('axis.linear should call _super y1, ease, and plusMarginLeft', function() {
         ease: function() { return 'cubic-in-out'},
         marginTop: function( value) {},
         marginLeft: function( value) {},
-        plusMarginTop: function( value) {},
-        plusMarginLeft: function( value) {},
         onChartResized: function() {},
-        onRangeMarginChanged: function() {}
+        onRangeMarginChanged: function() {},
+        layoutAxis: function() {}
     }
-    spyOn( _super, 'plusMarginLeft').andCallThrough()
+    spyOn( _super, 'layoutAxis').andCallThrough()
     spyOn( _super, 'onChartResized').andCallThrough()
     spyOn( _super, 'onRangeMarginChanged').andCallThrough()
 
     var axis = d3.trait.axis.linear( _super, { axis: 'y1'})
     d3.trait.utils.extend( axis, _super)
     selection.call( axis)
-    expect( _super.plusMarginLeft).toHaveBeenCalledWith( 30)
+    expect( _super.layoutAxis).toHaveBeenCalledWith( jasmine.any(Object), 'left', 40)
     expect( _super.onChartResized).toHaveBeenCalledWith( 'axisLinear-y1', axis)
     expect( _super.onRangeMarginChanged).toHaveBeenCalledWith( 'axisLinear-y1', axis)
 })
@@ -113,21 +112,18 @@ it('axis.time.month should call _super x1, ease, and plusMarginLeft', function()
         ease: function() { return 'cubic-in-out'},
         marginTop: function( value) {},
         marginLeft: function( value) {},
-        plusMarginBottom: function( value) {},
-        chartHeight: function() {return 190},
         onChartResized: function() {},
-        onRangeMarginChanged: function() {}
+        onRangeMarginChanged: function() {},
+        layoutAxis: function() {}
     }
-    spyOn( _super, 'plusMarginBottom').andCallThrough()
-    spyOn( _super, 'chartHeight').andCallThrough()
+    spyOn( _super, 'layoutAxis').andCallThrough()
     spyOn( _super, 'onChartResized').andCallThrough()
     spyOn( _super, 'onRangeMarginChanged').andCallThrough()
 
     var axis = d3.trait.axis.time.month( _super, {axis: 'x1'})
     d3.trait.utils.extend( axis, _super)
     selection.call( axis)
-    expect( _super.plusMarginBottom).toHaveBeenCalledWith( 30)
-    expect( _super.chartHeight).toHaveBeenCalled()
+    expect( _super.layoutAxis).toHaveBeenCalledWith( jasmine.any(Object), 'bottom', 40)
     expect( _super.onChartResized).toHaveBeenCalledWith( 'axisMonth-x1', axis)
     expect( _super.onRangeMarginChanged).toHaveBeenCalledWith( 'axisMonth-x1', axis)
 })
@@ -143,7 +139,7 @@ it('axis.time.month should create g.axis-x1', function() {
     var div = selection[0][0]
     var container = div._container[0][0]
 
-    var $axisGroup = $(container).children( ".axis-x1")
+    var $axisGroup = $(container).children( ".axis")
     expect($axisGroup.size()).toBe( 1)
 })
 

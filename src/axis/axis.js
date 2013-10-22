@@ -35,20 +35,24 @@
      */
     function axisConfig( config) {
         var name = config.axis,        // x1, y1, x2, etc.
-            axisChar = name.charAt(0) // x | y
-        return {
-            name: name,
-            axisChar: axisChar,
-            accessData: config[name],
-            axisMargin: config.axisMargin || 30,
-            orient: orientFromConfig( axisChar, config.orient),
-            ticks: config.ticks,
-            extentTicks: config.extentTicks || false,
-            tickSize: config.tickSize,
-            tickPadding: config.tickPadding,
-            tickFormat: config.tickFormat,
-            nice: config.nice
-        }
+            axisChar = name.charAt(0 ), // x | y
+            c = {
+                name: name,
+                axisChar: axisChar,
+                accessData: config[name],
+                orient: orientFromConfig( axisChar, config.orient),
+                ticks: config.ticks,
+                extentTicks: config.extentTicks || false,
+                tickSize: config.tickSize,
+                tickPadding: config.tickPadding,
+                tickFormat: config.tickFormat,
+                nice: config.nice,
+                label: config.label
+            }
+
+        c.labelLineHeight = c.label ? (config.labelLineHeight || 14) : 0
+        c.axisMargin = config.axisMargin || (40 + c.labelLineHeight)
+        return c
     }
 
     function adjustChartMarginForAxis( _super, c) {
@@ -67,13 +71,57 @@
         }
     }
 
-    function axisTransform( self, c) {
+    function containerTransform( self, c) {
 
         switch( c.orient) {
-            case 'left': return null;
-            case 'bottom': return 'translate(0,' + self.chartHeight() + ')';
-            case 'top': return null;
-            case 'right': return 'translate(' + self.chartWidth() + ')';
+            case 'left': return 'translate(' + self.marginLeft() + ',' + self.marginTop() + ')';
+            case 'bottom': return 'translate(' + self.marginLeft() + ',' + (self.chartHeight()+self.marginTop()) + ')';
+            case 'top': return 'translate(' + self.marginLeft() + ',0)';
+            case 'right': return 'translate(' + (self.marginLeft() + self.chartWidth()) + ',' + self.marginTop() + ')';
+            default:
+                return null;
+        }
+    }
+
+    function axisTransform( self, c) {
+        if( !c.label)
+            return null;
+
+        switch( c.orient) {
+            case 'left': return 'translate(' + c.labelLineHeight + ',0)';
+            case 'bottom': return null;
+            case 'top': return 'translate(0,' + c.labelLineHeight + ',0)';
+            case 'right': return null;
+            default:
+                return null;
+        }
+    }
+
+    function labelTransform( self, c, label) {
+        if( !c.label)
+            return null;
+
+        var tx, ty,
+            bBox = label.node().getBBox(),
+            labelWidth2 = Math.round( bBox.width / 2 ),
+            tXorY = c.axisMargin - c.labelLineHeight
+        switch( c.orient) {
+            case 'left':
+                tx = -c.axisMargin + c.labelLineHeight
+                ty = self.chartHeight()/2 + labelWidth2
+                return 'translate( ' + tx + ',' + ty + ') rotate( -90)';
+            case 'bottom':
+                tx = self.chartWidth()/2 - labelWidth2
+                ty = c.axisMargin - c.labelLineHeight
+                return 'translate( ' + tx + ',' + ty + ')';
+            case 'top':
+                tx = self.chartWidth()/2 - labelWidth2
+                ty = -c.axisMargin + c.labelLineHeight
+                return 'translate( ' + tx + ',' + ty + ')';
+            case 'right':
+                tx = c.axisMargin - c.labelLineHeight
+                ty = self.chartHeight()/2 - labelWidth2
+                return 'translate( ' + tx + ',' + ty + ') rotate( 90)';
             default:
                 return null;
         }
@@ -107,11 +155,11 @@
      * @private
      */
     function _axisLinear( _super, _config) {
-        var group, axis,
+        var group, groupAxis, label, axis,
             c = axisConfig( _config ),
             scale = _super[c.name]()  // ex: x1()
 
-        adjustChartMarginForAxis( _super, c)
+        //adjustChartMarginForAxis( _super, c)
 
         function axisLinear( _selection) {
             var self = axisLinear
@@ -120,7 +168,10 @@
                 var element = this
 
                 if( !group) {
-                    group = this._container.append('g').classed('axis axis-' + c.name, true)
+                    group = this._container.append('g').classed('axis', true)
+                    groupAxis = group.append('g').classed('axis-' + c.name, true)
+                    if( c.label)
+                        label = group.append('text').classed('axis-label axis-label-' + c.name, true)
                     axis = d3.svg.axis()
                 }
 
@@ -128,9 +179,15 @@
                     .orient( c.orient)
                 applyTickConfig( axis, scale, c)
 
-                group
-                    .attr({transform: axisTransform( self, c)})
-                    .call(axis);
+                self.layoutAxis( group, c.orient, c.axisMargin)
+
+                //group.attr( {transform: containerTransform( self, c)})
+                if( c.label) {
+                    //groupAxis.attr( {transform: axisTransform( self, c)})
+                    label.text( c.label)
+                    label.attr( { transform: labelTransform( self, c, label) } )
+                }
+                groupAxis.call(axis);
             })
         }
         axisLinear.update = function( type, duration) {
@@ -141,9 +198,9 @@
             applyTickConfig( axis, scale, c)
 
             if( duration === 0) {
-                group.call( axis);
+                groupAxis.call( axis);
             } else {
-                group.transition()
+                groupAxis.transition()
                     .duration( duration || _super.duration())
                     .ease( "linear")
                     .call( axis);
@@ -171,14 +228,14 @@
     }
 
     function _axisMonth( _super, _config) {
-        var group, lastDomainMax,
+        var group, groupAxis, label, lastDomainMax,
             axis = d3.svg.axis(),
             scaleForUpdate = d3.time.scale(),
             c = axisConfig( _config ),
             scale = _super[c.name]()
 
 
-        adjustChartMarginForAxis( _super, c)
+//        adjustChartMarginForAxis( _super, c)
 
         function axisMonth( _selection) {
             var self = axisMonth
@@ -187,7 +244,11 @@
                 var element = this
 
                 if( !group) {
-                    group = this._container.append('g').classed('axis axis-' + c.name, true)
+                    group = this._container.append('g').classed('axis', true)
+                    groupAxis = group.append('g').classed('axis-' + c.name, true)
+                    if( c.label)
+                        label = group.append('text').classed('axis-label axis-label-' + c.name, true)
+                    axis = d3.svg.axis()
                 }
 
                 var domain = scale.domain()
@@ -206,9 +267,14 @@
                     //.tickValues( tickValuesForMonthDays( scaleForUpdate))
                     //.tickSubdivide(4)
 
+                self.layoutAxis( group, c.orient, c.axisMargin)
+                if( c.label) {
+                    label.text( c.label)
+                    label.attr( { transform: labelTransform( self, c, label) } )
+                }
 
                 group
-                    .attr({transform: axisTransform( self, c)})
+//                    .attr({transform: containerTransform( self, c)})
                     .call(axis);
 
                 var extension = group.selectAll( "path.axis-extension")

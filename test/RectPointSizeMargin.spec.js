@@ -160,39 +160,43 @@ describe('d3-traits.layout', function() {
     });
 
     it('should calculate Rect.RoomOnRight( roomWidth)', function() {
-        var r = new d3.trait.Rect( 10, 100, 2, 4)
-        expect( r.roomOnRight( 20)).toBe( 8)
+        var r = new d3.trait.Rect( 10, 100, 2, 4 ),
+            room = new d3.trait.Rect( 0, 0, 20, 20)
+        expect( r.roomOnRight( room)).toBe( 8)
         r = new d3.trait.Rect( 10, 100, 2, 4, 0.5, 0.5)
-        expect( r.roomOnRight( 20)).toBe( 9)
+        expect( r.roomOnRight( room)).toBe( 9)
         r = new d3.trait.Rect( 10, 100, 2, 4, 1, 1)
-        expect( r.roomOnRight( 20)).toBe( 10)
+        expect( r.roomOnRight( room)).toBe( 10)
     });
 
     it('should calculate Rect.RoomOnLeft()', function() {
-        var r = new d3.trait.Rect( 10, 100, 2, 4)
-        expect( r.roomOnLeft()).toBe( 10)
+        var r = new d3.trait.Rect( 10, 100, 2, 4),
+            room = new d3.trait.Rect( 0, 0, 20, 20)
+        expect( r.roomOnLeft( room)).toBe( 10)
         r = new d3.trait.Rect( 10, 100, 2, 4, 0.5, 0.5)
-        expect( r.roomOnLeft()).toBe( 9)
+        expect( r.roomOnLeft( room)).toBe( 9)
         r = new d3.trait.Rect( 10, 100, 2, 4, 1, 1)
-        expect( r.roomOnLeft()).toBe( 8)
+        expect( r.roomOnLeft( room)).toBe( 8)
     });
 
     it('should calculate Rect.RoomOnBottom( roomHeight)', function() {
-        var r = new d3.trait.Rect( 100, 10, 4, 2)
-        expect( r.roomOnBottom( 20)).toBe( 8)
+        var r = new d3.trait.Rect( 100, 10, 4, 2),
+            room = new d3.trait.Rect( 0, 0, 20, 20)
+        expect( r.roomOnBottom( room)).toBe( 8)
         r = new d3.trait.Rect( 100, 10, 4, 2, 0.5, 0.5)
-        expect( r.roomOnBottom( 20)).toBe( 9)
+        expect( r.roomOnBottom( room)).toBe( 9)
         r = new d3.trait.Rect( 100, 10, 4, 2, 1, 1)
-        expect( r.roomOnBottom( 20)).toBe( 10)
+        expect( r.roomOnBottom( room)).toBe( 10)
     });
 
     it('should calculate Rect.RoomOnTop()', function() {
-        var r = new d3.trait.Rect( 100, 10, 4, 2)
-        expect( r.roomOnTop()).toBe( 10)
+        var r = new d3.trait.Rect( 100, 10, 4, 2),
+            room = new d3.trait.Rect( 0, 0, 20, 20)
+        expect( r.roomOnTop( room)).toBe( 10)
         r = new d3.trait.Rect( 100, 10, 4, 2, 0.5, 0.5)
-        expect( r.roomOnTop()).toBe( 9)
+        expect( r.roomOnTop( room)).toBe( 9)
         r = new d3.trait.Rect( 100, 10, 4, 2, 1, 1)
-        expect( r.roomOnTop()).toBe( 8)
+        expect( r.roomOnTop( room)).toBe( 8)
     });
 
     it('should calculate Rect.spaceOnTop( rectAbove)', function() {

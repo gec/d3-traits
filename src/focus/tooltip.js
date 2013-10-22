@@ -198,7 +198,7 @@
                         item.rect = new d3.trait.Rect( item.point, bbox, anchorMidY)
                     })
 
-                    d3.trait.layout.verticalAnchorLeftRight( foci, self.chartWidth(), self.chartHeight())
+                    d3.trait.layout.verticalAnchorLeftRight( foci, self.chartRect())
 
                     foci.forEach( function( item, index, array) {
                         var seriesIndex = _data.indexOf( item.series),

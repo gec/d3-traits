@@ -34,7 +34,8 @@ function _chartBase( _super, _config) {
     // Margin for adjusting the x1-scale range
     // Example: { x1: {left: 5, right: 5} }
     // Without this margin, the outer bars on a bar chart may be half off the chart.
-    var minRangeMargins = {}
+    var minRangeMargins = {},
+        axisGroups = []
 
     var MIN_RANGE_MARGIN_DEFAULT = {left: 0, right: 0, top: 0, bottom: 0}
     function initMinRangeMargin( axis) {
@@ -90,6 +91,7 @@ function _chartBase( _super, _config) {
     }
 
     var ease = 'cubic-in-out'
+    var sizeFromElement = true
     var width = 200
     var height = 100
     var chartWidth = width - margin.left - margin.right,
@@ -129,8 +131,8 @@ function _chartBase( _super, _config) {
             select = d3.select(element)
 //            width = element.parentElement.offsetWidth || width
 //            height = element.parentElement.offsetHeight || height
-            width = element.offsetWidth || width
-            height = element.offsetHeight || height
+            width = sizeFromElement ? element.offsetWidth || width : width
+            height = sizeFromElement ? element.offsetHeight || height : height
 
             chartWidth = width - margin.left - margin.right
             chartHeight = height - margin.top - margin.bottom
@@ -162,6 +164,11 @@ function _chartBase( _super, _config) {
                         focusPoint = new d3.trait.Point( mousePoint[0], mousePoint[1] )
 
                     foci = onChart ? self.getFocusItems.call( element, focusPoint) : []
+                    foci.forEach( function( item, index, array) {
+                        item.point.x += margin.left
+                        item.point.y += margin.top
+                    })
+
                     if( fociDifferentFromLast( element, foci))
                         onFocusDispatch( element, foci, focusPoint)
                     element.__onFocusChangeLastFoci = foci
@@ -177,8 +184,8 @@ function _chartBase( _super, _config) {
             element._svg.transition()
                 .duration(duration)
                 .attr({width: width, height: height})
-            element._svg.select('.container-group')
-                .attr({transform: 'translate(' + margin.left + ',' + margin.top + ')'});
+            element._svg.select('.chart-group')
+                .attr( 'transform', 'translate(' + margin.left + ',' + margin.top + ')');
 
             element._chartGroupClipPathRect.attr("width", chartWidth).attr("height", chartHeight)
 
@@ -243,8 +250,11 @@ function _chartBase( _super, _config) {
         chartWidth = width - margin.left - margin.right
         chartHeight = height - margin.top - margin.bottom
         //console.log( "baseChart.updateChartSize chartWidth=" + chartWidth + ", chartHeight=" + chartHeight)
-        if( prev.chartWidth !== chartWidth || prev.chartHeight !== chartHeight)
+        if( prev.chartWidth !== chartWidth || prev.chartHeight !== chartHeight) {
+            if( selection)
+                selection.call( chartBase)
             dispatch.chartResized()
+        }
     }
 
     function updateSize() {
@@ -280,6 +290,137 @@ function _chartBase( _super, _config) {
 
     };
 
+    function findAxisByGroup( group) {
+        var i, axis,
+            length = axisGroups.length
+
+        for( i = 0; i < length; i++) {
+            axis = axisGroups[i]
+            if( axis.group === group)
+                return axis
+        }
+        return null
+    }
+
+    function updateChartMarginForAxis( axes, orient) {
+        var axisMargin,
+            updatedMargin = false
+
+        if( axes.length <= 0)
+            return updatedMargin
+
+        switch( orient) {
+            case 'left':
+                axisMargin = axes[ axes.length-1].rect.maxX()
+                if( margin.left < axisMargin) {
+                    margin.left = axisMargin
+                    updatedMargin = true;
+                }
+                break;
+            case 'right':
+                axisMargin = width - axes[0].rect.minX()
+                if( margin.right < axisMargin) {
+                    margin.right = axisMargin
+                    updatedMargin = true;
+                }
+                break;
+            case 'top':
+                axisMargin = axes[ axes.length-1].rect.maxY()
+                if( margin.top < axisMargin) {
+                    margin.top = axisMargin
+                    updatedMargin = true;
+                }
+                break;
+
+            case 'bottom':
+                axisMargin = height - axes[0].rect.minY()
+                if( margin.bottom < axisMargin) {
+                    margin.bottom = axisMargin
+                    updatedMargin = true;
+                }
+                break;
+
+            default:
+        }
+        return updatedMargin
+    }
+    function updateAxesForChartMargin( axes, orient) {
+        var axisMargin,
+            updatedOrigin = false
+
+        if( axes.length <= 0)
+            return updatedOrigin
+
+        switch( orient) {
+            case 'left':
+            case 'right':
+                axes.forEach( function( axis) {
+                    if( axis.rect.minY() < margin.top) {
+                        axis.rect.origin.y = margin.top
+                        updatedOrigin = true;
+                    }
+                })
+                break;
+            case 'top':
+            case 'bottom':
+                axes.forEach( function( axis) {
+                    if( axis.rect.minX() < margin.left) {
+                        axis.rect.origin.x = margin.left
+                        updatedOrigin = true;
+                    }
+                })
+                break;
+
+            default:
+        }
+        return updatedOrigin
+    }
+    function relayoutAxes() {
+        var axes, key,
+            updatedMargin = false,
+            rect = new d3.trait.Rect( 0, 0, width, height ),
+            orients = [ 'left', 'right', 'top', 'bottom'],
+            axesByOrient = {}
+
+        orients.forEach( function( orient) {
+            axes = axisGroups.filter( function( e) {return e.orient === orient} )
+            d3.trait.layout.byOrientation( axes, rect, orient)
+            updatedMargin = updatedMargin || updateChartMarginForAxis( axes, orient)
+            axesByOrient[orient] = axes
+        })
+        for( key in axesByOrient) {
+            axes = axesByOrient[key]
+            updateAxesForChartMargin( axes, key)
+        }
+
+        if( updatedMargin)
+            updateChartSize()
+    }
+    function makeRect( orient, widthOrHeight) {
+        switch( orient) {
+            case 'left': return new d3.trait.Rect( 0, 0, widthOrHeight, 0, 1, 0);
+            case 'right': return new d3.trait.Rect( 0, 0, widthOrHeight, 0);
+            case 'top': return new d3.trait.Rect( 0, 0, 0, widthOrHeight, 0, 1);
+            case 'bottom': return new d3.trait.Rect( 0, 0, 0, widthOrHeight);
+            default: return  new d3.trait.Rect();
+        }
+    }
+    chartBase.layoutAxis = function( group, orient, widthOrHeight) {
+        var axisGroup = findAxisByGroup( group ),
+            rect = makeRect( orient, widthOrHeight)
+
+        if( ! axisGroup) {
+            axisGroup = {group: group, orient: orient, rect: rect}
+            axisGroups.push( axisGroup)
+            relayoutAxes()
+        } else if( axisGroup.orient !== orient || axisGroup.rect.size !== rect.size) {
+            axisGroup.orient = orient
+            axisGroup.rect = rect
+            relayoutAxes()
+        }
+        axisGroup.group.attr ( 'transform', 'translate(' + axisGroup.rect.origin.x + ',' + axisGroup.rect.origin.y + ')');
+    }
+
     // Return a list of points in focus.
     chartBase.getFocusItems = function( point) {
         return []
@@ -301,12 +442,14 @@ function _chartBase( _super, _config) {
 
     chartBase.width = function(_x) {
         if (!arguments.length) return width;
+        sizeFromElement = false
         width = parseInt(_x, 10);
         updateChartSize()
         return this;
     };
     chartBase.height = function(_x) {
         if (!arguments.length) return height;
+        sizeFromElement = false
         height = parseInt(_x, 10);
         updateChartSize()
         duration = 0;
@@ -359,6 +502,10 @@ function _chartBase( _super, _config) {
         updateChartSize()
         return this;
     };
+
+    chartBase.chartRect = function() {
+        return new d3.trait.Rect( margin.left, margin.top, chartWidth, chartHeight)
+    }
 
     chartBase.chartWidth = function(_x) {
         if (!arguments.length) return chartWidth;
