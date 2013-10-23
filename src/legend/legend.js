@@ -80,7 +80,7 @@ function _legendSeries( _super, _config) {
                 legendTop.enter()
                     .append("li")
                     .attr("class", "legend-item")
-                    .style("border-bottom-color", function(d, i) { return self.color(d); })
+                    .style("border-bottom-color", self.color)
                     .text( _config.seriesLabel)
 
                 // also try: <li><span>• </span>Lorem ipsum</li> with css span { font-size: 20pt; }
@@ -102,7 +102,7 @@ function _legendSeries( _super, _config) {
                         .attr("x", self.chartWidth() - 18)
                         .attr("width", 18)
                         .attr("height", 18)
-                        .style("fill", function(d, i) { return self.color(d); })
+                        .style("fill", self.color)
 
                 legend.append("text")
                     .attr("x", self.chartWidth() - 24)
