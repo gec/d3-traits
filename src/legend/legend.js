@@ -24,7 +24,6 @@ function _legendSeries( _super, _config) {
     // Store the group element here so we can have multiple line charts in one chart.
     // A second "line chart" might have a different y-axis, style or orientation.
 
-    var color = d3.scale.category10()
     var orient = _config.orient || "top"
     function topOrBottom() { return orient === "top" || orient === "bottom"}
 
@@ -70,8 +69,6 @@ function _legendSeries( _super, _config) {
 
             var filtered = _config.legendFilter ? _data.filter( _config.legendFilter) : _data
 
-            //TODO: Don't assume default colors (i.e. d3.scale.category10()). Get the color from the series.
-
             if( topOrBottom()) {
                 // DATA JOIN
                 var legendTop = this._legend.selectAll("li")
@@ -83,7 +80,7 @@ function _legendSeries( _super, _config) {
                 legendTop.enter()
                     .append("li")
                     .attr("class", "legend-item")
-                    .style("border-bottom-color", function(d, i) { return color(i); })
+                    .style("border-bottom-color", function(d, i) { return self.color(d); })
                     .text( _config.seriesLabel)
 
                 // also try: <li><span>• </span>Lorem ipsum</li> with css span { font-size: 20pt; }
@@ -105,7 +102,7 @@ function _legendSeries( _super, _config) {
                         .attr("x", self.chartWidth() - 18)
                         .attr("width", 18)
                         .attr("height", 18)
-                        .style("fill", function(d, i) { return color(i); })
+                        .style("fill", function(d, i) { return self.color(d); })
 
                 legend.append("text")
                     .attr("x", self.chartWidth() - 24)

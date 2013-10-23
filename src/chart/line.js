@@ -28,7 +28,6 @@ function _chartLine( _super, _config) {
         x1 = _super.x1(),
         y = _super[yAxis](),
         access = { x: _config.x1, y: _config[yAxis]},
-        color = d3.scale.category10(),
         focus = d3.trait.chart.utils.configFocus( _config),
         line = d3.svg.line()
             .interpolate( _config.interpolate || "linear")
@@ -36,6 +35,8 @@ function _chartLine( _super, _config) {
             .y(function(d) { return y( access.y(d)); });
 
     function chartLine( _selection) {
+        var self = chartLine
+
         _selection.each(function(_data) {
 
             if( !group) {
@@ -62,9 +63,9 @@ function _chartLine( _super, _config) {
                 .append("path")
                     .attr("class", "line")
                     .attr("d", function(d) { return line( _config.seriesData(d)); })
-                    .style("stroke", function(d, i) { return color(i); });
+                    .style("stroke", self.color);
 
-            lastDomainMax = d3.trait.utils.extentMax( x1.domain())
+        lastDomainMax = d3.trait.utils.extentMax( x1.domain())
         })
     }
 
@@ -154,7 +155,8 @@ function _chartLine( _super, _config) {
         }
     }
     chartLine.getFocusItems = function( focusPoint) {
-        var foci = this._super( focusPoint)
+        var self = chartLine,
+            foci = this._super( focusPoint)
 
         // Search the domain for the closest point in x
         var targetDomain = new d3.trait.Point( x1.invert( focusPoint.x ), y.invert ( focusPoint.y) )
@@ -185,7 +187,7 @@ function _chartLine( _super, _config) {
             }
 
             if( found.distance <= focus.distance) {
-                found.color = color( seriesIndex)
+                found.color = self.color( series)
                 foci.push( found)
             }
         })

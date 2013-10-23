@@ -95,7 +95,9 @@ function _chartBase( _super, _config) {
     var width = 200
     var height = 100
     var chartWidth = width - margin.left - margin.right,
-        chartHeight = height - margin.top - margin.bottom;
+        chartHeight = height - margin.top - margin.bottom,
+        colorIndexNext = 0,
+        colors = d3.scale.category10();
 
     var select, duration = 0
     var selection
@@ -121,7 +123,6 @@ function _chartBase( _super, _config) {
                 mousePoint[1] >= 0 && mousePoint[1] <= chartHeight
 
     }
-
     function chartBase( _selection) {
         var self = chartBase
         selection = _selection
@@ -438,6 +439,24 @@ function _chartBase( _super, _config) {
 
     chartBase.select = function() {
         return select;
+    };
+
+    function getColor( series) {
+        if( series.__color__)
+            return series.__color__
+        series.__color__ = colors( colorIndexNext++)
+        return series.__color__
+    }
+    chartBase.color = function( series, _color) {
+        switch( arguments.length) {
+            case 1: return getColor( series);
+            case 3: return getColor( series); // d3 attribute call with (series, seriesIndex, array)
+            case 2:
+                series.__color__ = _color
+                return this;
+            default:
+                return 'black'; // What else to do?
+        }
     };
 
     chartBase.width = function(_x) {

@@ -43,7 +43,6 @@
         var group, series, points, barW, barOffsetX, lastDomainMax,
             x1 = _super.x1(),
             y1 = _super.y1(),
-            color = d3.scale.category10(),
             shape = "circle" // rect
 
         var dispatch = d3.dispatch('customHover');
@@ -70,7 +69,7 @@
                     series.enter()
                         .append("g")
                         .attr("class", "series")
-                        .style("fill", function(d, i) { return color(i); });
+                        .style("fill", self.color);
                 }
 
                 // DATA JOIN

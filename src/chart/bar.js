@@ -36,7 +36,6 @@ function _chartBar( _super,  _config) {
     var group, series, bars, barW, barOffsetX, lastDomainMax,
         x1 = _super.x1(),
         y1 = _super.y1(),
-        color = d3.scale.category10(),
         gap = 0,                        // gap is the extra spacing beyond bar padding of 0.1 * barWidth.
         barCount = _config.barCount
 
@@ -112,7 +111,7 @@ function _chartBar( _super,  _config) {
                 series.enter()
                     .append("g")
                         .attr("class", "series")
-                        .style("fill", function(d, i) { return color(i); });
+                        .style("fill", self.color);
             }
 
             // DATA JOIN

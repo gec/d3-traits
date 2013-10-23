@@ -26,7 +26,6 @@ function _chartArea( _super, _config) {
     var group, series, lastDomainMax,
         x1 = _super.x1(),
         y1 = _super.y1(),
-        color = d3.scale.category10(),
         area = d3.svg.area()
             .interpolate( _config.interpolate || "linear")
             .x(function(d) { return x1( _config.x1(d)); })
@@ -66,7 +65,7 @@ function _chartArea( _super, _config) {
                 .append("path")
                     .attr("class", "area")
                     .attr("d", function(d) { return area( _config.seriesData(d)); })
-                    .style("fill", function(d, i) { return color(i); });
+                    .style("fill", self.color);
 
             lastDomainMax = d3.trait.utils.extentMax( x1.domain())
         })
