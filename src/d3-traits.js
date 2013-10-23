@@ -85,6 +85,12 @@ function isData( _data, accessSeries) {
     return d3.max( _data, function(s) { return accessSeries(s ).length}) > 0
 }
 
+function isValidDate(d) {
+    if ( Object.prototype.toString.call(d) !== "[object Date]" )
+        return false;
+    return !isNaN(d.getTime());
+}
+
 function getChartRange( _super, name) {
     // SVG origin is top-left
     if( d3.trait.utils.isX( name))
@@ -495,6 +501,7 @@ d3.trait.utils = {
     isX: isX,
     isY: isY,
     isData: isData,
+    isValidDate: isValidDate,
     extentMax: extentMax,
     getChartRange: getChartRange,
     getTraitCache: getTraitCache,

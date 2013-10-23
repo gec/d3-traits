@@ -278,7 +278,7 @@
                     .call(axis);
 
                 var extension = group.selectAll( "path.axis-extension")
-                    .data( [domain[0]])
+                    .data( d3.trait.utils.isValidDate( domain[0]) ? [domain[0]] : [])
 
                 extension.transition()
                     .attr("class", "axis-extension")
