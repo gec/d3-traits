@@ -324,7 +324,7 @@ function _scaleTime( _super,  _config) {
             // TODO: store this in each selection?
             filteredData = _config.seriesFilter ? _data.filter( _config.seriesFilter) : _data
 
-            scale.domain( getDomain( domainConfig, _data, access))
+            scale.domain( getDomain( domainConfig, filteredData, access))
 
             // TODO: nice overlaps wth interval. Maybe it's one or the other?
             if( _config.nice)
@@ -387,7 +387,7 @@ function _scaleLinear( _super,  _config) {
 
             filteredData = _config.seriesFilter ? _data.filter( _config.seriesFilter) : _data
 
-            scale.domain( getDomain( domainConfig, _data, access))
+            scale.domain( getDomain( domainConfig, filteredData, access))
             scale.range( d3.trait.utils.getChartRange( self, scaleName))
 
         })
