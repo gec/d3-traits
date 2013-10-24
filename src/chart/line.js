@@ -65,7 +65,13 @@ function _chartLine( _super, _config) {
                     .attr("d", function(d) { return line( _config.seriesData(d)); })
                     .style("stroke", self.color);
 
-        lastDomainMax = d3.trait.utils.extentMax( x1.domain())
+            // EXIT
+            series.exit()
+                .transition()
+                .style({opacity: 0})
+                .remove();
+
+            lastDomainMax = d3.trait.utils.extentMax( x1.domain())
         })
     }
 
