@@ -97,7 +97,9 @@ function _chartBase( _super, _config) {
     var chartWidth = width - margin.left - margin.right,
         chartHeight = height - margin.top - margin.bottom,
         colorIndexNext = 0,
-        colors = d3.scale.category10();
+        colors = d3.scale.category10(),
+        colorsUsed = []
+
 
     var select, duration = 0
     var selection
@@ -179,6 +181,19 @@ function _chartBase( _super, _config) {
                         onChart = mouseOnChart( mousePoint,  chartWidth, chartHeight )
                     if( ! onChart)
                         onChartMouseOutDispatch( element)
+                })
+
+                colorsUsed = []
+                _data.forEach( function( d) {
+                    var i
+                    if( d.__color__) {
+                        i = colorsUsed.indexOf( d.__color__)
+                        if( i >= 0) {
+                            delete d.__color__;
+                        } else {
+                            colorsUsed.push( d.__color__)
+                        }
+                    }
                 })
             }
 
@@ -444,7 +459,17 @@ function _chartBase( _super, _config) {
     function getColor( series) {
         if( series.__color__)
             return series.__color__
-        series.__color__ = colors( colorIndexNext++)
+
+        var i,
+            count = 0;
+        while( count < 10) {
+            series.__color__ = colors( colorIndexNext++)
+            i = colorsUsed.indexOf( series.__color__)
+            if( i < 0)
+                break;
+            count++
+        }
+        colorsUsed.push( series.__color__)
         return series.__color__
     }
     chartBase.color = function( series, _color) {
