@@ -33,17 +33,33 @@ module.exports = function(grunt) {
       continuous: {
         singleRun: true,
         autoWatch: false,
-        browsers: ['PhantomJS']
+        plugins: [
+          'karma-jasmine',
+          'karma-coverage',
+          'karma-phantomjs-launcher', // finally recognized phantomjs!
+          'karma-chrome-launcher',
+          'karma-firefox-launcher'
+        ],
+        //browsers: ['PhantomJS']
+        browsers: ['Chrome']
       },
 
       unit: {
         singleRun: true,
         autoWatch: false,
+        plugins: [
+          'karma-jasmine',
+          'karma-coverage',
+          'karma-phantomjs-launcher',
+          'karma-chrome-launcher',
+          'karma-firefox-launcher'
+        ],
         coverageReporter: {
           type : 'html',
           dir : 'coverage/'
         },
-        browsers: ['PhantomJS']
+        browsers: ['Chrome']
+        //browsers: ['PhantomJS']
       }
     },
 
@@ -90,7 +106,8 @@ module.exports = function(grunt) {
   });
 
   // Default task.
-  grunt.registerTask('default', ['jshint', 'concat', 'uglify', 'karma:continuous']);
+  //grunt.registerTask('default', ['jshint', 'concat', 'uglify', 'karma:continuous']);
+  grunt.registerTask('default', ['jshint', 'concat', 'uglify', 'karma:unit']);
 
   grunt.registerTask('fast-build', ['concat', 'uglify']);
   grunt.registerTask('coverage', ['concat', 'karma:unit']);
