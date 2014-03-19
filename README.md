@@ -23,6 +23,8 @@ D3 charts via reusable traits (aka mixins)
 
 ## Example
 
+![Reef GUI Screenshot](https://github.com/gec/d3-traits/raw/master/screenshot.png)
+
 ```javascript
 var chartEl = d3.select('#chart')
 var myData = [
