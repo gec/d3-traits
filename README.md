@@ -45,7 +45,7 @@ var data = [
          ...
       ]
    },
-   // mmre series ... 
+   // more series ... 
 ]
 ```
 
@@ -79,7 +79,7 @@ var selection = chartEl.datum( data)
 chart.call( selection)
 ```
 
-Bottom chart can be any type of chart. The "brush" trait targets the top chart
+Bottom chart can be any type of chart. The **brush** trait is where the magic happens. When you select an area in the bottom chart, that time span is shown in the top chart.
 ```javascript
 var brushChart = d3.trait( d3.trait.chart.base, config)
    .trait( d3.trait.scale.time, { axis: "x1"})
