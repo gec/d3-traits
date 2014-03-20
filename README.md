@@ -25,26 +25,73 @@ D3 charts via reusable traits (aka mixins)
 
 ![Reef GUI Screenshot](https://github.com/gec/d3-traits/raw/master/screenshot.png)
 
+### HTML
+```html
+<body>
+  <div id="chart" style="height: 240px;"></div>
+  <div id="brush-chart" style="height: 66px; margin-top: 30px;"></div>
+</body>
+```
+
+### Javascript
+
+Define some data.
 ```javascript
-var chartEl = d3.select('#chart')
-var myData = [
-  {x: 1, y: 3},
-  {x: 2, y: 5},
-  {x: 4, y: 4}
+var data = [
+   {  // Series zero
+      name: 'Energy',
+      values: [
+         { date: new Date( 2014, 1, 1, 0, 0, 0, 0),  value: 10 },
+         ...
+      ]
+   },
+   // mmre series ... 
 ]
+```
+
+Configure the accessors for each series and the data within each series.
+```javascript
+
 var config = {
-  x1: function(d) { return d.x; },
-  y1: function(d) { return d.y; },
+   x1: function(d) { return d.date; },
+   y1: function(d) { return d.value; },
+   seriesData: function(s) { return s.values}
+   seriesLabel: function(s) { return s.name}
 }
+```
+
+Need a trait for each component of the chart.
+```javascript
 var chart = d3.trait( d3.trait.chart.base, config)
-    .trait( d3.trait.scale.linear, { axis: "x1" })
-    .trait( d3.trait.scale.linear, { axis: "y1" })
-    .trait( d3.trait.chart.line, { interpolate: "linear" })
-    .trait( d3.trait.axis.linear, { axis: "x1", ticks: 5 })
-    .trait( d3.trait.axis.linear, { axis: "y1" })
-    .trait( d3.trait.focus.tooltip, {})
+   // X & Y scales
+   .trait( d3.trait.scale.time,   { axis: "x1"})
+   .trait( d3.trait.scale.linear, { axis: "y1" })
+   // Area chart is series 0, line chart is series 1
+   .trait( d3.trait.chart.area,   { seriesFilter: function ( s, i) { return i == 0} })
+   .trait( d3.trait.chart.line,   { seriesFilter: function ( s, i) { return i == 1} })
+   // Show an X & Y axis and a legend
+   .trait( d3.trait.axis.time.month, { axis: "x1", ticks: 5 })
+   .trait( d3.trait.axis.linear,  { axis: "y1" })
+   .trait( d3.trait.legend.series, {})
+
+var chartEl = d3.select('#chart')
 var selection = chartEl.datum( data)
-chart.call( selection)  
+chart.call( selection)
+```
+
+Bottom chart can be any type of chart. The "brush" trait targets the top chart
+```javascript
+var brushChart = d3.trait( d3.trait.chart.base, config)
+   .trait( d3.trait.scale.time, { axis: "x1"})
+   .trait( d3.trait.scale.linear, { axis: "y1" })
+   .trait( d3.trait.chart.area, {})  // "linear"
+   .trait( d3.trait.control.brush, { axis: 'x1', target: chart, targetAxis: 'x1'})
+   .trait( d3.trait.axis.time.month, { axis: "x1", ticks: 3})
+   .trait( d3.trait.axis.linear, { axis: "y1", extentTicks: true})
+var brushChartEl = d3.select('#brush-chart')
+selection = brushChartEl.datum( data)
+brushChart.call( selection)
+                
 ```
 
 [d3]: http://d3js.org/
