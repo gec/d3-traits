@@ -21,10 +21,11 @@ var config = {
     y1: accessY1,
     seriesData: accessSeriesData
 }
-
+var chartWidth = 300,
+    chartHeight = 200
 
 beforeEach(function() {
-    chartDiv = affix( '.chart-div[style="width: 300px; height: 200px"]')
+    chartDiv = affix( '.chart-div[style="width: ' + chartWidth + 'px; height: ' + chartHeight + 'px"]')
     selection = d3.select( ".chart-div")
 })
 
@@ -32,8 +33,8 @@ function makeChartContainer( selection) {
     var div = selection[0][0]
     var svg = selection.append("svg")
         .classed('chart', true)
-        .attr("width", 300)
-        .attr("height", 200)
+        .attr("width", chartWidth)
+        .attr("height", chartHeight)
 
     div._container = svg.append('g').classed('container-group', true)
     div._chartGroup = div._container.append('g').classed('chart-group', true);
@@ -44,7 +45,7 @@ function makeLinearY1() {
     var scale = d3.scale.linear()
     var maxY = d3.max( data, function(s) { return d3.max( config.seriesData(s), config.y1); })
     scale.domain([0, maxY])
-        .range([200, 0]);
+        .range([chartHeight, 0]);
     return scale
 }
 
@@ -52,7 +53,7 @@ function makeOrdinalX1() {
     var scale = d3.scale.ordinal()
     var ordinals = data[0].map( config.x1)
     scale.domain(ordinals)
-        .range([200, 0]);
+        .range([chartHeight, 0]);
     return scale
 }
 
@@ -61,7 +62,7 @@ function makeTimeX1() {
     var minX = d3.min( data, function(s) { return d3.max( config.seriesData(s), config.x1); })
     var maxX = d3.max( data, function(s) { return d3.max( config.seriesData(s), config.x1); })
     scale.domain( [minX, maxX])
-        .range([200, 0]);
+        .range([chartHeight, 0]);
     return scale
 }
 
@@ -103,6 +104,62 @@ it('axis.linear should create g.axis-y1', function() {
     expect($axisGroup.size()).toBe( 1)
     var $axisGroupAxis = $axisGroup.children( ".axis-y1")
     expect($axisGroupAxis.size()).toBe( 1)
+})
+
+function makeLinearAxisWithMarginAndOrient( axis, margin, orient) {
+    var configWithMargin = {
+        x1: accessX1,
+        y1: accessY1,
+        seriesData: accessSeriesData,
+        margin: margin
+    }
+
+    var axisConfig = {axis: axis}
+    if( orient)
+        axisConfig.orient = orient
+
+    selection.datum( data)
+        .traitConfig( configWithMargin)
+        .trait( d3.trait.chart.base)
+        .trait( d3.trait.scale.linear, {axis: axis})
+        .trait( d3.trait.axis.linear, axisConfig)
+}
+function getAxisGroup() {
+    var div = selection[0][0]
+    var container = div._container[0][0]
+
+    return $(container).children( ".axis")
+}
+it('axis.linear should layout axis accounting for large margin on chart left.', function() {
+
+    makeLinearAxisWithMarginAndOrient( 'y1', {left: 100})
+    var $axisGroup = getAxisGroup()
+    expect($axisGroup.size()).toBe( 1)
+    expect( $axisGroup[0].getAttribute( 'transform') ).toEqual( 'translate(100,5)')
+})
+
+it('axis.linear should layout axis accounting for large margin on chart top.', function() {
+
+    makeLinearAxisWithMarginAndOrient( 'x1', {top: 100}, 'top')
+    var $axisGroup = getAxisGroup()
+    expect($axisGroup.size()).toBe( 1)
+    expect( $axisGroup[0].getAttribute( 'transform') ).toEqual( 'translate(5,100)')
+})
+
+it('axis.linear should layout axis accounting for large margin on chart right.', function() {
+
+    makeLinearAxisWithMarginAndOrient( 'y1', {right: 100}, 'right')
+    var $axisGroup = getAxisGroup()
+    expect($axisGroup.size()).toBe( 1)
+    expect( $axisGroup[0].getAttribute( 'transform') ).toEqual( 'translate(' + (chartWidth-100) + ',5)')
+})
+
+it('axis.linear should layout axis accounting for large margin on chart bottom.', function() {
+
+    makeLinearAxisWithMarginAndOrient( 'x1', {bottom: 100}, 'bottom')
+    var $axisGroup = getAxisGroup()
+    expect($axisGroup.size()).toBe( 1)
+    expect( $axisGroup[0].getAttribute( 'transform') ).toEqual( 'translate(5,' + (chartHeight-100) + ')')
 })
 
 it('axis.time.month should call _super x1, ease, and plusMarginLeft', function() {

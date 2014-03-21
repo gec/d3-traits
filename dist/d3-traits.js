@@ -1530,8 +1530,19 @@ function _chartBase( _super, _config) {
     // Margin for adjusting the x1-scale range
     // Example: { x1: {left: 5, right: 5} }
     // Without this margin, the outer bars on a bar chart may be half off the chart.
-    var minRangeMargins = {},
-        axisGroups = []
+    var minRangeMargins = {}
+
+    /*
+        allAxesWithLayoutInfo
+        chartBase manages the layout of axes. There may be more than one axis on each
+        orientation (Left, Right, Bottom, Top}. As axes are added (via traits), the
+        chart margins are adjusted to accommodate each axis.
+        Each array element contains the following:
+            axisGroup: The SVG g element for the axis and axis label
+            orient: left, right, top, bottom
+            rect: d3.trait.Rect
+     */
+    var allAxesWithLayoutInfo = []
 
     var MIN_RANGE_MARGIN_DEFAULT = {left: 0, right: 0, top: 0, bottom: 0}
     function initMinRangeMargin( axis) {
@@ -1842,14 +1853,14 @@ function _chartBase( _super, _config) {
 
     };
 
-    function findAxisByGroup( group) {
-        var i, axis,
-            length = axisGroups.length
+    function findAxisWithLayoutInfo( axisGroup) {
+        var i, axisWithLayoutInfo,
+            length = allAxesWithLayoutInfo.length
 
         for( i = 0; i < length; i++) {
-            axis = axisGroups[i]
-            if( axis.group === group)
-                return axis
+            axisWithLayoutInfo = allAxesWithLayoutInfo[i]
+            if( axisWithLayoutInfo.axisGroup === axisGroup)
+                return axisWithLayoutInfo
         }
         return null
     }
@@ -1896,59 +1907,94 @@ function _chartBase( _super, _config) {
         }
         return updatedMargin
     }
+    function updateAxesExtentsForChartMarginTop( axes) {
+        var updatedOrigin = false
+        axes.forEach( function( axis) {
+            if( axis.rect.minY() < margin.top) {
+                axis.rect.origin.y = margin.top
+                updatedOrigin = true;
+            }
+        })
+        return updatedOrigin
+    }
+    function updateAxesExtentsForChartMarginLeft( axes) {
+        var updatedOrigin = false
+        axes.forEach( function( axis) {
+            if( axis.rect.minX() < margin.left) {
+                axis.rect.origin.x = margin.left
+                updatedOrigin = true;
+            }
+        })
+        return updatedOrigin
+    }
     function updateAxesForChartMargin( axes, orient) {
-        var axisMargin,
-            updatedOrigin = false
+        var updatedOrigin = false,
+            edge = 0,
+            delta = 0
 
         if( axes.length <= 0)
             return updatedOrigin
 
         switch( orient) {
             case 'left':
+                updatedOrigin = updateAxesExtentsForChartMarginTop( axes)
+                // If the chart's left margin is more than the axes width,
+                // shift the axes up against the left edge.
+                edge = axes[ axes.length-1].rect.maxX()
+                if( edge < margin.left) {
+                    delta = margin.left - edge
+                    axes.forEach( function( axis) {
+                        axis.rect.origin.x += delta;
+                    })
+                    updatedOrigin = true;
+                }
+                break;
             case 'right':
-                axes.forEach( function( axis) {
-                    if( axis.rect.minY() < margin.top) {
-                        axis.rect.origin.y = margin.top
-                        updatedOrigin = true;
-                    }
-                })
+                // If the chart's right margin is more than the axes width,
+                // shift the axes up against the right edge.
+                updatedOrigin = updateAxesExtentsForChartMarginTop( axes)
+                edge = axes[0].rect.minX()
+                if( edge > width - margin.right) {
+                    delta = width - margin.right - edge
+                    axes.forEach( function( axis) {
+                        axis.rect.origin.x += delta;
+                    })
+                    updatedOrigin = true;
+                }
                 break;
             case 'top':
-            case 'bottom':
-                axes.forEach( function( axis) {
-                    if( axis.rect.minX() < margin.left) {
-                        axis.rect.origin.x = margin.left
-                        updatedOrigin = true;
-                    }
-                })
+                // If the chart's top margin is more than the axes height,
+                // shift the axes up against the top edge.
+                updatedOrigin = updateAxesExtentsForChartMarginLeft( axes)
+                edge = axes[ axes.length-1].rect.maxY()
+                if( edge < margin.top) {
+                    delta = margin.top - edge
+                    axes.forEach( function( axis) {
+                        axis.rect.origin.y += delta;
+                    })
+                    updatedOrigin = true;
+                }
                 break;
-
+            case 'bottom':
+                updatedOrigin = updateAxesExtentsForChartMarginLeft( axes)
+                // If the chart's bottom margin is more than the axes height,
+                // shift the axes up against the bottom edge.
+                edge = axes[0].rect.minY()
+                if( edge > height - margin.bottom) {
+                    delta = height - margin.bottom - edge
+                    axes.forEach( function( axis) {
+                        axis.rect.origin.y += delta;
+                    })
+                    updatedOrigin = true;
+                }
+                break;
             default:
         }
         return updatedOrigin
     }
-    function relayoutAxes() {
-        var axes, key,
-            updatedMargin = false,
-            rect = new d3.trait.Rect( 0, 0, width, height ),
-            orients = [ 'left', 'right', 'top', 'bottom'],
-            axesByOrient = {}
-
-        orients.forEach( function( orient) {
-            axes = axisGroups.filter( function( e) {return e.orient === orient} )
-            d3.trait.layout.byOrientation( axes, rect, orient)
-            updatedMargin = updatedMargin || updateChartMarginForAxis( axes, orient)
-            axesByOrient[orient] = axes
-        })
-        for( key in axesByOrient) {
-            axes = axesByOrient[key]
-            updateAxesForChartMargin( axes, key)
-        }
-
-        if( updatedMargin)
-            updateChartSize()
-    }
-    function makeRect( orient, widthOrHeight) {
+    function makeAxisRectWithProperAnchor( orient, widthOrHeight) {
+        // The left axis (for example) is drawn correctly when translated to the left edge
+        // of the chart; therefore, the anchor is on the right side of the rect.
         switch( orient) {
             case 'left': return new d3.trait.Rect( 0, 0, widthOrHeight, 0, 1, 0);
             case 'right': return new d3.trait.Rect( 0, 0, widthOrHeight, 0);
@@ -1957,20 +2003,41 @@ function _chartBase( _super, _config) {
             default: return  new d3.trait.Rect();
         }
     }
-    chartBase.layoutAxis = function( group, orient, widthOrHeight) {
-        var axisGroup = findAxisByGroup( group ),
-            rect = makeRect( orient, widthOrHeight)
+    function relayoutAxes() {
+        var axesWithLayoutInfo, key,
+            updatedMargin = false,
+            rect = new d3.trait.Rect( 0, 0, width, height ),
+            orients = [ 'left', 'right', 'top', 'bottom'],
+            axesByOrient = {}
 
-        if( ! axisGroup) {
-            axisGroup = {group: group, orient: orient, rect: rect}
-            axisGroups.push( axisGroup)
+        orients.forEach( function( orient) {
+            axesWithLayoutInfo = allAxesWithLayoutInfo.filter( function( e) {return e.orient === orient} )
+            d3.trait.layout.byOrientation( axesWithLayoutInfo, rect, orient)
+            updatedMargin = updatedMargin || updateChartMarginForAxis( axesWithLayoutInfo, orient)
+            axesByOrient[orient] = axesWithLayoutInfo
+        })
+        for( key in axesByOrient) {
+            axesWithLayoutInfo = axesByOrient[key]
+            updateAxesForChartMargin( axesWithLayoutInfo, key)
+        }
+
+        if( updatedMargin)
+            updateChartSize()
+    }
+    chartBase.layoutAxis = function( axisGroup, orient, widthOrHeight) {
+        var axisWithLayoutInfo = findAxisWithLayoutInfo( axisGroup ),
+            rect = makeAxisRectWithProperAnchor( orient, widthOrHeight)
+
+        if( ! axisWithLayoutInfo) {
+            axisWithLayoutInfo = {axisGroup: axisGroup, orient: orient, rect: rect}
+            allAxesWithLayoutInfo.push( axisWithLayoutInfo)
             relayoutAxes()
-        } else if( axisGroup.orient !== orient || axisGroup.rect.size !== rect.size) {
-            axisGroup.orient = orient
-            axisGroup.rect = rect
+        } else if( axisWithLayoutInfo.orient !== orient || axisWithLayoutInfo.rect.size !== rect.size) {
+            axisWithLayoutInfo.orient = orient
+            axisWithLayoutInfo.rect = rect
             relayoutAxes()
         }
-        axisGroup.group.attr ( 'transform', 'translate(' + axisGroup.rect.origin.x + ',' + axisGroup.rect.origin.y + ')');
+        axisWithLayoutInfo.axisGroup.attr ( 'transform', 'translate(' + axisWithLayoutInfo.rect.origin.x + ',' + axisWithLayoutInfo.rect.origin.y + ')');
     }
 
     // Return a list of points in focus.
