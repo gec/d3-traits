@@ -31,8 +31,8 @@ module.exports = function(grunt) {
       options: testConfig('karma.conf.js'),
 
       continuous: {
-        singleRun: true,
-        autoWatch: false,
+        singleRun: false,
+        autoWatch: true,
         plugins: [
           'karma-jasmine',
           'karma-coverage',
@@ -106,8 +106,8 @@ module.exports = function(grunt) {
   });
 
   // Default task.
-  //grunt.registerTask('default', ['jshint', 'concat', 'uglify', 'karma:continuous']);
   grunt.registerTask('default', ['jshint', 'concat', 'uglify', 'karma:unit']);
+  grunt.registerTask('test', ['jshint', 'concat', 'uglify', 'karma:continuous']);
 
   grunt.registerTask('fast-build', ['concat', 'uglify']);
   grunt.registerTask('coverage', ['concat', 'karma:unit']);

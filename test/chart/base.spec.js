@@ -14,8 +14,22 @@ beforeEach(function() {
     selection = d3.select( ".chart-div")
 })
 
-it('should handle default base config', function() {
+it('should handle undefined base config', function() {
     var chart = d3.trait( d3.trait.chart.base )
+});
+
+it('should supply default seriesData accessor for empty base config', function() {
+    var config = {}
+    var chart = d3.trait( d3.trait.chart.base, config )
+    var d = config.seriesData( data[0])
+    expect( d.length ).toBe( 3)
+});
+
+it('should seriesData accessor for base config', function() {
+    var seriesAccessor = function(s) { return s}
+    var config = { seriesData: seriesAccessor }
+    var chart = d3.trait( d3.trait.chart.base, config )
+    expect( config.seriesData ).toBe( seriesAccessor)
 });
 
 it('should append svg.chart and g.container-group', function() {

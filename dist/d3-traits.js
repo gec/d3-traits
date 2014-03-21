@@ -1,6 +1,6 @@
-/*! d3-traits - v0.0.1 - 2013-10-23
+/*! d3-traits - v0.0.1 - 2014-03-21
 * https://github.com/gec/d3-traits
-* Copyright (c) 2013 d3-traits; Licensed ,  */
+* Copyright (c) 2014 d3-traits; Licensed ,  */
 (function (d3) {
 
 //    var a, b, c, d, e
@@ -1522,6 +1522,9 @@ function _chartBase( _super, _config) {
     if( !_config)
         _config = {}
 
+    if( !_config.seriesData)
+        _config.seriesData =  function(s) { return s}
+
     var margin = d3.trait.utils.configMargin( _config.margin, {top: 5, right: 5, bottom: 5, left: 5})
 
     // Margin for adjusting the x1-scale range
@@ -1585,6 +1588,8 @@ function _chartBase( _super, _config) {
 
     var ease = 'cubic-in-out'
     var sizeFromElement = true
+    var size = new d3.trait.Size(),
+        chartSize = { attrWidth: null, attrHeight: null}
     var width = 200
     var height = 100
     var chartWidth = width - margin.left - margin.right,
@@ -1618,28 +1623,64 @@ function _chartBase( _super, _config) {
                 mousePoint[1] >= 0 && mousePoint[1] <= chartHeight
 
     }
+    function getDimension( sizeFromElement, dimension, elementOffsetDimension) {
+        if( ! sizeFromElement)
+            return dimension
+        else
+            return elementOffsetDimension;
+    }
+    function getDimensionAttr( sizeFromElement, dimension, elementOffsetDimension, elementStyleDimension) {
+        if( ! sizeFromElement)
+            return dimension
+
+        if( elementStyleDimension.indexOf('%') >= 0)
+            return elementStyleDimension;
+        else
+            return elementOffsetDimension;
+    }
+    function getChartSizeAttrs( element, sizeFromElement, width, height) {
+        var attrs = {}
+
+        attrs.width = getDimensionAttr( sizeFromElement, width, element.offsetWidth, element.style.width)
+        attrs.height = getDimensionAttr( sizeFromElement, height, element.offsetHeight, element.style.height)
+        return attrs
+    }
+    function getChartSize( element, sizeFromElement, width, height, margin) {
+        var size = new d3.trait.Size()
+
+        size.width = getDimension( sizeFromElement, width, element.offsetWidth) - margin.left - margin.right
+        size.height = getDimension( sizeFromElement, height, element.offsetHeight) - margin.top - margin.bottom
+        return size
+    }
+    function getSize( element, sizeFromElement, width, height) {
+        return new d3.trait.Size(
+            getDimension( sizeFromElement, width, element.offsetWidth),
+            getDimension( sizeFromElement, height, element.offsetHeight)
+        )
+    }
     function chartBase( _selection) {
         var self = chartBase
         selection = _selection
         _selection.each(function(_data) {
-            var element = this // the div element
+            var chartSize,
+                element = this, // the div element
+                sizeAttrs = getChartSizeAttrs( element, sizeFromElement, width, height)
 
             select = d3.select(element)
-//            width = element.parentElement.offsetWidth || width
-//            height = element.parentElement.offsetHeight || height
-            width = sizeFromElement ? element.offsetWidth || width : width
-            height = sizeFromElement ? element.offsetHeight || height : height
-
-            chartWidth = width - margin.left - margin.right
-            chartHeight = height - margin.top - margin.bottom
 
             if( !element._svg) {
                 element._svg = d3.select(element)
                     .append("svg")
                     .classed('chart', true)
-                    .attr("width", width)
-                    .attr("height", height)
+                    .attr("width", sizeAttrs.width)
+                    .attr("height", sizeAttrs.height)
                 element._svgDefs = element._svg.append("defs")
+
+                size = getSize( element, sizeFromElement, width, height)
+                width = size.width
+                height = size.height
+                chartWidth = size.width - margin.left - margin.right
+                chartHeight = size.height - margin.top - margin.bottom
 
                 var clipId = appendClipPathDef( element, element._svgDefs)
 
@@ -1689,6 +1730,8 @@ function _chartBase( _super, _config) {
                     }
                 })
             }
+
+            console.log( "chartBase w=" + width + ", h=" + height + " cW=" + chartWidth + ", cH=" + chartHeight)
 
             element._svg.transition()
                 .duration(duration)

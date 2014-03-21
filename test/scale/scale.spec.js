@@ -22,11 +22,9 @@ var parseDate = d3.time.format("%Y-%m-%d").parse,
 
 var accessX1 = function(d) { return d.x; }
 var accessY1 = function(d) { return d.y; }
-var accessSeriesData = function(s) { return s}
 var config = {
     x1: accessX1,
-    y1: accessY1,
-    seriesData: accessSeriesData
+    y1: accessY1
 }
 
 
