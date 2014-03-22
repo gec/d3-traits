@@ -31,8 +31,18 @@ function _chartBase( _super, _config) {
 
     if( !_config.seriesData)
         _config.seriesData =  function(s) { return s}
+    if( !_config.seriesLabel)
+        _config.seriesLabel =  function(s, i) { return "Series "+i}
+
+    if( !_config.x1)
+        _config.x1 =  function(d) { return d[0]}
+    if( !_config.y1)
+        _config.y1 =  function(d) { return d[1]}
 
     var margin = d3.trait.utils.configMargin( _config.margin, {top: 5, right: 5, bottom: 5, left: 5})
+
+    _config.clip = _config.clip === undefined || _config.clip === true
+
 
     // Margin for adjusting the x1-scale range
     // Example: { x1: {left: 5, right: 5} }
@@ -200,7 +210,9 @@ function _chartBase( _super, _config) {
                 chartWidth = size.width - margin.left - margin.right
                 chartHeight = size.height - margin.top - margin.bottom
 
-                var clipId = appendClipPathDef( element, element._svgDefs)
+                var clipId = null
+                if( _config.clip)
+                    clipId = appendClipPathDef( element, element._svgDefs)
 
                 // Outer container group for charts, axes, labels, etc.
                 element._container = element._svg.append('g').classed('container-group', true)
@@ -209,7 +221,8 @@ function _chartBase( _super, _config) {
                 element._chartGroup = element._container.append('g').classed('chart-group', true);
 
                 // Clip all chart innards to chartWidth and chartHeight
-                element._chartGroup.attr("clip-path", "url(#" + clipId + ")")
+                if( _config.clip)
+                    element._chartGroup.attr("clip-path", "url(#" + clipId + ")")
 
 
                 this._svg.on("mousemove", function() {
@@ -257,7 +270,8 @@ function _chartBase( _super, _config) {
             element._svg.select('.chart-group')
                 .attr( 'transform', 'translate(' + margin.left + ',' + margin.top + ')');
 
-            element._chartGroupClipPathRect.attr("width", chartWidth).attr("height", chartHeight)
+            if( _config.clip)
+                element._chartGroupClipPathRect.attr("width", chartWidth).attr("height", chartHeight)
 
             duration = 500;
         })
