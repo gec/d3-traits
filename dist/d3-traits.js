@@ -1,4 +1,4 @@
-/*! d3-traits - v0.0.1 - 2014-03-21
+/*! d3-traits - v0.0.1 - 2014-03-22
 * https://github.com/gec/d3-traits
 * Copyright (c) 2014 d3-traits; Licensed ,  */
 (function (d3) {
@@ -1369,12 +1369,12 @@ function _chartBar( _super,  _config) {
             length = data.length
 
         if( length < 2)
-            return 0
+            return d3.trait.utils.extentMax( scale.range())
 
         var current,
-            last = scale( access( data[0]))
+            last = scale( access( data[0], i))
         for( i = 1; i < length; i++) {
-            current = scale( access( data[i]))
+            current = scale( access( data[i], i))
             min = Math.min( min, current-last)
             last = current
         }
@@ -1391,7 +1391,7 @@ function _chartBar( _super,  _config) {
                 filtered = _config.seriesFilter ? _data.filter( _config.seriesFilter) : _data,
                 minDistanceX = d3.min( filtered, function( s) { return minDistanceBetween( _config.seriesData( s), _config.x1, x1) } )
 
-            barW = Math.floor( minDistanceX * 0.9 - gap)
+            barW = x1.rangeBand ?  x1.rangeBand() : Math.floor( minDistanceX * 0.9 - gap)
 
 //            var xBand = d3.scale.ordinal()
 //                .domain( getBarCountRange( filtered))
@@ -1425,26 +1425,26 @@ function _chartBar( _super,  _config) {
             // DATA JOIN
             bars = series.selectAll("rect")
                 .data( _config.seriesData)
-            {
-                // UPDATE
-                bars.transition()
-                    .duration(500).delay(500).ease(self.ease())
-                    .attr( barAttr( _config, barOffsetX, barW, self.chartHeight(), x1, y1));
 
-                // ENTER
-                bars.enter().append('rect')
-                    .classed('bar', true)
-                    .attr( barAttr( _config, barOffsetX, barW, self.chartHeight(), x1, y1))
-                    .on('mouseover', dispatch.customHover);
+            // ENTER
+            bars.enter().append('rect')
+                .classed('bar', true)
+                .attr( barAttr( _config, barOffsetX, barW, self.chartHeight(), x1, y1))
+                .on('mouseover', dispatch.customHover);
 
-                // EXIT
-                bars.exit()
-                    .transition()
-                    .style({opacity: 0})
-                    .remove();
+            // UPDATE
+            bars.transition()
+                .duration(500).delay(500).ease(self.ease())
+                .attr( barAttr( _config, barOffsetX, barW, self.chartHeight(), x1, y1));
 
-                lastDomainMax = d3.trait.utils.extentMax( x1.domain())
-            }
+            // EXIT
+            bars.exit()
+                .transition()
+                .style({opacity: 0})
+                .remove();
+
+            lastDomainMax = d3.trait.utils.extentMax( x1.domain())
+
 
         })
     }
