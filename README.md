@@ -4,6 +4,8 @@
 
 D3 charts via reusable traits (aka mixins)
 
+[See the wiki](https://github.com/gec/d3-traits/wiki)
+
 ### Problem
 
 * [D3][d3] enables powerful visualizations, but no standard chart library.
