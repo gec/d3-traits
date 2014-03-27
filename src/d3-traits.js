@@ -38,6 +38,8 @@
 //            .trait( e, {})
 //            .config( { x1: 4})
 
+var DEBUG = false
+
 Array.isArray = Array.isArray || function (vArg) {
     return Object.prototype.toString.call(vArg) === "[object Array]";
 };
@@ -79,6 +81,7 @@ function isX( scaleName) { return scaleName.charAt(0) === 'x'}
  */
 function isY( scaleName) { return scaleName.charAt(0) === 'y'}
 
+function extentMin( extent) { return extent[ 0] }
 function extentMax( extent) { return extent[ extent.length - 1] }
 
 function isData( _data, accessSeries) {
@@ -91,12 +94,27 @@ function isValidDate(d) {
     return !isNaN(d.getTime());
 }
 
-function getChartRange( _super, name) {
+function getScaleRange( _super, name) {
     // SVG origin is top-left
     if( d3.trait.utils.isX( name))
         return [ _super.minRangeMarginLeft( name), _super.chartWidth() - _super.minRangeMarginRight( name)]
     else
         return [ _super.chartHeight() - _super.minRangeMarginBottom( name), _super.minRangeMarginTop( name)]
+}
+
+function getScaleExtensions( _super, name, scale) {
+    var domainExtent = scale.domain()
+    // SVG origin is top-left
+    if( d3.trait.utils.isX( name))
+        return [
+            [0, scale( domainExtent[0])],
+            [scale(domainExtent[1]), _super.chartWidth()]
+        ]
+    else
+        return [
+            [0, scale( domainExtent[0])],
+            [ scale(domainExtent[1]), _super.chartHeight()]
+        ]
 }
 
 function configFloat( valueConfig, valueDefault) {
@@ -177,7 +195,7 @@ function extendTraitsConfig( config, defaultConfig) {
 }
 
 function TraitOld( trait, config, _super) {
-    //console.log( "trait( " + trait.name + ")")
+    //if( DEBUG) console.log( "trait( " + trait.name + ")")
 
     var id, imp,
         self = this,
@@ -210,7 +228,7 @@ function TraitOld( trait, config, _super) {
     self.imp = imp
 }
 function Trait( _trait, _config, _super) {
-    console.log( "trait( " + _trait.name + ")")
+    if( DEBUG) console.log( "trait( " + _trait.name + ")")
 
     var id, imp,
         self = this
@@ -225,13 +243,13 @@ function Trait( _trait, _config, _super) {
     self.getImp = function() { return imp}
 
     self.trait = function( _trait, config) {
-        //console.log( ".trait( " + _trait.name + ")")
+        //if( DEBUG) console.log( ".trait( " + _trait.name + ")")
         var t = new Trait( _trait, config, imp)
         return t.getImp()
     }
 
 //    self.config = function( _config) {
-//        //console.log( ".config( {...})")
+//        //if( DEBUG) console.log( ".config( {...})")
 //        if( self._super)
 //            self._super.config( _config)
 //
@@ -250,7 +268,7 @@ function Trait( _trait, _config, _super) {
     }
 
     function makeVirtual( name, fn, _superFn) {
-        console.log( "makeVirtual " + name)
+        if( DEBUG) console.log( "makeVirtual " + name)
         return (function(name, fn){
             return function() {
                 var tmp = this._super;
@@ -276,21 +294,21 @@ function Trait( _trait, _config, _super) {
     }
 
     self.__virtualize = function( name, fn) {
-        console.log( "__virtualize begin " + _trait.name + " name=" + name)
+        if( DEBUG) console.log( "__virtualize begin " + _trait.name + " name=" + name)
 
         var virtual = null
         if( imp.hasOwnProperty( name) && typeof imp[name] === "function" ) {
             // The first parent has the same function.
             // The parent's version could be normal or virtualized.
             //
-            console.log( "__virtualize " + _trait.name + " name=" + name + " hasFunction")
+            if( DEBUG) console.log( "__virtualize " + _trait.name + " name=" + name + " hasFunction")
 //            var original = '__original__' + name
 
             // imp[name] could be virtualized or normal
             virtual = makeVirtual( name, fn, imp[name])
 
 //            if( ! imp.hasOwnProperty( original)) {
-//                console.log( "__virtualize " + _trait.name + " name=" + name + " newly virtualized save original")
+//                if( DEBUG) console.log( "__virtualize " + _trait.name + " name=" + name + " newly virtualized save original")
 //                // save original
 //                imp[original] = imp[name]
 //            }
@@ -298,7 +316,7 @@ function Trait( _trait, _config, _super) {
             if( _super)
                 _super.__replaceVirtual( name, virtual)
         } else {
-            console.log( "__virtualize " + _trait.name + " name=" + name + " hasFunction NOT  ")
+            if( DEBUG) console.log( "__virtualize " + _trait.name + " name=" + name + " hasFunction NOT  ")
         }
 //        if( _super)
 //            virtual = _super.__virtualize( name, fn)
@@ -322,7 +340,7 @@ function Trait( _trait, _config, _super) {
     // _stack[0] is most derived trait imp.
     //
     self.__makeVTable = function() {
-        console.log( "__makeVTable begin " + _trait.name)
+        if( DEBUG) console.log( "__makeVTable begin " + _trait.name)
 
         var name, virtualized
 
@@ -330,23 +348,23 @@ function Trait( _trait, _config, _super) {
 
             virtualized = _super.__virtualize( name, imp[name])
             if( virtualized) {
-                console.log( _trait.name +".__makeVTable name " + name + "   virtualized")
+                if( DEBUG) console.log( _trait.name +".__makeVTable name " + name + "   virtualized")
 //                imp[ '__original__' + name] = imp[name]
                 imp[name] = virtualized
             } else {
-                console.log( _trait.name +".__makeVTable name " + name + " ! virtualized")
+                if( DEBUG) console.log( _trait.name +".__makeVTable name " + name + " ! virtualized")
             }
 
         }
 
         // Replicate super methods in imp; no overrides.
         for( name in _super) {
-            //console.log( _trait.name +".__makeVTable replicate " + name + "  in _super")
+            //if( DEBUG) console.log( _trait.name +".__makeVTable replicate " + name + "  in _super")
             if( !(name in imp))
                 imp[name] = _super[ name]
         }
 
-        console.log( "__makeVTable end")
+        if( DEBUG) console.log( "__makeVTable end")
     }
 
     self.__getRoot = function() {
@@ -383,7 +401,7 @@ function Trait( _trait, _config, _super) {
 Trait.prototype = {
 
     trait: function( _trait, config) {
-        //console.log( ".trait( " + _trait.name + ")")
+        //if( DEBUG) console.log( ".trait( " + _trait.name + ")")
         var t = new Trait( _trait, config, this)
         var imp = t.getImp()
         return imp
@@ -432,7 +450,7 @@ d3.selection.prototype.trait = function( trait, config)
         for( var index in trait)
             this.trait( trait[index])
     } else {
-        //console.log( ".trait( " + trait.name + ")")
+        //if( DEBUG) console.log( ".trait( " + trait.name + ")")
         this._traitsInitialize()
 
         var traitCount = this.traits.length
@@ -455,7 +473,7 @@ d3.selection.prototype.callTraits = function() {
 
     for( var index in this.traits) {
         var traitInstance = this.traits[ index]
-        //console.log( ".callTraits  " + index + " " + traitInstance.name)
+        //if( DEBUG) console.log( ".callTraits  " + index + " " + traitInstance.name)
         this.call( traitInstance)
     }
     return this
@@ -502,8 +520,10 @@ d3.trait.utils = {
     isY: isY,
     isData: isData,
     isValidDate: isValidDate,
+    extentMin: extentMin,
     extentMax: extentMax,
-    getChartRange: getChartRange,
+    getScaleRange: getScaleRange,
+    getScaleExtensions: getScaleExtensions,
     getTraitCache: getTraitCache,
     configMargin: configMargin,
     configFloat: configFloat

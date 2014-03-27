@@ -75,6 +75,7 @@ it('axis.linear should call _super y1, ease, and plusMarginLeft', function() {
         marginLeft: function( value) {},
         onChartResized: function() {},
         onRangeMarginChanged: function() {},
+        isMinRangeMargin: function() {},
         layoutAxis: function() {}
     }
     spyOn( _super, 'layoutAxis').andCallThrough()

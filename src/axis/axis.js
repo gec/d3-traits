@@ -188,6 +188,30 @@
                     label.attr( { transform: labelTransform( self, c, label) } )
                 }
                 groupAxis.call(axis);
+
+                // Do we have to provide a line to extend each end of the axis?
+                if( _super.isMinRangeMargin( c.name)) {
+
+                    var extData = d3.trait.utils.getScaleExtensions( _super, c.name, scale)
+
+                    var extension = groupAxis.selectAll( "path.axis-extension")
+                        .data( extData)
+
+                    extension.enter()
+                        .append( "path")
+                        .attr("class", "axis-extension")
+                        .attr( "d", function( d) {
+                            return "M" + d[0] + ",0L" + d[1] + ",0";
+                        })
+
+                    extension.transition().duration( 0)
+                        .attr("class", "axis-extension")
+                        .attr( "d", function( d) {
+                            return "M" + d[0] + ",0L" + d[1] + ",0";
+                        })
+                }
+
+
             })
         }
         axisLinear.update = function( type, duration) {
@@ -300,7 +324,7 @@
         axisMonth.update = function( type, duration) {
             this._super( type, duration)
 
-            scaleForUpdate.range( d3.trait.utils.getChartRange( _super, c.name))
+            scaleForUpdate.range( d3.trait.utils.getScaleRange( _super, c.name))
 
             var domain = scale.domain() // original scale
             var domainMax = d3.trait.utils.extentMax( domain)

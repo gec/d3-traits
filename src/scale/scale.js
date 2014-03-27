@@ -74,7 +74,7 @@ function makeDomainConfig( config) {
 }
 
 
-    /**
+/**
  * Return an object with interval and count or null
  *
  * { interval: d3.time.minute,
@@ -329,7 +329,7 @@ function _scaleTime( _super,  _config) {
             // TODO: nice overlaps wth interval. Maybe it's one or the other?
             if( _config.nice)
                 scale.nice( _config.nice) // start and end on month. Ex Jan 1 00:00 to Feb 1 00:00
-            scale.range( d3.trait.utils.getChartRange( self, scaleName))
+            scale.range( d3.trait.utils.getScaleRange( self, scaleName))
         })
     }
     scaleTime[scaleName] = function() {
@@ -346,7 +346,7 @@ function _scaleTime( _super,  _config) {
 
         // Reset the range to the physical chart coordinates. We'll use this range to
         // calculate newRangeMax below, then we'll extend the range to that.
-        var range = d3.trait.utils.getChartRange( _super, scaleName)
+        var range = d3.trait.utils.getScaleRange( _super, scaleName)
 
         updateScale( scale, range, domainConfig, filteredData, access)
 
@@ -388,23 +388,29 @@ function _scaleLinear( _super,  _config) {
             filteredData = _config.seriesFilter ? _data.filter( _config.seriesFilter) : _data
 
             scale.domain( getDomain( domainConfig, filteredData, access))
-            scale.range( d3.trait.utils.getChartRange( self, scaleName))
+            scale.range( d3.trait.utils.getScaleRange( self, scaleName))
 
         })
     }
     scaleLinear[scaleName] = function() {
         return scale;
     };
+    scaleLinear[scaleName + 'Domain'] = function( newDomain) {
+        domainConfig.domain = newDomain
+        scale.domain( newDomain)
+        // TODO: domain updated event?
+    }
     scaleLinear.update = function( type, duration) {
         this._super( type, duration)
-        var range = d3.trait.utils.getChartRange( _super, scaleName)
+        var range = d3.trait.utils.getScaleRange( _super, scaleName)
         updateScale( scale, range, domainConfig, filteredData, access)
 
         return this;
     };
 
 
-    _super.onChartResized( scaleName, scaleLinear)
+    _super.onChartResized( 'scaleLinear-' + scaleName, scaleLinear)
+    _super.onRangeMarginChanged( 'scaleLinear-' + scaleName, scaleLinear)
 
     return scaleLinear;
 }

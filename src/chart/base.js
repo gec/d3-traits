@@ -67,6 +67,18 @@ function _chartBase( _super, _config) {
             minRangeMargins[axis] = trait.utils.clone( MIN_RANGE_MARGIN_DEFAULT)
     }
 
+    function isMinRangeMargin( axis) {
+        if( ! minRangeMargins[axis])
+            return false
+
+        var current = minRangeMargins[axis]
+
+        if( d3.trait.utils.isX( axis))
+            return current.left !== 0 || current.right !== 0
+        else
+            return current.top !== 0 || current.bottom !== 0
+    }
+
     // Whomever needs the largest margins will get their way.
     // This avoids cyclic events (ex: two traits setting 3 then 4 then 3 ...)
     function minRangeMargin( axis, rangeMargin) {
@@ -82,8 +94,6 @@ function _chartBase( _super, _config) {
 
         var current = minRangeMargins[axis],
             changed = false;
-
-        console.log( "=============== rangeMargin=" + rangeMargin + " left=" + rangeMargin.left)
 
         if( rangeMargin.left && current.left < rangeMargin.left) {
             current.left = rangeMargin.left
@@ -713,6 +723,7 @@ function _chartBase( _super, _config) {
     }
 
     chartBase.minRangeMargin = minRangeMargin
+    chartBase.isMinRangeMargin = isMinRangeMargin
 
     chartBase.minRangeMarginLeft = function( axis, marginLeft) {
         if( !arguments.length) return 0
