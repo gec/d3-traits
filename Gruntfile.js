@@ -40,6 +40,19 @@ module.exports = function(grunt) {
           'karma-chrome-launcher',
           'karma-firefox-launcher'
         ],
+        reporters: ['progress', 'coverage'],
+        preprocessors: {
+          // source files, that you wanna generate coverage for
+          // do not include tests or libraries
+          // (these files will be instrumented by Istanbul)
+          'src/**/*.js': ['coverage']
+        },
+        coverageReporter: {
+          reporters: [
+            {type : 'text'},
+            {type: 'html', dir: 'coverage/'}
+          ]
+        },
         //browsers: ['PhantomJS']
         browsers: ['Chrome']
       },
@@ -54,9 +67,18 @@ module.exports = function(grunt) {
           'karma-chrome-launcher',
           'karma-firefox-launcher'
         ],
+        reporters: ['progress', 'coverage'],
+        preprocessors: {
+          // source files, that you wanna generate coverage for
+          // do not include tests or libraries
+          // (these files will be instrumented by Istanbul)
+          'src/**/*.js': ['coverage']
+        },
         coverageReporter: {
-          type : 'html',
-          dir : 'coverage/'
+          reporters: [
+            {type : 'text'}//,
+//            {type: 'html', dir: 'coverage/'}
+          ]
         },
         browsers: ['Chrome']
         //browsers: ['PhantomJS']
