@@ -76,7 +76,77 @@
         return focus
     }
 
+    /**
+     * Return the minimum distance between each data point that is within
+     * the indicesExtent. The indicesExtent is typically the data indices
+     * that are currently visible on the chart. The distance used is the
+     * scale's range, not the domain space.
+     *
+     * @param data          Array of data.
+     * @param indicesExtent Extent of indices used to calculate minimum distance.
+     * @param accessor      Data accessor
+     * @param scale         Scale for data
+     * @returns Minimum distance as a number
+     */
+    function minDistanceBetween( data, indicesExtent, accessor, scale) {
+        var range = scale.range(), //Number.MAX_VALUE,
+            min = range[range.length-1] - range[0],
+            length = data.length
+
+        if( length < 2 || indicesExtent.length < 2)
+            return min
+
+        var i = indicesExtent[0],
+            lastIndex = Math.min( length-1, indicesExtent[1])
+
+        if( i < 0 || i >= length)
+            return min
+
+        var current,
+            last = scale( accessor( data[i], i))
+
+        i++
+        for( ; i <= lastIndex; i++) {
+            current = scale( accessor( data[i], i))
+            min = Math.min( min, current-last)
+            last = current
+        }
+
+        return min
+    }
+
+    /**
+     * Return the extent of indices withing the domain extent. This is typicaly
+     * used to return the indices that are currently visible on the chart.
+     *
+     * @param data         Array of data
+     * @param accessor     Data accessor
+     * @param domainExtent Domain extent. Array with 0 being min and 1 being max.
+     * @returns Indices extent with array 0 being first and array 1 being last.
+     */
+    function dataIndicesExtentForDomainExtent( data, accessor, domainExtent) {
+        if( data.length <= 0)
+            return null
+
+        var min = d3.trait.utils.extentMin( domainExtent),
+            max = d3.trait.utils.extentMax( domainExtent )
+
+        var bisector = d3.bisector( accessor ),
+            biLeft = bisector.left,
+            biRight = bisector.right,
+            firstIndex = biLeft( data, min ),
+            lastIndexPlusOne = biRight( data, max)
+
+        //return {first: firstIndex, lastPlusOne: lastIndexPlusOne}
+        return [firstIndex, lastIndexPlusOne-1]
+    }
+
+
+
     trait.chart.utils.updatePathWithTrend = updatePathWithTrend
     trait.chart.utils.configFocus = configFocus
+    trait.chart.utils.minDistanceBetween = minDistanceBetween
+    trait.chart.utils.dataIndicesExtentForDomainExtent = dataIndicesExtentForDomainExtent
+
 
 }(d3, d3.trait));

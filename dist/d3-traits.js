@@ -1421,40 +1421,20 @@ function barOffsetForJustification( justification, width, gap) {
             break;
         default:
             // center
-            offset = 1 - Math.round( width / 2);
+            offset = 0 - Math.round( width / 2);
             break;
     }
     return offset
 }
 
-function minDistanceBetween( data, indicesExtent, accessor, scale) {
-    var range = scale.range(), //Number.MAX_VALUE,
-        min = range[range.length-1] - range[0],
-        length = data.length
-
-    if( length < 2)
-        return d3.trait.utils.extentMax( min)
-
-    var current,
-    //indicesExtent = dataIndicesExtentForDomainExtent( data, accessor, scale.domain() ),
-        i = indicesExtent[0],
-        lastIndex = indicesExtent[1],
-        last = scale( accessor( data[i], i))
-    i++
-    for( ; i <= lastIndex; i++) {
-        current = scale( accessor( data[i], i))
-        min = Math.min( min, current-last)
-        last = current
-    }
-
-    return Math.floor( min)
-}
-
-function rangeExtentsForBarsAndOuterGapForOneSeries( data, indicesExtent, accessor, scale, width, gap, outerGap, justification) {
+function rangeExtentOfBarsAndOuterGapForOneSeries( data, indicesExtent, accessor, scale, width, gap, outerGap, justification) {
 
     var i, minValue, maxValue,
         offsetLeft = barOffsetForJustification( justification, width, gap) - outerGap,
         offsetRight = barOffsetForJustification( justification, width, gap) + width + outerGap
+
+    if( ! indicesExtent)
+        return scale.range()
 
     i = indicesExtent[0],
         minValue = scale( accessor( data[i], i) ) + offsetLeft
@@ -1465,35 +1445,108 @@ function rangeExtentsForBarsAndOuterGapForOneSeries( data, indicesExtent, access
     return [Math.floor( minValue), Math.ceil( maxValue)]
 }
 
-/**
- *
- * @param data Array
- * @param accessor
- * @param domainExtent
- * @returns {first: firstIndex, lastPlusOne: lastIndexPlusOne}
- */
-function dataIndicesExtentForDomainExtent( data, accessor, domainExtent) {
-    if( data.length <= 0)
-        return null
+function rangeExtentOfBarsAndOuterGap( filteredSeries, indicesExtents, seriesData, accessor, scale, barWidth, gap, outerGap, justification) {
 
-    var min = d3.trait.utils.extentMin( domainExtent),
-        max = d3.trait.utils.extentMax( domainExtent )
+    var rangeExtents = filteredSeries.map( function( s, i) { return rangeExtentOfBarsAndOuterGapForOneSeries( seriesData( s), indicesExtents[i], accessor, scale, barWidth, gap, outerGap, justification) } )
+    var min = d3.min( rangeExtents, function( extent, i) { return extent[0]})
+    var max = d3.min( rangeExtents, function( extent, i) { return extent[1]})
 
-    var bisector = d3.bisector( accessor ),
-        biLeft = bisector.left,
-        biRight = bisector.right,
-        firstIndex = biLeft( data, min ),
-        lastIndexPlusOne = biRight( data, max)
-
-    //return {first: firstIndex, lastPlusOne: lastIndexPlusOne}
-    return [firstIndex, lastIndexPlusOne-1]
-
-    // If all data within domain, return data
-//        if( accessor( data[0], 0) >= min &&  accessor( data[length-1], length-1) <= max)
-//            return {first: 0, last: length-1}
-
+    return [min, max]
 }
 
+
+/**
+ *   Handle pathological case where outer bars are centered on scale extents (so half off chart).
+ *
+ *    Original        inset-range       extend-domain
+ *     |     |      |             |   |               |
+ *    _|_   _|_     |  ___   ___  |   |   ___   ___   |
+ *   |*|*| |*|*|    | |***| |***| |   |  |***| |***|  |
+ *     +-----+       ---+-----+---    +----+-----+----+
+ *     1     2          1     2       0    1     2    3
+ *
+ *   Calculate the first and last bar outer edges plus a nice "inset" and scale that down
+ *   to fit in the pixels available (current range).
+ */
+function getBarDimensions( filteredSeries, seriesData, accessor, c, scale, chartWidth) {
+
+    // minimum scale distance between any two adjacent bars visible within the current domain.
+    var width,
+        minRangeMargin = null,
+        domainExtent = null,
+        gap = 0,
+        outerGap = 0
+
+
+    if( scale.rangeBand) {
+        width = c.width === 'auto'? scale.rangeBand() : c.width
+        // gap isn't known with range bands
+    } else {
+        var scaleDomain = scale.domain(),
+            // Find the data indices (across all series) for what's visible with current domain.
+            indicesExtents = filteredSeries.map( function( s) { return trait.chart.utils.dataIndicesExtentForDomainExtent( seriesData( s), accessor, scaleDomain) } ),
+            // Get the minimum distance between bar centers across all data in all series
+            minDistanceX = d3.min( filteredSeries, function( s, i) { return trait.chart.utils.minDistanceBetween( seriesData( s), indicesExtents[i], accessor, scale) } )
+
+        width = c.width === 'auto' ? Math.max( 1, Math.floor( minDistanceX * (1-c.gap))) : c.width
+        gap = Math.round( width * c.gap)
+        outerGap = Math.floor( width * c.outerGap)
+
+        // Get the minimun distance between bar centers across all data in all series
+        var rangeExtent = rangeExtentOfBarsAndOuterGap( filteredSeries, indicesExtents, seriesData, accessor, scale, width, gap, outerGap, c.justification),
+            min = rangeExtent[0],
+            max = rangeExtent[1]
+        //console.log( "minDistanceX: " + minDistanceX + " width: " + width + " rangeExtent: " + rangeExtent)
+
+        if( min < 0 || max > chartWidth) {
+
+            if( c.insets === INSETS_INSET_RANGE) {
+                // Careful, one bar may be within chart and one bar off chart.
+                var totalWidth = Math.max ( max, chartWidth ) - Math.min ( 0, min ),
+                    scaleItDown = chartWidth / totalWidth
+
+                if( c.width === 'auto') {
+                    width = Math.max ( 1, Math.floor ( width * scaleItDown ) )
+                    gap = Math.round( width * c.gap)
+                    outerGap = Math.floor( width * c.outerGap)
+                }
+
+                if ( c.insets === INSETS_INSET_RANGE ) {
+                    rangeExtent = rangeExtentOfBarsAndOuterGap ( filteredSeries, indicesExtents, seriesData, accessor, scale, width, gap, outerGap, c.justification)
+                    min = rangeExtent[0]
+                    max = rangeExtent[1]
+
+                    if ( min < 0 || max > chartWidth ) {
+                        minRangeMargin = {}
+                        if ( min < 0 )
+                            minRangeMargin.left = 1 - min
+                        if ( max > chartWidth )
+                            minRangeMargin.right = max - chartWidth
+                    }
+                }
+            } else if( c.insets === INSETS_EXTEND_DOMAIN) {
+                var domainMin = min < 0 ? scale.invert( min) : scaleDomain[0] ,
+                    domainMax = max > chartWidth ? scale.invert(max) : scaleDomain[ scaleDomain.length-1]
+                domainExtent = [domainMin, domainMax]
+            }
+
+        }
+
+    }
+
+    var offset = barOffsetForJustification( c.justification, width, gap)
+
+    //console.log( "barDimensions: width, gap, offset: " + width + ", " + gap + ", " + offset)
+
+    return {
+        width: width,
+        gap: gap,
+        outerGap: outerGap,
+        offset: offset,
+        domainExtent: domainExtent,
+        minRangeMargin: minRangeMargin
+    }
+}
 
 
 
@@ -1547,108 +1600,6 @@ function _chartBar( _super,  _config) {
         x1IsRangeBand = typeof x1.rangeBand === "function"
 
 
-    function rangeExtentForBarsAndOuterGap( filteredSeries, indicesExtents, scale, barWidth, gap, outerGap, justification) {
-
-        var rangeExtents = filteredSeries.map( function( s, i) { return rangeExtentsForBarsAndOuterGapForOneSeries( _config.seriesData( s), indicesExtents[i], _config.x1, scale, barWidth, gap, outerGap, justification) } )
-        var min = d3.min( rangeExtents, function( extent, i) { return extent[0]})
-        var max = d3.min( rangeExtents, function( extent, i) { return extent[1]})
-
-        return [min, max]
-    }
-
-
-    /**
-     *   Handle pathological case where outer bars are centered on scale extents (so half off chart).
-     *
-     *    Original        inset-range       extend-domain
-     *     |     |      |             |   |               |
-     *    _|_   _|_     |  ___   ___  |   |   ___   ___   |
-     *   |*|*| |*|*|    | |***| |***| |   |  |***| |***|  |
-     *     +-----+       ---+-----+---    +----+-----+----+
-     *     1     2          1     2       0    1     2    3
-     *
-     *   Calculate the first and last bar outer edges plus a nice "inset" and scale that down
-     *   to fit in the pixels available (current range).
-     */
-    function getBarDimensions( filteredSeries, c, scale) {
-
-        // minimum scale distance between any two adjacent bars visible within the current domain.
-        var width,
-            minRangeMargin = null,
-            domainExtent = null,
-            gap = 0,
-            outerGap = 0
-
-
-        if( x1.rangeBand) {
-            width = c.width === 'auto'? x1.rangeBand() : c.width
-            // gap isn't known with range bands
-        } else {
-            var scaleDomain = scale.domain(),
-                // Find the data indices (across all series) for what's visible with current domain.
-                indicesExtents = filteredSeries.map( function( s) { return dataIndicesExtentForDomainExtent( _config.seriesData( s), _config.x1, scaleDomain) } ),
-                // Get the minimum distance between bar centers across all data in all series
-                minDistanceX = d3.min( filteredSeries, function( s, i) { return minDistanceBetween( _config.seriesData( s), indicesExtents[i], _config.x1, x1) } )
-
-            width = c.width === 'auto' ? Math.max( 1, Math.floor( minDistanceX * (1-c.gap))) : c.width
-            gap = Math.round( width * c.gap)
-            outerGap = Math.floor( width * c.outerGap)
-
-            // Get the minimun distance between bar centers across all data in all series
-            var rangeExtent = rangeExtentForBarsAndOuterGap( filteredSeries, indicesExtents, x1, width, gap, outerGap, c.justification),
-                min = rangeExtent[0],
-                max = rangeExtent[1]
-
-            var chartWidth = _super.chartWidth()
-            if( min < 0 || max > chartWidth) {
-
-                if( c.insets === INSETS_INSET_RANGE) {
-                    // Careful, one bar may be within chart and one bar off chart.
-                    var totalWidth = Math.max ( max, chartWidth ) - Math.min ( 0, min ),
-                        scaleItDown = chartWidth / totalWidth
-
-                    if( c.width === 'auto') {
-                        width = Math.max ( 1, Math.floor ( width * scaleItDown ) )
-                        gap = Math.round( width * c.gap)
-                        outerGap = Math.floor( width * c.outerGap)
-                    }
-
-                    if ( c.insets === INSETS_INSET_RANGE ) {
-                        rangeExtent = rangeExtentForBarsAndOuterGap ( filteredSeries, indicesExtents, x1, width, gap, outerGap, c.justification)
-                        min = rangeExtent[0]
-                        max = rangeExtent[1]
-
-                        if ( min < 0 || max > chartWidth ) {
-                            minRangeMargin = {}
-                            if ( min < 0 )
-                                minRangeMargin.left = 1 - min
-                            if ( max > chartWidth )
-                                minRangeMargin.right = max - chartWidth
-                        }
-                    }
-                } else if( c.insets === INSETS_EXTEND_DOMAIN) {
-                    var domainMin = min < 0 ? x1.invert( min) : scaleDomain[0] ,
-                        domainMax = max > chartWidth ? x1.invert(max) : scaleDomain[ scaleDomain.length-1]
-                    domainExtent = [domainMin, domainMax]
-                }
-
-            }
-
-        }
-
-        var offset = barOffsetForJustification( c.justification, width, gap)
-
-        //console.log( "barDimensions: width, gap, offset: " + width + ", " + gap + ", " + offset)
-
-        return {
-            width: width,
-            gap: gap,
-            outerGap: outerGap,
-            offset: offset,
-            domainExtent: domainExtent,
-            minRangeMargin: minRangeMargin
-        }
-    }
 
 
     function chartBar( _selection) {
@@ -1656,9 +1607,10 @@ function _chartBar( _super,  _config) {
 
         _selection.each(function(_data) {
             var element = this,
+                chartWidth = _super.chartWidth(),
                 filteredSeries = _config.seriesFilter ? _data.filter( _config.seriesFilter) : _data
 
-            barDimensions = getBarDimensions( filteredSeries, c, x1)
+            barDimensions = getBarDimensions( filteredSeries, _config.seriesData, _config.x1, c, x1, chartWidth)
 
             if( barDimensions.minRangeMargin || barDimensions.domainExtent) {
                 // Turn off notify so we don't reenter chartBar() on changing scale.
@@ -1670,7 +1622,7 @@ function _chartBar( _super,  _config) {
                     _super.x1Domain( barDimensions.domainExtent)
                 }
 
-                barDimensions = getBarDimensions ( filteredSeries, c, x1 )
+                barDimensions = getBarDimensions ( filteredSeries, _config.seriesData, _config.x1, c, x1, chartWidth)
 
                 // Turn notify back on.
                 _super.onChartResized ( 'chartBar', self )
@@ -1774,6 +1726,14 @@ function _chartBar( _super,  _config) {
 }
 
 trait.chart.bar = _chartBar
+trait.chart.barUtils = {
+    barConfig: barConfig,
+    barAttr: barAttr,
+    barOffsetForJustification: barOffsetForJustification,
+    rangeExtentOfBarsAndOuterGapForOneSeries: rangeExtentOfBarsAndOuterGapForOneSeries,
+    rangeExtentOfBarsAndOuterGap: rangeExtentOfBarsAndOuterGap,
+    getBarDimensions: getBarDimensions
+}
 
 }(d3, d3.trait));
 
@@ -2031,7 +1991,7 @@ function _chartBase( _super, _config) {
                 })
             }
 
-            console.log( "chartBase w=" + width + ", h=" + height + " cW=" + chartWidth + ", cH=" + chartHeight)
+            //console.log( "chartBase w=" + width + ", h=" + height + " cW=" + chartWidth + ", cH=" + chartHeight)
 
             element._svg.transition()
                 .duration(duration)
@@ -2956,8 +2916,78 @@ trait.chart.line = _chartLine
         return focus
     }
 
+    /**
+     * Return the minimum distance between each data point that is within
+     * the indicesExtent. The indicesExtent is typically the data indices
+     * that are currently visible on the chart. The distance used is the
+     * scale's range, not the domain space.
+     *
+     * @param data          Array of data.
+     * @param indicesExtent Extent of indices used to calculate minimum distance.
+     * @param accessor      Data accessor
+     * @param scale         Scale for data
+     * @returns Minimum distance as a number
+     */
+    function minDistanceBetween( data, indicesExtent, accessor, scale) {
+        var range = scale.range(), //Number.MAX_VALUE,
+            min = range[range.length-1] - range[0],
+            length = data.length
+
+        if( length < 2 || indicesExtent.length < 2)
+            return min
+
+        var i = indicesExtent[0],
+            lastIndex = Math.min( length-1, indicesExtent[1])
+
+        if( i < 0 || i >= length)
+            return min
+
+        var current,
+            last = scale( accessor( data[i], i))
+
+        i++
+        for( ; i <= lastIndex; i++) {
+            current = scale( accessor( data[i], i))
+            min = Math.min( min, current-last)
+            last = current
+        }
+
+        return min
+    }
+
+    /**
+     * Return the extent of indices withing the domain extent. This is typicaly
+     * used to return the indices that are currently visible on the chart.
+     *
+     * @param data         Array of data
+     * @param accessor     Data accessor
+     * @param domainExtent Domain extent. Array with 0 being min and 1 being max.
+     * @returns Indices extent with array 0 being first and array 1 being last.
+     */
+    function dataIndicesExtentForDomainExtent( data, accessor, domainExtent) {
+        if( data.length <= 0)
+            return null
+
+        var min = d3.trait.utils.extentMin( domainExtent),
+            max = d3.trait.utils.extentMax( domainExtent )
+
+        var bisector = d3.bisector( accessor ),
+            biLeft = bisector.left,
+            biRight = bisector.right,
+            firstIndex = biLeft( data, min ),
+            lastIndexPlusOne = biRight( data, max)
+
+        //return {first: firstIndex, lastPlusOne: lastIndexPlusOne}
+        return [firstIndex, lastIndexPlusOne-1]
+    }
+
+
+
     trait.chart.utils.updatePathWithTrend = updatePathWithTrend
     trait.chart.utils.configFocus = configFocus
+    trait.chart.utils.minDistanceBetween = minDistanceBetween
+    trait.chart.utils.dataIndicesExtentForDomainExtent = dataIndicesExtentForDomainExtent
+
 
 }(d3, d3.trait));
 
@@ -3382,6 +3412,59 @@ trait.legend.series = _legendSeries
 
 (function (d3, trait) {
 
+    function minFromData( data, access, defaultValue) {
+        var min = d3.min( data, function(s) { return d3.min( access.series(s), access.data); })
+        if( ! min)
+            min = defaultValue ? defaultValue : 0
+        return min
+    }
+
+    function maxFromData( data, access, defaultValue) {
+        var max = d3.max( data, function(s) { return d3.max( access.series(s), access.data); })
+        if( ! max)
+            max = defaultValue ? defaultValue : 0
+        return max
+    }
+
+    /**
+     * Return the extent for all data in all series, example: [min, max] .
+     * If the data in each series is empty, return the supplied default or [0,1]
+     * if min === max, return [min-1, max+1]
+     *
+     * @param data     Multiple series of data
+     * @param access   Accessors {series: function, data: function}
+     * @param defaultValue A default in case there is no data otherwise [0,1] is returned
+     * @returns  The extent of all data in an array of the form [min,max]
+     */
+    function extentFromData( data, access, defaultValue) {
+        var extents, min, max
+
+        // Get array of extents for each series.
+        extents = data.map( function(s) { return d3.extent( access.series(s), access.data)})
+        min = d3.min( extents, function(e) { return e[0] }) // the minimums of each extent
+        max = d3.max( extents, function(e) { return e[1] }) // the maximums of each extent
+
+        if( ! min && ! max)
+            return defaultValue ? defaultValue : [0,1]
+
+        if( min === max) {
+            min -= 1
+            max += 1
+        }
+        return [min, max]
+    }
+
+    if( ! trait.utils)
+        trait.utils = {}
+
+    trait.utils.minFromData = minFromData
+    trait.utils.maxFromData = maxFromData
+    trait.utils.extentFromData = extentFromData
+
+}(d3, d3.trait));
+
+(function (d3, trait) {
+
 var TRACKING_NONE = "none"
 
 // Force domain to follow current wall-time (i.e. domain max = current time).
@@ -3455,23 +3538,6 @@ function makeIntervalFromConfig( config) {
         }
 }
 
-function minFromData( data, access) {
-    return d3.min( data, function(s) { return d3.min( access.series(s), access.data); })
-}
-function maxFromData( data, access) {
-    return d3.max( data, function(s) { return d3.max( access.series(s), access.data); })
-}
-function extentFromData( data, access) {
-    var extents, min, max
-
-    // Get array of extents for each series.
-    extents = data.map( function(s) { return d3.extent( access.series(s), access.data)})
-    min = d3.min( extents, function(e) { return e[0] }) // the minimums of each extent
-    max = d3.max( extents, function(e) { return e[1] }) // the maximums of each extent
-
-    return [min, max]
-}
-
 // trendDomain: { interval: d3.time.month, count: 1 }
 // trendDomain: { interval: milliseconds, count: 1 }
 function getTrendMin( max, trendDomain) {
@@ -3513,13 +3579,13 @@ function getDomainTrend( trend, data, access) {
             // tracking is domain-max or none. In either case, since a time interval
             // is specified, we'll do domain-max
             //
-            max = maxFromData( data, access)
+            max = trait.utils.maxFromData( data, access)
             min = getTrendMin( max, trend.domain)
             domain = [min, max]
 
         } else {
 
-            domain = extentFromData( data, access)
+            domain = trait.utils.extentFromData( data, access)
         }
     }
     return domain
@@ -3546,11 +3612,11 @@ function getDomain( domainConfig, data, access) {
     if( domainConfig.trend)
         domain = getDomainTrend( domainConfig, data, access)
     else if( domainConfig.domainMin != null)
-        domain = [domainConfig.domainMin, maxFromData( data, access)]
+        domain = [domainConfig.domainMin, trait.utils.maxFromData( data, access)]
     else if( domainConfig.domainMax != null)
-        domain = [minFromData( data, access), domainConfig.domainMax]
+        domain = [trait.utils.minFromData( data, access), domainConfig.domainMax]
     else
-        domain = extentFromData( data, access)
+        domain = trait.utils.extentFromData( data, access)
 
     return domain
 }
@@ -3602,7 +3668,7 @@ function updateScale( scale, range, domainConfig, data, access) {
                 // is specified, we'll do domain-max
                 //
 
-                max = maxFromData( data, access)
+                max = trait.utils.maxFromData( data, access)
 
                 // The scale is translated off to the left.
                 // Reset domain with oldMax to get rid of the part not visible.
@@ -3620,13 +3686,13 @@ function updateScale( scale, range, domainConfig, data, access) {
                 scale.range( [range[0], newRangeMax])
 
             } else {
-                dataDomain = extentFromData( data, access)
+                dataDomain = trait.utils.extentFromData( data, access)
                 scale.domain( dataDomain)
             }
         }
 
     } else {
-        dataDomain = extentFromData( data, access)
+        dataDomain = trait.utils.extentFromData( data, access)
         scale.domain( dataDomain)
     }
 

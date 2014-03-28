@@ -272,7 +272,7 @@ function _chartBase( _super, _config) {
                 })
             }
 
-            console.log( "chartBase w=" + width + ", h=" + height + " cW=" + chartWidth + ", cH=" + chartHeight)
+            //console.log( "chartBase w=" + width + ", h=" + height + " cW=" + chartWidth + ", cH=" + chartHeight)
 
             element._svg.transition()
                 .duration(duration)

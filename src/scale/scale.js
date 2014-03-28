@@ -93,23 +93,6 @@ function makeIntervalFromConfig( config) {
         }
 }
 
-function minFromData( data, access) {
-    return d3.min( data, function(s) { return d3.min( access.series(s), access.data); })
-}
-function maxFromData( data, access) {
-    return d3.max( data, function(s) { return d3.max( access.series(s), access.data); })
-}
-function extentFromData( data, access) {
-    var extents, min, max
-
-    // Get array of extents for each series.
-    extents = data.map( function(s) { return d3.extent( access.series(s), access.data)})
-    min = d3.min( extents, function(e) { return e[0] }) // the minimums of each extent
-    max = d3.max( extents, function(e) { return e[1] }) // the maximums of each extent
-
-    return [min, max]
-}
-
 // trendDomain: { interval: d3.time.month, count: 1 }
 // trendDomain: { interval: milliseconds, count: 1 }
 function getTrendMin( max, trendDomain) {
@@ -151,13 +134,13 @@ function getDomainTrend( trend, data, access) {
             // tracking is domain-max or none. In either case, since a time interval
             // is specified, we'll do domain-max
             //
-            max = maxFromData( data, access)
+            max = trait.utils.maxFromData( data, access)
             min = getTrendMin( max, trend.domain)
             domain = [min, max]
 
         } else {
 
-            domain = extentFromData( data, access)
+            domain = trait.utils.extentFromData( data, access)
         }
     }
     return domain
@@ -184,11 +167,11 @@ function getDomain( domainConfig, data, access) {
     if( domainConfig.trend)
         domain = getDomainTrend( domainConfig, data, access)
     else if( domainConfig.domainMin != null)
-        domain = [domainConfig.domainMin, maxFromData( data, access)]
+        domain = [domainConfig.domainMin, trait.utils.maxFromData( data, access)]
     else if( domainConfig.domainMax != null)
-        domain = [minFromData( data, access), domainConfig.domainMax]
+        domain = [trait.utils.minFromData( data, access), domainConfig.domainMax]
     else
-        domain = extentFromData( data, access)
+        domain = trait.utils.extentFromData( data, access)
 
     return domain
 }
@@ -240,7 +223,7 @@ function updateScale( scale, range, domainConfig, data, access) {
                 // is specified, we'll do domain-max
                 //
 
-                max = maxFromData( data, access)
+                max = trait.utils.maxFromData( data, access)
 
                 // The scale is translated off to the left.
                 // Reset domain with oldMax to get rid of the part not visible.
@@ -258,13 +241,13 @@ function updateScale( scale, range, domainConfig, data, access) {
                 scale.range( [range[0], newRangeMax])
 
             } else {
-                dataDomain = extentFromData( data, access)
+                dataDomain = trait.utils.extentFromData( data, access)
                 scale.domain( dataDomain)
             }
         }
 
     } else {
-        dataDomain = extentFromData( data, access)
+        dataDomain = trait.utils.extentFromData( data, access)
         scale.domain( dataDomain)
     }
 
