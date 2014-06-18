@@ -122,12 +122,7 @@
      * For example a line chart with two series can return two times.
      *
      * Configure
-     *  Closest x & y
-     *  Closest in x
-     *  Point within distance. Distance can be in domain or range.
-     *
-     *  distance: 6  -- x & y range
-     *  axis: 'x'
+     *  formatY -- d3.format function.
      */
     function _tooltip( _super, _config, _id) {
 
@@ -162,9 +157,15 @@
                     foci.forEach( function( item, index, array) {
                         //console.log( "foci: " + item.point.x + " distance: " + item.distance)
 
-                        var seriesIndex = _data.indexOf( item.series),
-                            ttip = cache.tooltips[ seriesIndex],
-                            formattedText = formatDate( _config.x1( item.item)) + " " + _config.y1(item.item)
+                        var formattedText,
+                          seriesIndex = _data.indexOf( item.series),
+                          ttip = cache.tooltips[ seriesIndex],
+                          xValue = formatDate( _config.x1( item.item) ),
+                          yValue = _config.y1(item.item )
+
+                        if( _config.formatY)
+                          yValue = _config.formatY( yValue)
+                        formattedText = xValue + " " + yValue
 
                         if( ! ttip) {
                             ttip = { newby: true}
@@ -212,8 +213,8 @@
                         var calloutPointerHalfHeight = getCalloutPointerHalfHeight( item.rect.size.height)
                         var calloutPath = getCalloutPath( item.rect.size.width, item.rect.size.height, radius, calloutPointerHalfHeight, item.rect.anchor, offsetY)
 
-                        var textMargin = calloutPointerHalfHeight * 2 + margin,
-                            tx = item.rect.anchor.x < 0.5 ? textMargin : -item.rect.size.width - textMargin
+                        var textMargin = calloutPointerHalfHeight * 2 + margin + radius,
+                            tx = item.rect.anchor.x < 0.5 ? textMargin : -item.rect.size.width - margin - radius
 
                         ttip.text.attr ( 'transform', 'translate(' + tx + ',' + 0 + ')' )
 

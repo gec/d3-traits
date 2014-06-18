@@ -1,4 +1,4 @@
-/*! d3-traits - v0.0.1 - 2014-03-27
+/*! d3-traits - v0.0.1 - 2014-06-18
 * https://github.com/gec/d3-traits
 * Copyright (c) 2014 d3-traits; Licensed ,  */
 (function (d3) {
@@ -3211,9 +3211,15 @@ trait.control.brush = _controlBrush
                     foci.forEach( function( item, index, array) {
                         //console.log( "foci: " + item.point.x + " distance: " + item.distance)
 
-                        var seriesIndex = _data.indexOf( item.series),
-                            ttip = cache.tooltips[ seriesIndex],
-                            formattedText = formatDate( _config.x1( item.item)) + " " + _config.y1(item.item)
+                        var formattedText,
+                          seriesIndex = _data.indexOf( item.series),
+                          ttip = cache.tooltips[ seriesIndex],
+                          xValue = formatDate( _config.x1( item.item) ),
+                          yValue = _config.y1(item.item )
+
+                        if( _config.formatY)
+                          yValue = _config.formatY( yValue)
+                        formattedText = xValue + " " + yValue
 
                         if( ! ttip) {
                             ttip = { newby: true}
@@ -3261,8 +3267,8 @@ trait.control.brush = _controlBrush
                         var calloutPointerHalfHeight = getCalloutPointerHalfHeight( item.rect.size.height)
                         var calloutPath = getCalloutPath( item.rect.size.width, item.rect.size.height, radius, calloutPointerHalfHeight, item.rect.anchor, offsetY)
 
-                        var textMargin = calloutPointerHalfHeight * 2 + margin,
-                            tx = item.rect.anchor.x < 0.5 ? textMargin : -item.rect.size.width - textMargin
+                        var textMargin = calloutPointerHalfHeight * 2 + margin + radius,
+                            tx = item.rect.anchor.x < 0.5 ? textMargin : -item.rect.size.width - margin - radius
 
                         ttip.text.attr ( 'transform', 'translate(' + tx + ',' + 0 + ')' )
 
