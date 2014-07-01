@@ -20,6 +20,30 @@
  */
 (function (d3, trait) {
 
+    function rangeTranslate(  lastDomainMax, domain, scale) {
+      if( ! lastDomainMax)
+        return 0
+
+      //   |<-------- range ------->|
+      //      |<-- visible range -->|
+
+      var domainMax = d3.trait.utils.extentMax( domain)
+      var domainMin = d3.trait.utils.extentMin( domain)
+
+      var lastRangeMax =  scale(lastDomainMax)
+      var rangeMin = scale( domainMin)
+      if( lastRangeMax < rangeMin)
+        return 0
+      else
+        return lastRangeMax - scale( domainMax)
+    }
+
+    function simplePathRedraw( series, attrD) {
+      series.selectAll("path")
+        .attr("d", attrD)
+        .attr("transform", null)
+    }
+
     /**
      * Update the paths with current data and scale. If trending, slide the new
      * data onto the chart from the right.
@@ -28,7 +52,7 @@
      * @param duration If available, the duration for the update in millisecods
      * @param scale
      * @param series The series list to update.
-     * @param lastDomainMax
+     * @param lastDomainMax Domain max from last trend update. Can be undefined if chart starts with no data.
      * @returns domainMax
      */
     function updatePathWithTrend( type, duration, scale, series, attrD, lastDomainMax) {
@@ -36,29 +60,35 @@
         // TODO: The scale.range() needs to be wider, so we draw the new line off the right
         // then translate it to the left with a transition animation.
 
-        var domainMax = d3.trait.utils.extentMax( scale.domain())
+        var domain = scale.domain()
+        var domainMax = d3.trait.utils.extentMax( domain)
 
-        // redraw the line and no transform
         if( type === "trend") {
-            var translateX = scale(lastDomainMax) - scale( domainMax)
 
-            series.attr( "transform", null)
-            series.selectAll("path")
-                .attr("d", attrD)
+            var translateX = rangeTranslate( lastDomainMax, domain, scale)
 
-            // slide the line left
-            if( duration === 0 || !duration) {
-                series.attr("transform", "translate(" + translateX + ")")
-            } else {
-                series.transition()
-                    .duration( duration)
-                    .ease("linear")
-                    .attr("transform", "translate(" + translateX + ")")
-                //.each("end", tick);
+            if( translateX !== 0) {
+
+              series.attr( "transform", null)
+              series.selectAll("path")
+                  .attr("d", attrD)
+
+              // slide the line left
+              if( duration === 0 || !duration) {
+                  series.attr("transform", "translate(" + translateX + ")")
+              } else {
+                  series.transition()
+                      .duration( duration)
+                      .ease("linear")
+                      .attr("transform", "translate(" + translateX + ")")
+                  //.each("end", tick);
+              }
+            }  else {
+              simplePathRedraw( series, attrD)
             }
+
         } else {
-            series.selectAll("path")
-                .attr("d", attrD)
+          simplePathRedraw( series, attrD)
         }
 
         return domainMax

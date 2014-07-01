@@ -178,9 +178,15 @@ it('axis.time.month should call _super x1, ease, and plusMarginLeft', function()
     spyOn( _super, 'onChartResized').andCallThrough()
     spyOn( _super, 'onRangeMarginChanged').andCallThrough()
 
-    var axis = d3.trait.axis.time.month( _super, {axis: 'x1'})
+    var smallConfig = {
+      seriesData: accessSeriesData,
+      axis: 'x1'
+    }
+
+    var axis = d3.trait.axis.time.month( _super, smallConfig)
     d3.trait.utils.extend( axis, _super)
-    selection.call( axis)
+    selection.datum( data )
+      .call( axis)
     expect( _super.layoutAxis).toHaveBeenCalledWith( jasmine.any(Object), 'bottom', 40)
     expect( _super.onChartResized).toHaveBeenCalledWith( 'axisMonth-x1', axis)
     expect( _super.onRangeMarginChanged).toHaveBeenCalledWith( 'axisMonth-x1', axis)

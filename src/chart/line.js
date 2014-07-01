@@ -71,7 +71,10 @@ function _chartLine( _super, _config) {
                 .style({opacity: 0})
                 .remove();
 
-            lastDomainMax = d3.trait.utils.extentMax( x1.domain())
+            // Leave lastDomainMax == undefined if chart starts with no data.
+
+            if( d3.trait.utils.isData( filteredData, _config.seriesData))
+                lastDomainMax = d3.trait.utils.extentMax( x1.domain())
         })
     }
 

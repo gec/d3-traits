@@ -316,9 +316,28 @@
                     .attr( "d", function( d) {
                         return "M0,0L" + scaleForUpdate(d) + ",0";
                     })
-                lastDomainMax = d3.trait.utils.extentMax( domain)
+
+                if( d3.trait.utils.isData( _data, _config.seriesData))
+                  lastDomainMax = d3.trait.utils.extentMax( domain)
 
             })
+        }
+
+        function getScaleForUpdate() {
+
+          // |<------- scale ------>|
+          //   |<--scaleForUpdate-->|
+          var domain = scale.domain() // original scale
+          var domainMin = d3.trait.utils.extentMin( domain)
+          var domainMax = d3.trait.utils.extentMax( domain)
+          if( lastDomainMax) {
+            var lastDomainMaxTime = lastDomainMax.getTime()
+            if( lastDomainMaxTime > domainMin.getTime()) {
+              var delta = domainMax.getTime() - lastDomainMaxTime
+              domainMin = new Date( domainMin.getTime() + delta )
+            }
+          }
+          return [domainMin, domainMax]
         }
 
         axisMonth.update = function( type, duration) {
@@ -326,12 +345,9 @@
 
             scaleForUpdate.range( d3.trait.utils.getScaleRange( _super, c.name))
 
-            var domain = scale.domain() // original scale
-            var domainMax = d3.trait.utils.extentMax( domain)
-            var delta = domainMax.getTime() - lastDomainMax.getTime()
-            var min = new Date( domain[0].getTime() + delta)
-            scaleForUpdate.domain( [min, domainMax])
-            lastDomainMax = domainMax
+            var domainForUpdate = getScaleForUpdate()
+            scaleForUpdate.domain( domainForUpdate)
+            lastDomainMax = d3.trait.utils.extentMax( domainForUpdate)
 
             // slide the x-axis left for trends
             if( duration === 0) {
