@@ -84,7 +84,6 @@ function _controlBrush( _super, _config) {
     };
 
     d3.rebind(controlBrush, dispatch, 'on');
-    _super.onChartResized( 'controlBrush', controlBrush)
 
     return controlBrush;
 

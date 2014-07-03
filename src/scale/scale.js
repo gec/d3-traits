@@ -337,7 +337,6 @@ function _scaleTime( _super,  _config) {
     };
 
 
-    _super.onChartResized( 'scaleTime' + scaleName, scaleTime)
     _super.onRangeMarginChanged( 'scaleTime-' + scaleName, scaleTime)
 
     return scaleTime;
@@ -392,7 +391,6 @@ function _scaleLinear( _super,  _config) {
     };
 
 
-    _super.onChartResized( 'scaleLinear-' + scaleName, scaleLinear)
     _super.onRangeMarginChanged( 'scaleLinear-' + scaleName, scaleLinear)
 
     return scaleLinear;

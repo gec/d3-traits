@@ -73,32 +73,29 @@ it('axis.linear should call _super y1, ease, and plusMarginLeft', function() {
         ease: function() { return 'cubic-in-out'},
         marginTop: function( value) {},
         marginLeft: function( value) {},
-        onChartResized: function() {},
         onRangeMarginChanged: function() {},
         isMinRangeMargin: function() {},
         layoutAxis: function() {}
     }
     spyOn( _super, 'layoutAxis').andCallThrough()
-    spyOn( _super, 'onChartResized').andCallThrough()
     spyOn( _super, 'onRangeMarginChanged').andCallThrough()
 
     var axis = d3.trait.axis.linear( _super, { axis: 'y1'})
     d3.trait.utils.extend( axis, _super)
     selection.call( axis)
     expect( _super.layoutAxis).toHaveBeenCalledWith( jasmine.any(Object), 'left', 40)
-    expect( _super.onChartResized).toHaveBeenCalledWith( 'axisLinear-y1', axis)
     expect( _super.onRangeMarginChanged).toHaveBeenCalledWith( 'axisLinear-y1', axis)
 })
 
 it('axis.linear should create g.axis-y1', function() {
 
-    selection.datum( data)
-        .traitConfig( config)
-        .trait( d3.trait.chart.base)
-        .trait( d3.trait.scale.linear, {axis: 'y1'})
-        .trait( d3.trait.axis.linear, {axis: 'y1'})
+    var chart = d3.trait( d3.trait.chart.base, config)
+      .trait( d3.trait.scale.linear, {axis: 'y1'})
+      .trait( d3.trait.axis.linear, {axis: 'y1'})
+    var s = selection.datum( data)
+    chart.call( s)
 
-    var div = selection[0][0]
+    var div = s[0][0]
     var container = div._container[0][0]
 
     var $axisGroup = $(container).children( ".axis")
@@ -194,17 +191,17 @@ it('axis.time.month should call _super x1, ease, and plusMarginLeft', function()
 
 it('axis.time.month should create g.axis-x1', function() {
 
-    selection.datum( data)
-        .traitConfig( config)
-        .trait( d3.trait.chart.base)
-        .trait( d3.trait.scale.time, {axis: 'x1'})
-        .trait( d3.trait.axis.time.month, {axis: 'x1'})
+  var chart = d3.trait( d3.trait.chart.base, config)
+    .trait( d3.trait.scale.time, {axis: 'x1'})
+    .trait( d3.trait.axis.time.month, {axis: 'x1'})
+  var s = selection.datum( data)
+  chart.call( s)
 
-    var div = selection[0][0]
-    var container = div._container[0][0]
+  var div = s[0][0]
+  var container = div._container[0][0]
 
-    var $axisGroup = $(container).children( ".axis")
-    expect($axisGroup.size()).toBe( 1)
+  var $axisGroup = $(container).children( ".axis")
+  expect($axisGroup.size()).toBe( 1)
 })
 
 

@@ -261,8 +261,6 @@ function _chartBar( _super,  _config) {
             barDimensions = getBarDimensions( filteredSeries, _config.seriesData, _config.x1, c, x1, chartWidth)
 
             if( barDimensions.minRangeMargin || barDimensions.domainExtent) {
-                // Turn off notify so we don't reenter chartBar() on changing scale.
-                _super.onChartResized ( 'chartBar', function () { } )
 
                 if ( barDimensions.minRangeMargin ) {
                     self.minRangeMargin ( 'x1', barDimensions.minRangeMargin )
@@ -271,9 +269,6 @@ function _chartBar( _super,  _config) {
                 }
 
                 barDimensions = getBarDimensions ( filteredSeries, _config.seriesData, _config.x1, c, x1, chartWidth)
-
-                // Turn notify back on.
-                _super.onChartResized ( 'chartBar', self )
             }
 
             if( !group) {
@@ -366,7 +361,6 @@ function _chartBar( _super,  _config) {
     };
 
     d3.rebind(chartBar, dispatch, 'on');
-    _super.onChartResized( 'chartBar', chartBar)
 //    _super.onRangeMarginChanged( 'chartBar', chartBar)
 
     return chartBar;

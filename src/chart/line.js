@@ -54,7 +54,7 @@ function _chartLine( _super, _config) {
             series.selectAll( "path")
                 .transition()
                 .duration( 500)
-                .attr("d", function(d) { return line( _config.seriesData(d)); })
+                .attr("d", function(d) { return line( getDataInRange( _config.seriesData(d), x1, _config.x1 )); })
 
             // ENTER
             series.enter()
@@ -203,8 +203,6 @@ function _chartLine( _super, _config) {
 
         return foci
     }
-
-    _super.onChartResized( 'chartLine', chartLine)
 
     return chartLine;
 

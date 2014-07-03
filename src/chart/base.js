@@ -346,7 +346,7 @@ function _chartBase( _super, _config) {
         //console.log( "baseChart.updateChartSize chartWidth=" + chartWidth + ", chartHeight=" + chartHeight)
         if( prev.chartWidth !== chartWidth || prev.chartHeight !== chartHeight) {
             if( selection)
-                selection.call( chartBase)
+              chartBase.callTraits( selection)
             dispatch.chartResized()
         }
     }

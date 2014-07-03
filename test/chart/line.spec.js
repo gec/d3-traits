@@ -23,13 +23,6 @@ beforeEach(function() {
 })
 
 
-it('should register with onChartResized', function() {
-
-    var _super = jasmine.createSpyObj('_super', ['x1', 'y1', 'onChartResized']);
-    var chartLine = d3.trait.chart.line( _super, {})
-    expect( _super.onChartResized).toHaveBeenCalledWith( 'chartLine', chartLine)
-})
-
 it('should create g.chart-line, g.series, and path.line', function() {
 
     selection.datum( data)

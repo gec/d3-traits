@@ -116,7 +116,6 @@ function _legendSeries( _super, _config) {
     }
 
     d3.rebind(legendSeries, dispatch, 'on');
-    _super.onChartResized( 'legendSeries', legendSeries)
 
     return legendSeries;
 

@@ -233,7 +233,6 @@
             return this;
         }
 
-        _super.onChartResized( 'axisLinear-' + c.name, axisLinear)
         _super.onRangeMarginChanged( 'axisLinear-' + c.name, axisLinear)
 
         return axisLinear;

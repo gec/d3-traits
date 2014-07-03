@@ -84,115 +84,107 @@ it('should define a clip path and apply it to chart-group', function() {
 
 it('should get/update width, height, chartWidth and chartHeight', function() {
 
-    selection.datum( data)
-        .trait( d3.trait.chart.base)
-    var traitInstance = selection.traits[0]
+  var chart = d3.trait( d3.trait.chart.base)
+  var s = selection.datum( data)
+  chart.call( s)
 
-    var chartResizedCount = 0
-    traitInstance.onChartResized( "nameSpace", function() { chartResizedCount++})
+  var chartResizedCount = 0
+  chart.onChartResized( "nameSpace", function() { chartResizedCount++})
 
-    expect( traitInstance.width()).toBe( 300)
-    expect( traitInstance.height()).toBe( 200)
+  expect( chart.width()).toBe( 300)
+  expect( chart.height()).toBe( 200)
 
-    expect( traitInstance.marginTop()).toBe( 5)
-    expect( traitInstance.marginBottom()).toBe( 5)
-    expect( traitInstance.marginLeft()).toBe( 5)
-    expect( traitInstance.marginRight()).toBe( 5)
+  expect( chart.marginTop()).toBe( 5)
+  expect( chart.marginBottom()).toBe( 5)
+  expect( chart.marginLeft()).toBe( 5)
+  expect( chart.marginRight()).toBe( 5)
 
-    expect( traitInstance.chartWidth()).toBe( 290)
-    expect( traitInstance.chartHeight()).toBe( 190)
+  expect( chart.chartWidth()).toBe( 290)
+  expect( chart.chartHeight()).toBe( 190)
 
-    // Update width/height will effect chartWidth/chartHeight
-    traitInstance.width( 400)
-    expect( chartResizedCount).toBe( 1)
-    traitInstance.height( 300)
-    expect( chartResizedCount).toBe( 2)
-    expect( traitInstance.width()).toBe( 400)
-    expect( traitInstance.height()).toBe( 300)
-    expect( traitInstance.chartWidth()).toBe( 390)
-    expect( traitInstance.chartHeight()).toBe( 290)
+  // Update width/height will effect chartWidth/chartHeight
+  chart.width( 400)
+  expect( chartResizedCount).toBe( 1)
+  chart.height( 300)
+  expect( chartResizedCount).toBe( 2)
+  expect( chart.width()).toBe( 400)
+  expect( chart.height()).toBe( 300)
+  expect( chart.chartWidth()).toBe( 390)
+  expect( chart.chartHeight()).toBe( 290)
 
-    // Update chartWidth/chartHeight will effect width/height
-    traitInstance.chartWidth( 400)
-    expect( chartResizedCount).toBe( 3)
-    traitInstance.chartHeight( 300)
-    expect( chartResizedCount).toBe( 4)
-    expect( traitInstance.width()).toBe( 410)
-    expect( traitInstance.height()).toBe( 310)
-    expect( traitInstance.chartWidth()).toBe( 400)
-    expect( traitInstance.chartHeight()).toBe( 300)
-
-
-//        .trait( d3.trait.scale.linear, {axis: 'y1'})
-//        .trait( d3.trait.scale.time.x)
-//        .trait( d3.trait.axis.month.x)
-//        .trait( d3.trait.chart.bar, { seriesFilter: function( s, i) { return i == 0} })
-//        .trait( d3.trait.chart.line2)
-//        .trait( d3.trait.axis.linear, {axis: 'y1'})
+  // Update chartWidth/chartHeight will effect width/height
+  chart.chartWidth( 400)
+  expect( chartResizedCount).toBe( 3)
+  chart.chartHeight( 300)
+  expect( chartResizedCount).toBe( 4)
+  expect( chart.width()).toBe( 410)
+  expect( chart.height()).toBe( 310)
+  expect( chart.chartWidth()).toBe( 400)
+  expect( chart.chartHeight()).toBe( 300)
 
 });
 
 it('margin update should effect chartWidth and chartHeight', function() {
 
-    selection.datum( data)
-        .trait( d3.trait.chart.base)
-    var traitInstance = selection.traits[0]
+  var chart = d3.trait( d3.trait.chart.base)
+  var s = selection.datum( data)
+  chart.call( s)
 
     var chartResizedCount = 0
-    traitInstance.onChartResized( "nameSpace", function() { chartResizedCount++})
+    chart.onChartResized( "nameSpace", function() { chartResizedCount++})
 
-    expect( traitInstance.width()).toBe( 300)
-    expect( traitInstance.height()).toBe( 200)
-    expect( traitInstance.chartWidth()).toBe( 290)
-    expect( traitInstance.chartHeight()).toBe( 190)
+    expect( chart.width()).toBe( 300)
+    expect( chart.height()).toBe( 200)
+    expect( chart.chartWidth()).toBe( 290)
+    expect( chart.chartHeight()).toBe( 190)
 
-    traitInstance.marginTop( 10)
+    chart.marginTop( 10)
     expect( chartResizedCount).toBe( 1)
-    expect( traitInstance.marginTop()).toBe( 10)
-    expect( traitInstance.height()).toBe( 200)
-    expect( traitInstance.chartHeight()).toBe( 185)
+    expect( chart.marginTop()).toBe( 10)
+    expect( chart.height()).toBe( 200)
+    expect( chart.chartHeight()).toBe( 185)
 
-    traitInstance.plusMarginTop( 10)
+    chart.plusMarginTop( 10)
     expect( chartResizedCount).toBe( 2)
-    expect( traitInstance.marginTop()).toBe( 20)
-    expect( traitInstance.height()).toBe( 200)
-    expect( traitInstance.chartHeight()).toBe( 175)
+    expect( chart.marginTop()).toBe( 20)
+    expect( chart.height()).toBe( 200)
+    expect( chart.chartHeight()).toBe( 175)
 
-    traitInstance.marginBottom( 10)
+    chart.marginBottom( 10)
     expect( chartResizedCount).toBe( 3)
-    expect( traitInstance.marginBottom()).toBe( 10)
-    expect( traitInstance.height()).toBe( 200)
-    expect( traitInstance.chartHeight()).toBe( 170)
+    expect( chart.marginBottom()).toBe( 10)
+    expect( chart.height()).toBe( 200)
+    expect( chart.chartHeight()).toBe( 170)
 
-    traitInstance.plusMarginBottom( 10)
+    chart.plusMarginBottom( 10)
     expect( chartResizedCount).toBe( 4)
-    expect( traitInstance.marginBottom()).toBe( 20)
-    expect( traitInstance.height()).toBe( 200)
-    expect( traitInstance.chartHeight()).toBe( 160)
+    expect( chart.marginBottom()).toBe( 20)
+    expect( chart.height()).toBe( 200)
+    expect( chart.chartHeight()).toBe( 160)
 
-    traitInstance.marginRight( 10)
+    chart.marginRight( 10)
     expect( chartResizedCount).toBe( 5)
-    expect( traitInstance.marginRight()).toBe( 10)
-    expect( traitInstance.width()).toBe( 300)
-    expect( traitInstance.chartWidth()).toBe( 285)
+    expect( chart.marginRight()).toBe( 10)
+    expect( chart.width()).toBe( 300)
+    expect( chart.chartWidth()).toBe( 285)
 
-    traitInstance.plusMarginRight( 10)
+    chart.plusMarginRight( 10)
     expect( chartResizedCount).toBe( 6)
-    expect( traitInstance.marginRight()).toBe( 20)
-    expect( traitInstance.width()).toBe( 300)
-    expect( traitInstance.chartWidth()).toBe( 275)
+    expect( chart.marginRight()).toBe( 20)
+    expect( chart.width()).toBe( 300)
+    expect( chart.chartWidth()).toBe( 275)
 
-    traitInstance.marginLeft( 10)
+    chart.marginLeft( 10)
     expect( chartResizedCount).toBe( 7)
-    expect( traitInstance.marginLeft()).toBe( 10)
-    expect( traitInstance.width()).toBe( 300)
-    expect( traitInstance.chartWidth()).toBe( 270)
+    expect( chart.marginLeft()).toBe( 10)
+    expect( chart.width()).toBe( 300)
+    expect( chart.chartWidth()).toBe( 270)
 
-    traitInstance.plusMarginLeft( 10)
+    chart.plusMarginLeft( 10)
     expect( chartResizedCount).toBe( 8)
-    expect( traitInstance.marginLeft()).toBe( 20)
-    expect( traitInstance.width()).toBe( 300)
-    expect( traitInstance.chartWidth()).toBe( 260)
+    expect( chart.marginLeft()).toBe( 20)
+    expect( chart.width()).toBe( 300)
+    expect( chart.chartWidth()).toBe( 260)
 });
 
 it('minRangeMargin with object {left, right, top, bottom} should get/update respective range margins', function() {

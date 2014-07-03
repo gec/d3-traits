@@ -236,6 +236,7 @@ function Trait( _trait, _config, _super) {
     self.config = _config
     self._super = _super
     self.index = -1
+    self.__leafTrait = null
 
 
     function makeTraitId( name, index) { return "_" + name + "_" + index }
@@ -260,11 +261,23 @@ function Trait( _trait, _config, _super) {
 //        return self
 //    }
 
-    self.call = function( _selection) {
+    self.call = function( _selection, leafTrait) {
+        if( ! leafTrait)
+          leafTrait = this
+        if( ! this.__leafTrait)
+          this.__leafTrait = leafTrait
+
         if( this._super)
-            this._super.call( _selection)
+          this._super.call( _selection, leafTrait)
         _selection.call( imp)
         return imp
+    }
+
+    self.callTraits = function( _selection) {
+        if( this.__leafTrait)
+          return this.__leafTrait.call( _selection)
+        else
+          return this
     }
 
     function makeVirtual( name, fn, _superFn) {
@@ -388,6 +401,7 @@ function Trait( _trait, _config, _super) {
 
 
     imp.call = self.call
+    imp.callTraits = self.callTraits
     imp.trait = self.trait
     imp.getImp = self.getImp
     imp.config = self.config

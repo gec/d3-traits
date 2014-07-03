@@ -81,7 +81,6 @@ function _chartArea( _super, _config) {
     };
 
     d3.rebind(chartArea, dispatch, 'on');
-    _super.onChartResized( 'chartArea', chartArea)
 
     return chartArea;
 

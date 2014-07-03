@@ -165,7 +165,6 @@
         };
 
         d3.rebind(chartScatter, dispatch, 'on');
-        _super.onChartResized( 'chartScatter', chartScatter)
         _super.onRangeMarginChanged( 'chartScatter', chartScatter)
 
         return chartScatter;
