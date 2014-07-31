@@ -55,7 +55,8 @@
         return c
     }
 
-    function adjustChartMarginForAxis( _super, c) {
+  // TODO: No! Delete this. We're using self.layoutAxis now! We do need to adjust 2 for extent label.
+  function adjustChartMarginForAxis( _super, c) {
         switch( c.orient) {
             case 'left':
                 _super.plusMarginTop( 2) // Make room for top extent label
@@ -159,6 +160,7 @@
             c = axisConfig( _config ),
             scale = _super[c.name]()  // ex: x1()
 
+        // TODO: No don't call this. We're using self.layoutAxis now!
         //adjustChartMarginForAxis( _super, c)
 
         function axisLinear( _selection) {
@@ -179,6 +181,7 @@
                     .orient( c.orient)
                 applyTickConfig( axis, scale, c)
 
+                // c.axisMargin is the width or height of the axis.
                 self.layoutAxis( group, c.orient, c.axisMargin)
 
                 //group.attr( {transform: containerTransform( self, c)})
@@ -257,7 +260,7 @@
             c = axisConfig( _config ),
             scale = _super[c.name]()
 
-
+          // TODO: No don't call this. We're using self.layoutAxis now!
 //        adjustChartMarginForAxis( _super, c)
 
         function axisMonth( _selection) {

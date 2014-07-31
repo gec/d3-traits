@@ -1,4 +1,4 @@
-/*! d3-traits - v0.0.1 - 2014-07-03
+/*! d3-traits - v0.0.1 - 2014-07-31
 * https://github.com/gec/d3-traits
 * Copyright (c) 2014 d3-traits; Licensed ,  */
 (function (d3) {
@@ -1004,7 +1004,8 @@ d3.trait.utils = {
         return c
     }
 
-    function adjustChartMarginForAxis( _super, c) {
+  // TODO: No! Delete this. We're using self.layoutAxis now! We do need to adjust 2 for extent label.
+  function adjustChartMarginForAxis( _super, c) {
         switch( c.orient) {
             case 'left':
                 _super.plusMarginTop( 2) // Make room for top extent label
@@ -1108,6 +1109,7 @@ d3.trait.utils = {
             c = axisConfig( _config ),
             scale = _super[c.name]()  // ex: x1()
 
+        // TODO: No don't call this. We're using self.layoutAxis now!
         //adjustChartMarginForAxis( _super, c)
 
         function axisLinear( _selection) {
@@ -1128,6 +1130,7 @@ d3.trait.utils = {
                     .orient( c.orient)
                 applyTickConfig( axis, scale, c)
 
+                // c.axisMargin is the width or height of the axis.
                 self.layoutAxis( group, c.orient, c.axisMargin)
 
                 //group.attr( {transform: containerTransform( self, c)})
@@ -1206,7 +1209,7 @@ d3.trait.utils = {
             c = axisConfig( _config ),
             scale = _super[c.name]()
 
-
+          // TODO: No don't call this. We're using self.layoutAxis now!
 //        adjustChartMarginForAxis( _super, c)
 
         function axisMonth( _selection) {

@@ -75,7 +75,9 @@ it('axis.linear should call _super y1, ease, and plusMarginLeft', function() {
         marginLeft: function( value) {},
         onRangeMarginChanged: function() {},
         isMinRangeMargin: function() {},
-        layoutAxis: function() {}
+        layoutAxis: function() {},
+        plusMarginTop:   function() {},
+        plusMarginLeft: function() {}
     }
     spyOn( _super, 'layoutAxis').andCallThrough()
     spyOn( _super, 'onRangeMarginChanged').andCallThrough()
@@ -116,11 +118,15 @@ function makeLinearAxisWithMarginAndOrient( axis, margin, orient) {
     if( orient)
         axisConfig.orient = orient
 
-    selection.datum( data)
-        .traitConfig( configWithMargin)
-        .trait( d3.trait.chart.base)
-        .trait( d3.trait.scale.linear, {axis: axis})
-        .trait( d3.trait.axis.linear, axisConfig)
+    var chart = d3.trait( d3.trait.chart.base, configWithMargin)
+      .trait( d3.trait.scale.linear, {axis: axis})
+      .trait( d3.trait.axis.linear, axisConfig)
+    chart.call( selection.datum( data))
+//    selection.datum( data)
+//        .traitConfig( configWithMargin)
+//        .trait( d3.trait.chart.base)
+//        .trait( d3.trait.scale.linear, {axis: axis})
+//        .trait( d3.trait.axis.linear, axisConfig)
 }
 function getAxisGroup() {
     var div = selection[0][0]
