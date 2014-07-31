@@ -20,71 +20,73 @@
  */
 (function (d3, trait) {
 
-function _chartArea( _super, _config) {
+  function _chartArea(_super, _config) {
     // Store the group element here so we can have multiple area charts in one chart.
     // A second "area chart" might have a different y-axis, style or orientation.
     var group, series, lastDomainMax,
-        x1 = _super.x1(),
-        y1 = _super.y1(),
-        area = d3.svg.area()
-            .interpolate( _config.interpolate || "linear")
-            .x(function(d) { return x1( _config.x1(d)); })
-            .y0( _super.chartHeight())
-            .y1(function(d) { return y1( _config.y1(d)); });
+      x1 = _super.x1(),
+      y1 = _super.y1(),
+      area = d3.svg.area()
+        .interpolate(_config.interpolate || "linear")
+        .x(function(d) { return x1(_config.x1(d)); })
+        .y0(_super.chartHeight())
+        .y1(function(d) { return y1(_config.y1(d)); });
 
     var dispatch = d3.dispatch('customHover');
-    function chartArea( _selection) {
-        var self = chartArea
 
-        _selection.each(function(_data) {
-            var element = this
+    function chartArea(_selection) {
+      var self = chartArea
 
-            if( !group) {
-                var classes = _config.chartClass ? "chart-area " + _config.chartClass : 'chart-area'
-                group = this._chartGroup.append('g').classed( classes, true);
-            }
+      _selection.each(function(_data) {
+        var element = this
 
-            var filtered = _config.seriesFilter ? _data.filter( _config.seriesFilter) : _data
+        if( !group ) {
+          var classes = _config.chartClass ? "chart-area " + _config.chartClass : 'chart-area'
+          group = this._chartGroup.append('g').classed(classes, true);
+        }
 
-            area.y0( self.chartHeight())
+        var filtered = _config.seriesFilter ? _data.filter(_config.seriesFilter) : _data
 
-            // DATA JOIN
-            series = group.selectAll( ".series")
-                .data( filtered)
+        area.y0(self.chartHeight())
 
-            // UPDATE
-            series.selectAll( "path")
-                .transition()
-                .duration( 500)
-                .attr("d", function(d) { return area( _config.seriesData(d)); })
+        // DATA JOIN
+        series = group.selectAll(".series")
+          .data(filtered)
 
-            // ENTER
-            series.enter()
-                .append("g")
-                    .attr("class", "series")
-                .append("path")
-                    .attr("class", "area")
-                    .attr("d", function(d) { return area( _config.seriesData(d)); })
-                    .style("fill", self.color);
+        // UPDATE
+        series.selectAll("path")
+          .transition()
+          .duration(500)
+          .attr("d", function(d) { return area(_config.seriesData(d)); })
 
-            lastDomainMax = d3.trait.utils.extentMax( x1.domain())
-        })
+        // ENTER
+        series.enter()
+          .append("g")
+          .attr("class", "series")
+          .append("path")
+          .attr("class", "area")
+          .attr("d", function(d) { return area(_config.seriesData(d)); })
+          .style("fill", self.color);
+
+        lastDomainMax = d3.trait.utils.extentMax(x1.domain())
+      })
     }
-    chartArea.update = function( type, duration) {
-        this._super( type, duration)
 
-        var dur = duration || _super.duration()
-        var attrD = function(d) { return area( _config.seriesData(d)); }
-        lastDomainMax = trait.chart.utils.updatePathWithTrend( type, dur, x1, series, attrD, lastDomainMax)
+    chartArea.update = function(type, duration) {
+      this._super(type, duration)
 
-        return this;
+      var dur = duration || _super.duration()
+      var attrD = function(d) { return area(_config.seriesData(d)); }
+      lastDomainMax = trait.chart.utils.updatePathWithTrend(type, dur, x1, series, attrD, lastDomainMax)
+
+      return this;
     };
 
     d3.rebind(chartArea, dispatch, 'on');
 
     return chartArea;
 
-}
+  }
 
 trait.chart.area = _chartArea
 

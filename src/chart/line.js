@@ -20,193 +20,202 @@
  */
 (function (d3, trait) {
 
-function _chartLine( _super, _config) {
+  function _chartLine(_super, _config) {
     // Store the group element here so we can have multiple line charts in one chart.
     // A second "line chart" might have a different y-axis, style or orientation.
     var group, series, filteredData, lastDomainMax,
-        yAxis = _config.yAxis || 'y1',
-        x1 = _super.x1(),
-        y = _super[yAxis](),
-        access = { x: _config.x1, y: _config[yAxis]},
-        focus = d3.trait.chart.utils.configFocus( _config),
-        line = d3.svg.line()
-            .interpolate( _config.interpolate || "linear")
-            .x(function(d) { return x1( access.x(d)); })
-            .y(function(d) { return y( access.y(d)); });
+      yAxis = _config.yAxis || 'y1',
+      x1 = _super.x1(),
+      y = _super[yAxis](),
+      access = { x: _config.x1, y: _config[yAxis]},
+      focus = d3.trait.chart.utils.configFocus(_config),
+      line = d3.svg.line()
+        .interpolate(_config.interpolate || "linear")
+        .x(function(d) { return x1(access.x(d)); })
+        .y(function(d) { return y(access.y(d)); });
 
-    function chartLine( _selection) {
-        var self = chartLine
+    function chartLine(_selection) {
+      var self = chartLine
 
-        _selection.each(function(_data) {
+      _selection.each(function(_data) {
 
-            if( !group) {
-                var classes = _config.chartClass ? "chart-line " + _config.chartClass : 'chart-line'
-                group = this._chartGroup.append('g').classed( classes, true);
-            }
+        if( !group ) {
+          var classes = _config.chartClass ? "chart-line " + _config.chartClass : 'chart-line'
+          group = this._chartGroup.append('g').classed(classes, true);
+        }
 
-            filteredData = _config.seriesFilter ? _data.filter( _config.seriesFilter) : _data
+        filteredData = _config.seriesFilter ? _data.filter(_config.seriesFilter) : _data
 
-            // DATA JOIN
-            series = group.selectAll( ".series")
-                .data( filteredData)
+        // DATA JOIN
+        series = group.selectAll(".series")
+          .data(filteredData)
 
-            // UPDATE
-            series.selectAll( "path")
-                .transition()
-                .duration( 500)
-                .attr("d", function(d) { return line( getDataInRange( _config.seriesData(d), x1, _config.x1 )); })
+        // UPDATE
+        series.selectAll("path")
+          .transition()
+          .duration(500)
+          .attr("d", function(d) {
+            return line(getDataInRange(_config.seriesData(d), x1, _config.x1));
+          })
 
-            // ENTER
-            series.enter()
-                .append("g")
-                    .attr("class", "series")
-                .append("path")
-                    .attr("class", "line")
-                    .attr("d", function(d) { return line( _config.seriesData(d)); })
-                    .style("stroke", self.color);
+        // ENTER
+        series.enter()
+          .append("g")
+          .attr("class", "series")
+          .append("path")
+          .attr("class", "line")
+          .attr("d", function(d) { return line(_config.seriesData(d)); })
+          .style("stroke", self.color);
 
-            // EXIT
-            series.exit()
-                .transition()
-                .style({opacity: 0})
-                .remove();
+        // EXIT
+        series.exit()
+          .transition()
+          .style({opacity: 0})
+          .remove();
 
-            // Leave lastDomainMax == undefined if chart starts with no data.
+        // Leave lastDomainMax == undefined if chart starts with no data.
 
-            if( d3.trait.utils.isData( filteredData, _config.seriesData))
-                lastDomainMax = d3.trait.utils.extentMax( x1.domain())
-        })
+        if( d3.trait.utils.isData(filteredData, _config.seriesData) )
+          lastDomainMax = d3.trait.utils.extentMax(x1.domain())
+      })
     }
 
     function findClosestIndex(data, access, target, direction, minIndex, maxIndex) {
 
-        var index, d
+      var index, d
 
-        if( minIndex === undefined)
-            minIndex = 0
-        if( maxIndex === undefined)
-            maxIndex = data.length - 1
+      if( minIndex === undefined )
+        minIndex = 0
+      if( maxIndex === undefined )
+        maxIndex = data.length - 1
 
-        while (minIndex <= maxIndex) {
-            index = Math.floor( (minIndex + maxIndex) / 2 );
-            d = access( data[index]);
+      while( minIndex <= maxIndex ) {
+        index = Math.floor((minIndex + maxIndex) / 2);
+        d = access(data[index]);
 
-            //   t   t
-            // 2   4   6   8
-            // ^   d    ^
-            if (d < target) {
-                minIndex = index + 1;
-            } else if ( d > target) {
-                maxIndex = index - 1;
-            } else {
-                return index;
-            }
+        //   t   t
+        // 2   4   6   8
+        // ^   d    ^
+        if( d < target ) {
+          minIndex = index + 1;
+        } else if( d > target ) {
+          maxIndex = index - 1;
+        } else {
+          return index;
         }
+      }
 
-        if( direction < 0)
-            return minIndex + direction < 0 ? 0 : minIndex + direction
-        else
-            return maxIndex + direction >= data.length ?  data.length - 1 : maxIndex + direction
+      if( direction < 0 )
+        return minIndex + direction < 0 ? 0 : minIndex + direction
+      else
+        return maxIndex + direction >= data.length ? data.length - 1 : maxIndex + direction
     }
 
-    function getDataInRange( data, scale, access) {
-        var domainMin, domainMax,
-            indexMin, indexMax,
-            endIndex = data.length - 1,
-            range = scale.range(),
-            rangeMax = d3.trait.utils.extentMax( range)
+    function getDataInRange(data, scale, access) {
+      var domainMin, domainMax,
+        indexMin, indexMax,
+        endIndex = data.length - 1,
+        range = scale.range(),
+        rangeMax = d3.trait.utils.extentMax(range)
 
-        domainMin = scale.invert( range[0])
-        domainMax = scale.invert( rangeMax)
+      domainMin = scale.invert(range[0])
+      domainMax = scale.invert(rangeMax)
 
-        indexMin = findClosestIndex( data, access, domainMin, -1)
-        indexMax = findClosestIndex( data, access, domainMax, 1, indexMin, endIndex)
-        indexMax ++ // because slice doesn't include max
+      indexMin = findClosestIndex(data, access, domainMin, -1)
+      indexMax = findClosestIndex(data, access, domainMax, 1, indexMin, endIndex)
+      indexMax++ // because slice doesn't include max
 
-        return data.slice( indexMin, indexMax)
+      return data.slice(indexMin, indexMax)
     }
-    chartLine.update = function( type, duration) {
-        this._super( type, duration)
 
-        var dur = duration || _super.duration()
-        var attrD = function(d) { return line( getDataInRange( _config.seriesData(d), x1, _config.x1 )); }
-        lastDomainMax = trait.chart.utils.updatePathWithTrend( type, dur, x1, series, attrD, lastDomainMax)
+    chartLine.update = function(type, duration) {
+      this._super(type, duration)
 
-        // Could pop the data off the front (off the left side of chart)
+      var dur = duration || _super.duration()
+      var attrD = function(d) {
+        return line(getDataInRange(_config.seriesData(d), x1, _config.x1));
+      }
+      lastDomainMax = trait.chart.utils.updatePathWithTrend(type, dur, x1, series, attrD, lastDomainMax)
 
-        return this;
+      // Could pop the data off the front (off the left side of chart)
+
+      return this;
     }
-    function distanceX( p1, p2) {
-        return p2.x > p1.x ?  p2.x - p1.x : p1.x - p2.x
+    function distanceX(p1, p2) {
+      return p2.x > p1.x ? p2.x - p1.x : p1.x - p2.x
     }
-    function distanceY( p1, p2) {
-        return p2.y > p1.y ?  p2.y - p1.y : p1.y - p2.y
+
+    function distanceY(p1, p2) {
+      return p2.y > p1.y ? p2.y - p1.y : p1.y - p2.y
     }
-    function distance( p1, p2) {
-        var dx = distanceX( p1, p2),
-            dy = distanceY( p1, p2)
-        return Math.sqrt( dx * dx + dy * dy)
+
+    function distance(p1, p2) {
+      var dx = distanceX(p1, p2),
+        dy = distanceY(p1, p2)
+      return Math.sqrt(dx * dx + dy * dy)
     }
-    function getFocusItem( series, data, index, focusPoint) {
-        var item, domainPoint, rangePoint, dist, distX
-        item = data[index]
-        //domainPoint = { x: _config.x1(item), y: access.y(item)}
-        rangePoint = new d3.trait.Point( x1( _config.x1(item)), y( access.y(item)))
-        dist = distance( rangePoint, focusPoint)
-        distX = distanceX( rangePoint, focusPoint)
-        return {
-            series: series,
-            index: index,
-            item: item,
-            point: rangePoint,
-            distance: dist,
-            distanceX: distX
-        }
+
+    function getFocusItem(series, data, index, focusPoint) {
+      var item, domainPoint, rangePoint, dist, distX
+      item = data[index]
+      //domainPoint = { x: _config.x1(item), y: access.y(item)}
+      rangePoint = new d3.trait.Point(x1(_config.x1(item)), y(access.y(item)))
+      dist = distance(rangePoint, focusPoint)
+      distX = distanceX(rangePoint, focusPoint)
+      return {
+        series: series,
+        index: index,
+        item: item,
+        point: rangePoint,
+        distance: dist,
+        distanceX: distX
+      }
     }
-    chartLine.getFocusItems = function( focusPoint) {
-        var self = chartLine,
-            foci = this._super( focusPoint)
 
-        // Search the domain for the closest point in x
-        var targetDomain = new d3.trait.Point( x1.invert( focusPoint.x ), y.invert ( focusPoint.y) )
-        var bisectLeft = d3.bisector( _config.x1 ).left
+    chartLine.getFocusItems = function(focusPoint) {
+      var self = chartLine,
+        foci = this._super(focusPoint)
 
-        filteredData.forEach( function( series, seriesIndex, array) {
-            var found, alterIndex,
-                data = _config.seriesData( series ),
-                // search the domain for the closest point in x
-                index = bisectLeft( data, targetDomain.x )
+      // Search the domain for the closest point in x
+      var targetDomain = new d3.trait.Point(x1.invert(focusPoint.x), y.invert(focusPoint.y))
+      var bisectLeft = d3.bisector(_config.x1).left
 
-            if( index >= data.length)
-                index = data.length - 1
-            found = getFocusItem( series, data, index, focusPoint)
+      filteredData.forEach(function(series, seriesIndex, array) {
+        var found, alterIndex,
+          data = _config.seriesData(series),
+        // search the domain for the closest point in x
+          index = bisectLeft(data, targetDomain.x)
 
-            alterIndex = found.index - 1
-            if( alterIndex >= 0) {
-                var alter = getFocusItem( series, data, alterIndex, focusPoint)
+        if( index >= data.length )
+          index = data.length - 1
+        found = getFocusItem(series, data, index, focusPoint)
+
+        alterIndex = found.index - 1
+        if( alterIndex >= 0 ) {
+          var alter = getFocusItem(series, data, alterIndex, focusPoint)
 //                console.log( "found x=" + _config.x1( found.item) + " y=" + access.y( found.item) + " d=" + found.distance + "  " + targetDomain.x + " " + targetDomain.y)
 //                console.log( "alter x=" + _config.x1( alter.item) + " y=" + access.y( alter.item) + " d=" + alter.distance + "  " + targetDomain.x + " " + targetDomain.y)
-                if( focus.axis === 'x') {
-                    if( alter.distanceX < found.distanceX)
-                        found = alter
-                } else {
-                    if( alter.distance < found.distance)
-                        found = alter
-                }
-            }
+          if( focus.axis === 'x' ) {
+            if( alter.distanceX < found.distanceX )
+              found = alter
+          } else {
+            if( alter.distance < found.distance )
+              found = alter
+          }
+        }
 
-            if( found.distance <= focus.distance) {
-                found.color = self.color( series)
-                foci.push( found)
-            }
-        })
+        if( found.distance <= focus.distance ) {
+          found.color = self.color(series)
+          foci.push(found)
+        }
+      })
 
-        return foci
+      return foci
     }
 
     return chartLine;
 
-}
+  }
 
 trait.chart.line = _chartLine
 

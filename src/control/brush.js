@@ -18,77 +18,80 @@
  *
  * Author: Flint O'Brien
  */
-(function (d3, trait) {
+(function(d3, trait) {
 
 
-/**
- *
- * d3.trait( d3.trait.control.brush, { axis: 'x1', target: obj, targetAxis: 'x1'})
- * @param _super
- * @param _config
- * @returns {Function}
- * @private
- */
-function _controlBrush( _super, _config) {
+  /**
+   *
+   * d3.trait( d3.trait.control.brush, { axis: 'x1', target: obj, targetAxis: 'x1'})
+   * @param _super
+   * @param _config
+   * @returns {Function}
+   * @private
+   */
+  function _controlBrush(_super, _config) {
     // Store the group element here so we can have multiple line charts in one chart.
     // A second "line chart" might have a different y-axis, style or orientation.
     var group, lastDomainMax,
-//        x1 = _super.x1(),
-//        y1 = _super.y1(),
-        name= _config.axis,
-        axisChar= name.charAt(0 ),
-        scale  = _super[name](),        // ex: x1()
+        //        x1 = _super.x1(),
+        //        y1 = _super.y1(),
+        name = _config.axis,
+        axisChar = name.charAt(0),
+        scale = _super[name](),        // ex: x1()
         target = _config.target,
         targetAxis = _config.targetAxis,
         targetScale = target[_config.targetAxis](),
-        brush = d3.svg.brush()[axisChar]( scale )
+        brush = d3.svg.brush()[axisChar](scale)
 
     function brushed() {
-        var extent = brush.empty() ? scale.domain() : brush.extent()
-        target[ targetAxis + "Domain"]( extent)
-        //targetScale.domain( extent);
-        target.update( "domain", 0)
+      var extent = brush.empty() ? scale.domain() : brush.extent()
+      target[ targetAxis + "Domain"](extent)
+      //targetScale.domain( extent);
+      target.update("domain", 0)
 //        focus.select("path").attr("d", area);
 //        focus.select(".x.axis").call(xAxis);
     }
+
     brush.on("brush", brushed)
 
     var dispatch = d3.dispatch('customHover');
-    function controlBrush( _selection) {
-        var self = controlBrush
 
-        _selection.each(function(_data) {
-            var element = this
+    function controlBrush(_selection) {
+      var self = controlBrush
 
-            if( !group) {
-                var brushClasses = "brush brush-" + name
-                var classes = _config.chartClass ? brushClasses  + _config.chartClass : brushClasses
-                //brushChart = this._chartGroup.lastChild
-                group = this._chartGroup.append('g').classed( classes, true)
-                    .call( brush)
-            }
+      _selection.each(function(_data) {
+        var element = this
 
-            group.selectAll( "rect")
-                .attr("y", -6)
-                .attr("height", self.chartHeight() + 7);
+        if( !group ) {
+          var brushClasses = "brush brush-" + name
+          var classes = _config.chartClass ? brushClasses + _config.chartClass : brushClasses
+          //brushChart = this._chartGroup.lastChild
+          group = this._chartGroup.append('g').classed(classes, true)
+            .call(brush)
+        }
 
-            lastDomainMax = d3.trait.utils.extentMax( scale.domain())
-        })
+        group.selectAll("rect")
+          .attr("y", -6)
+          .attr("height", self.chartHeight() + 7);
+
+        lastDomainMax = d3.trait.utils.extentMax(scale.domain())
+      })
     }
-    controlBrush.update = function( type, duration) {
-        this._super( type, duration)
+
+    controlBrush.update = function(type, duration) {
+      this._super(type, duration)
 
 
-        lastDomainMax = d3.trait.utils.extentMax( scale.domain())
-        return this;
+      lastDomainMax = d3.trait.utils.extentMax(scale.domain())
+      return this;
     };
 
     d3.rebind(controlBrush, dispatch, 'on');
 
     return controlBrush;
 
-}
+  }
 
-trait.control.brush = _controlBrush
+  trait.control.brush = _controlBrush
 
 }(d3, d3.trait));

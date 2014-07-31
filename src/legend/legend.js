@@ -18,109 +18,111 @@
  *
  * Author: Flint O'Brien
  */
-(function (d3, trait) {
+(function(d3, trait) {
 
-function _legendSeries( _super, _config) {
+  function _legendSeries(_super, _config) {
     // Store the group element here so we can have multiple line charts in one chart.
     // A second "line chart" might have a different y-axis, style or orientation.
 
     var orient = _config.orient || "top"
+
     function topOrBottom() { return orient === "top" || orient === "bottom"}
 
     function marginStyle() {
-        var style, m = {left: 2, right: 2}
-        if( _config.legendMargin) {
-            m.left = _config.legendMargin.left || m.left
-            m.right = _config.legendMargin.right || m.right
-            m.top = _config.legendMargin.top
-            m.bottom = _config.legendMargin.bottom
-        }
-        m.left += _super.marginLeft()
-        m.right += _super.marginRight()
-        style = "margin-left:" + m.left + "px;"
-        style += "margin-right:" + m.right + "px;"
-        if(m.top)
-            style += "margin-top:" + m.top + "px;"
-        if(m.bottom)
-            style += "margin-bottom:" + m.bottom + "px;"
-        return style
+      var style, m = {left: 2, right: 2}
+      if( _config.legendMargin ) {
+        m.left = _config.legendMargin.left || m.left
+        m.right = _config.legendMargin.right || m.right
+        m.top = _config.legendMargin.top
+        m.bottom = _config.legendMargin.bottom
+      }
+      m.left += _super.marginLeft()
+      m.right += _super.marginRight()
+      style = "margin-left:" + m.left + "px;"
+      style += "margin-right:" + m.right + "px;"
+      if( m.top )
+        style += "margin-top:" + m.top + "px;"
+      if( m.bottom )
+        style += "margin-bottom:" + m.bottom + "px;"
+      return style
     }
 
     var dispatch = d3.dispatch('customHover');
-    function legendSeries( _selection) {
-        var self = legendSeries
 
-        _selection.each(function(_data) {
-            var element = this
+    function legendSeries(_selection) {
+      var self = legendSeries
 
-            if( ! this._legend) {
-                var classes = _config.legendClass ? "legend " + _config.legendClass : 'legend'
+      _selection.each(function(_data) {
+        var element = this
 
-                if( topOrBottom()) {
-                    // insert before svg element. Could use ":first-child"
-                    var select = d3.select(this)
-                    this._legend = orient === "top" ? select.insert("ul", "svg") : select.append("ul")
-                    this._legend.attr("style", marginStyle())
-                        .attr( "class", classes)
-                } else {
-                    this._legend = this._container.append('g').classed( classes, true);
-                }
-            }
+        if( !this._legend ) {
+          var classes = _config.legendClass ? "legend " + _config.legendClass : 'legend'
 
-            var filtered = _config.legendFilter ? _data.filter( _config.legendFilter) : _data
+          if( topOrBottom() ) {
+            // insert before svg element. Could use ":first-child"
+            var select = d3.select(this)
+            this._legend = orient === "top" ? select.insert("ul", "svg") : select.append("ul")
+            this._legend.attr("style", marginStyle())
+              .attr("class", classes)
+          } else {
+            this._legend = this._container.append('g').classed(classes, true);
+          }
+        }
 
-            if( topOrBottom()) {
-                // DATA JOIN
-                var legendTop = this._legend.selectAll("li")
-                    .data(filtered)
+        var filtered = _config.legendFilter ? _data.filter(_config.legendFilter) : _data
 
-                // UPDATE
+        if( topOrBottom() ) {
+          // DATA JOIN
+          var legendTop = this._legend.selectAll("li")
+            .data(filtered)
 
-                // ENTER
-                legendTop.enter()
-                    .append("li")
-                    .attr("class", "legend-item")
-                    .style("border-bottom-color", self.color)
-                    .text( _config.seriesLabel)
+          // UPDATE
 
-                // also try: <li><span>• </span>Lorem ipsum</li> with css span { font-size: 20pt; }
-            } else {
-                // DATA JOIN
-                var legend = this._legend.selectAll(".legend")
-                    .data(filtered)
+          // ENTER
+          legendTop.enter()
+            .append("li")
+            .attr("class", "legend-item")
+            .style("border-bottom-color", self.color)
+            .text(_config.seriesLabel)
 
-                // UPDATE
+          // also try: <li><span>• </span>Lorem ipsum</li> with css span { font-size: 20pt; }
+        } else {
+          // DATA JOIN
+          var legend = this._legend.selectAll(".legend")
+            .data(filtered)
+
+          // UPDATE
 
 
-                // ENTER
-                legend.enter()
-                    .append("g")
-                        .attr("class", "legend")
-                        .attr("transform", function(d, i) { return "translate(0," + i * 20 + ")"; })
+          // ENTER
+          legend.enter()
+            .append("g")
+            .attr("class", "legend")
+            .attr("transform", function(d, i) { return "translate(0," + i * 20 + ")"; })
 
-                legend.append("rect")
-                        .attr("x", self.chartWidth() - 18)
-                        .attr("width", 18)
-                        .attr("height", 18)
-                        .style("fill", self.color)
+          legend.append("rect")
+            .attr("x", self.chartWidth() - 18)
+            .attr("width", 18)
+            .attr("height", 18)
+            .style("fill", self.color)
 
-                legend.append("text")
-                    .attr("x", self.chartWidth() - 24)
-                    .attr("y", 9)
-                    .attr("dy", ".35em")
-                    .style("text-anchor", "end")
-                    .text( _config.seriesLabel)
-            }
+          legend.append("text")
+            .attr("x", self.chartWidth() - 24)
+            .attr("y", 9)
+            .attr("dy", ".35em")
+            .style("text-anchor", "end")
+            .text(_config.seriesLabel)
+        }
 
-        })
+      })
     }
 
     d3.rebind(legendSeries, dispatch, 'on');
 
     return legendSeries;
 
-}
+  }
 
-trait.legend.series = _legendSeries
+  trait.legend.series = _legendSeries
 
 }(d3, d3.trait));

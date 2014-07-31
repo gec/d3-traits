@@ -18,7 +18,7 @@
  *
  * Author: Flint O'Brien
  */
-(function (d3) {
+(function(d3) {
 
 //    var a, b, c, d, e
 //
@@ -38,163 +38,166 @@
 //            .trait( e, {})
 //            .config( { x1: 4})
 
-var DEBUG = false
+  var DEBUG = false
 
-Array.isArray = Array.isArray || function (vArg) {
+  Array.isArray = Array.isArray || function(vArg) {
     return Object.prototype.toString.call(vArg) === "[object Array]";
-};
+  };
 
-/**
- * Copy all the properties for the super to the new trait.
- * @param superTrait
- * @param newTrait
- */
-function stackTrait( superTrait, newTrait) {
+  /**
+   * Copy all the properties for the super to the new trait.
+   * @param superTrait
+   * @param newTrait
+   */
+  function stackTrait(superTrait, newTrait) {
     //newTrait._super = superTrait
     // Copy the properties over onto the new trait
-    for (var name in superTrait) {
-        if( !(name in newTrait))
-            newTrait[name] = superTrait[ name]
+    for( var name in superTrait ) {
+      if( !(name in newTrait) )
+        newTrait[name] = superTrait[ name]
     }
-}
+  }
 
-function getTraitCache( element, traitInstanceId) {
+  function getTraitCache(element, traitInstanceId) {
     var elStore = element[traitInstanceId]
-    if( !elStore) {
-        element[traitInstanceId] = {}
-        elStore = element[traitInstanceId]
+    if( !elStore ) {
+      element[traitInstanceId] = {}
+      elStore = element[traitInstanceId]
     }
     return elStore
-}
+  }
 
-/**
- * Is this an x scale, axis, etc.
- * @param scaleName  'x1', 'x2', etc.
- * @returns {boolean}
- */
-function isX( scaleName) { return scaleName.charAt(0) === 'x'}
+  /**
+   * Is this an x scale, axis, etc.
+   * @param scaleName  'x1', 'x2', etc.
+   * @returns {boolean}
+   */
+  function isX(scaleName) { return scaleName.charAt(0) === 'x'}
 
-/**
- * Is this a y scale, axis, etc.
- * @param scaleName  'y1', 'y2', etc.
- * @returns {boolean}
- */
-function isY( scaleName) { return scaleName.charAt(0) === 'y'}
+  /**
+   * Is this a y scale, axis, etc.
+   * @param scaleName  'y1', 'y2', etc.
+   * @returns {boolean}
+   */
+  function isY(scaleName) { return scaleName.charAt(0) === 'y'}
 
-function extentMin( extent) { return extent[ 0] }
-function extentMax( extent) { return extent[ extent.length - 1] }
+  function extentMin(extent) { return extent[ 0] }
 
-function isData( _data, accessSeries) {
-    return d3.max( _data, function(s) { return accessSeries(s ).length}) > 0
-}
+  function extentMax(extent) { return extent[ extent.length - 1] }
 
-function isValidDate(d) {
-    if ( Object.prototype.toString.call(d) !== "[object Date]" )
-        return false;
+  function isData(_data, accessSeries) {
+    return d3.max(_data, function(s) { return accessSeries(s).length}) > 0
+  }
+
+  function isValidDate(d) {
+    if( Object.prototype.toString.call(d) !== "[object Date]" )
+      return false;
     return !isNaN(d.getTime());
-}
+  }
 
-function getScaleRange( _super, name) {
+  function getScaleRange(_super, name) {
     // SVG origin is top-left
-    if( d3.trait.utils.isX( name))
-        return [ _super.minRangeMarginLeft( name), _super.chartWidth() - _super.minRangeMarginRight( name)]
+    if( d3.trait.utils.isX(name) )
+      return [ _super.minRangeMarginLeft(name), _super.chartWidth() - _super.minRangeMarginRight(name)]
     else
-        return [ _super.chartHeight() - _super.minRangeMarginBottom( name), _super.minRangeMarginTop( name)]
-}
+      return [ _super.chartHeight() - _super.minRangeMarginBottom(name), _super.minRangeMarginTop(name)]
+  }
 
-function getScaleExtensions( _super, name, scale) {
+  function getScaleExtensions(_super, name, scale) {
     var domainExtent = scale.domain()
     // SVG origin is top-left
-    if( d3.trait.utils.isX( name))
-        return [
-            [0, scale( domainExtent[0])],
-            [scale(domainExtent[1]), _super.chartWidth()]
-        ]
+    if( d3.trait.utils.isX(name) )
+      return [
+        [0, scale(domainExtent[0])],
+        [scale(domainExtent[1]), _super.chartWidth()]
+      ]
     else
-        return [
-            [0, scale( domainExtent[0])],
-            [ scale(domainExtent[1]), _super.chartHeight()]
-        ]
-}
+      return [
+        [0, scale(domainExtent[0])],
+        [ scale(domainExtent[1]), _super.chartHeight()]
+      ]
+  }
 
-function configFloat( valueConfig, valueDefault) {
-    var vc = parseFloat( valueConfig)
-    return isNaN( vc) ? valueDefault : vc
-}
-function configMargin( marginConfig, marginDefault) {
-    if( ! marginConfig)
-        return marginDefault
+  function configFloat(valueConfig, valueDefault) {
+    var vc = parseFloat(valueConfig)
+    return isNaN(vc) ? valueDefault : vc
+  }
+
+  function configMargin(marginConfig, marginDefault) {
+    if( !marginConfig )
+      return marginDefault
 
     var margin = {}
-    margin.top = configFloat( marginConfig.top, marginDefault.top)
-    margin.right = configFloat( marginConfig.right, marginDefault.right)
-    margin.bottom = configFloat( marginConfig.bottom, marginDefault.bottom)
-    margin.left = configFloat( marginConfig.left, marginDefault.left)
+    margin.top = configFloat(marginConfig.top, marginDefault.top)
+    margin.right = configFloat(marginConfig.right, marginDefault.right)
+    margin.bottom = configFloat(marginConfig.bottom, marginDefault.bottom)
+    margin.left = configFloat(marginConfig.left, marginDefault.left)
     return margin
-}
+  }
 
-function clone( obj) {
-    if (null == obj || "object" !== typeof obj) return obj;
+  function clone(obj) {
+    if( null == obj || "object" !== typeof obj ) return obj;
     var copy = obj.constructor();
-    for (var attr in obj) {
-        if (obj.hasOwnProperty(attr)) copy[attr] = obj[attr];
+    for( var attr in obj ) {
+      if( obj.hasOwnProperty(attr) ) copy[attr] = obj[attr];
     }
     return copy;
-}
+  }
 
-/**
- * Extend the first object with the properties from the second, third, etc. objects.
- * Ignore properties that are null or undefined.
- *
- * @param target
- * @param obj, obj, ...
- * @returns The first object merged with the following objects.
- */
-function extendObject() {
+  /**
+   * Extend the first object with the properties from the second, third, etc. objects.
+   * Ignore properties that are null or undefined.
+   *
+   * @param target
+   * @param obj, obj, ...
+   * @returns The first object merged with the following objects.
+   */
+  function extendObject() {
     var i, options, key, value,
         target = arguments[0] || {},
         length = arguments.length;
 
-    for ( i = 1; i < length; i++ ) {
-        // Ignore non-null/undefined values
-        if ( (options = arguments[ i ]) != null ) {
-            // Extend the target object
-            for ( key in options ) {
-                value = options[key]
-                if( value)
-                    target[key] = value
-            }
+    for( i = 1; i < length; i++ ) {
+      // Ignore non-null/undefined values
+      if( (options = arguments[ i ]) != null ) {
+        // Extend the target object
+        for( key in options ) {
+          value = options[key]
+          if( value )
+            target[key] = value
         }
+      }
     }
 
     return target
-}
+  }
 
-/**
- * Extend the first object with the properties from the second.
- * Do not overwrite any properties of the first object.
- * Ignore properties that are null or undefined.
- *
- * @param target
- * @param extensions
- * @returns {*}
- */
-function extendObjectNoOverwrite( target, extensions) {
-    for (var key in extensions) {
-        if (! target.hasOwnProperty(key))
-            if( extensions[key])
-                target[key] = extensions[key];
+  /**
+   * Extend the first object with the properties from the second.
+   * Do not overwrite any properties of the first object.
+   * Ignore properties that are null or undefined.
+   *
+   * @param target
+   * @param extensions
+   * @returns {*}
+   */
+  function extendObjectNoOverwrite(target, extensions) {
+    for( var key in extensions ) {
+      if( !target.hasOwnProperty(key) )
+        if( extensions[key] )
+          target[key] = extensions[key];
     }
     return target
-}
-function extendTraitsConfig( config, defaultConfig) {
-    var obj = clone( config)
-    if( !obj)
-        obj = {}
-    return extendObjectNoOverwrite( obj, defaultConfig)
-}
+  }
 
-function TraitOld( trait, config, _super) {
+  function extendTraitsConfig(config, defaultConfig) {
+    var obj = clone(config)
+    if( !obj )
+      obj = {}
+    return extendObjectNoOverwrite(obj, defaultConfig)
+  }
+
+  function TraitOld(trait, config, _super) {
     //if( DEBUG) console.log( "trait( " + trait.name + ")")
 
     var id, imp,
@@ -204,18 +207,18 @@ function TraitOld( trait, config, _super) {
     self._config = config
     self._super = _super
     self._traitIndex = 0
-    if( _super)
-        self._traitIndex = _super.__traitIndex + 1
+    if( _super )
+      self._traitIndex = _super.__traitIndex + 1
 
-    self.getTraitId = function( name, index) { return "_" + name + "_" + index }
+    self.getTraitId = function(name, index) { return "_" + name + "_" + index }
 
 
     self.getImp = function() { return self.imp}
 
-    config = extendTraitsConfig( config, self.__getRoot()._config)
-    id = self.getTraitId( trait.name, self._traitIndex)
-    imp = trait( _super, config, id)
-    stackTrait( _super, imp)
+    config = extendTraitsConfig(config, self.__getRoot()._config)
+    id = self.getTraitId(trait.name, self._traitIndex)
+    imp = trait(_super, config, id)
+    stackTrait(_super, imp)
     //imp.prototype = Trait.prototype
     imp.call = Trait.prototype.call
     imp.callInstance = Trait.prototype.callInstance
@@ -226,9 +229,10 @@ function TraitOld( trait, config, _super) {
     imp._super = _super
     imp._config = config
     self.imp = imp
-}
-function Trait( _trait, _config, _super) {
-    if( DEBUG) console.log( "trait( " + _trait.name + ")")
+  }
+
+  function Trait(_trait, _config, _super) {
+    if( DEBUG ) console.log("trait( " + _trait.name + ")")
 
     var id, imp,
         self = this
@@ -239,14 +243,14 @@ function Trait( _trait, _config, _super) {
     self.__leafTrait = null
 
 
-    function makeTraitId( name, index) { return "_" + name + "_" + index }
+    function makeTraitId(name, index) { return "_" + name + "_" + index }
 
     self.getImp = function() { return imp}
 
-    self.trait = function( _trait, config) {
-        //if( DEBUG) console.log( ".trait( " + _trait.name + ")")
-        var t = new Trait( _trait, config, imp)
-        return t.getImp()
+    self.trait = function(_trait, config) {
+      //if( DEBUG) console.log( ".trait( " + _trait.name + ")")
+      var t = new Trait(_trait, config, imp)
+      return t.getImp()
     }
 
 //    self.config = function( _config) {
@@ -261,79 +265,80 @@ function Trait( _trait, _config, _super) {
 //        return self
 //    }
 
-    self.call = function( _selection, leafTrait) {
-        if( ! leafTrait)
-          leafTrait = this
-        if( ! this.__leafTrait)
-          this.__leafTrait = leafTrait
+    self.call = function(_selection, leafTrait) {
+      if( !leafTrait )
+        leafTrait = this
+      if( !this.__leafTrait )
+        this.__leafTrait = leafTrait
 
-        if( this._super)
-          this._super.call( _selection, leafTrait)
-        _selection.call( imp)
-        return imp
+      if( this._super )
+        this._super.call(_selection, leafTrait)
+      _selection.call(imp)
+      return imp
     }
 
-    self.callTraits = function( _selection) {
-        if( this.__leafTrait)
-          return this.__leafTrait.call( _selection)
-        else
-          return this
+    self.callTraits = function(_selection) {
+      if( this.__leafTrait )
+        return this.__leafTrait.call(_selection)
+      else
+        return this
     }
 
-    function makeVirtual( name, fn, _superFn) {
-        if( DEBUG) console.log( "makeVirtual " + name)
-        return (function(name, fn){
-            return function() {
-                var tmp = this._super;
+    function makeVirtual(name, fn, _superFn) {
+      if( DEBUG ) console.log("makeVirtual " + name)
+      return (function(name, fn) {
+        return function() {
+          var tmp = this._super;
 
-                // Add a new ._super() method that is the same method
-                // but on the super-class
-                this._super = _superFn;
+          // Add a new ._super() method that is the same method
+          // but on the super-class
+          this._super = _superFn;
 
-                // The method only need to be bound temporarily, so we
-                // remove it when we're done executing
-                var ret = fn.apply(this, arguments);
-                this._super = tmp;
+          // The method only need to be bound temporarily, so we
+          // remove it when we're done executing
+          var ret = fn.apply(this, arguments);
+          this._super = tmp;
 
-                return ret;
-            };
-        })(name, fn)
-    }
-    self.__replaceVirtual = function( name, fn) {
-        if( imp.hasOwnProperty( name))
-            imp[name] = fn
-        if( _super)
-            _super.__replaceVirtual( name, fn)
+          return ret;
+        };
+      })(name, fn)
     }
 
-    self.__virtualize = function( name, fn) {
-        if( DEBUG) console.log( "__virtualize begin " + _trait.name + " name=" + name)
+    self.__replaceVirtual = function(name, fn) {
+      if( imp.hasOwnProperty(name) )
+        imp[name] = fn
+      if( _super )
+        _super.__replaceVirtual(name, fn)
+    }
 
-        var virtual = null
-        if( imp.hasOwnProperty( name) && typeof imp[name] === "function" ) {
-            // The first parent has the same function.
-            // The parent's version could be normal or virtualized.
-            //
-            if( DEBUG) console.log( "__virtualize " + _trait.name + " name=" + name + " hasFunction")
+    self.__virtualize = function(name, fn) {
+      if( DEBUG ) console.log("__virtualize begin " + _trait.name + " name=" + name)
+
+      var virtual = null
+      if( imp.hasOwnProperty(name) && typeof imp[name] === "function" ) {
+        // The first parent has the same function.
+        // The parent's version could be normal or virtualized.
+        //
+        if( DEBUG ) console.log("__virtualize " + _trait.name + " name=" + name + " hasFunction")
 //            var original = '__original__' + name
 
-            // imp[name] could be virtualized or normal
-            virtual = makeVirtual( name, fn, imp[name])
+        // imp[name] could be virtualized or normal
+        virtual = makeVirtual(name, fn, imp[name])
 
 //            if( ! imp.hasOwnProperty( original)) {
 //                if( DEBUG) console.log( "__virtualize " + _trait.name + " name=" + name + " newly virtualized save original")
 //                // save original
 //                imp[original] = imp[name]
 //            }
-            imp[name] = virtual
-            if( _super)
-                _super.__replaceVirtual( name, virtual)
-        } else {
-            if( DEBUG) console.log( "__virtualize " + _trait.name + " name=" + name + " hasFunction NOT  ")
-        }
+        imp[name] = virtual
+        if( _super )
+          _super.__replaceVirtual(name, virtual)
+      } else {
+        if( DEBUG ) console.log("__virtualize " + _trait.name + " name=" + name + " hasFunction NOT  ")
+      }
 //        if( _super)
 //            virtual = _super.__virtualize( name, fn)
-        return virtual
+      return virtual
     }
     //       self.a  this._super()
     // t0 a  t3.a    -
@@ -353,51 +358,51 @@ function Trait( _trait, _config, _super) {
     // _stack[0] is most derived trait imp.
     //
     self.__makeVTable = function() {
-        if( DEBUG) console.log( "__makeVTable begin " + _trait.name)
+      if( DEBUG ) console.log("__makeVTable begin " + _trait.name)
 
-        var name, virtualized
+      var name, virtualized
 
-        for( name in imp) {
+      for( name in imp ) {
 
-            virtualized = _super.__virtualize( name, imp[name])
-            if( virtualized) {
-                if( DEBUG) console.log( _trait.name +".__makeVTable name " + name + "   virtualized")
+        virtualized = _super.__virtualize(name, imp[name])
+        if( virtualized ) {
+          if( DEBUG ) console.log(_trait.name + ".__makeVTable name " + name + "   virtualized")
 //                imp[ '__original__' + name] = imp[name]
-                imp[name] = virtualized
-            } else {
-                if( DEBUG) console.log( _trait.name +".__makeVTable name " + name + " ! virtualized")
-            }
-
+          imp[name] = virtualized
+        } else {
+          if( DEBUG ) console.log(_trait.name + ".__makeVTable name " + name + " ! virtualized")
         }
 
-        // Replicate super methods in imp; no overrides.
-        for( name in _super) {
-            //if( DEBUG) console.log( _trait.name +".__makeVTable replicate " + name + "  in _super")
-            if( !(name in imp))
-                imp[name] = _super[ name]
-        }
+      }
 
-        if( DEBUG) console.log( "__makeVTable end")
+      // Replicate super methods in imp; no overrides.
+      for( name in _super ) {
+        //if( DEBUG) console.log( _trait.name +".__makeVTable replicate " + name + "  in _super")
+        if( !(name in imp) )
+          imp[name] = _super[ name]
+      }
+
+      if( DEBUG ) console.log("__makeVTable end")
     }
 
     self.__getRoot = function() {
-        if( self._super)
-            return self._super.__getRoot()
-        else
-            return self
+      if( self._super )
+        return self._super.__getRoot()
+      else
+        return self
     },
 
-    // TODO: make config from configs
+      // TODO: make config from configs
 
 //    config = extendTraitsConfig( config, self.__getRoot()._config)
-    id = makeTraitId( _trait.name, self._traitIndex)
-    if( _super)
-        self.config = extendTraitsConfig( _config, self.__getRoot().config)
+      id = makeTraitId(_trait.name, self._traitIndex)
+    if( _super )
+      self.config = extendTraitsConfig(_config, self.__getRoot().config)
 
-    imp = _trait( _super, self.config, id)
+    imp = _trait(_super, self.config, id)
 
-    if( _super)
-        self.__makeVTable()
+    if( _super )
+      self.__makeVTable()
 
 
     imp.call = self.call
@@ -410,137 +415,135 @@ function Trait( _trait, _config, _super) {
     imp.__replaceVirtual = self.__replaceVirtual
     imp.__getRoot = self.__getRoot
     imp._super = _super
-}
+  }
 
-Trait.prototype = {
+  Trait.prototype = {
 
-    trait: function( _trait, config) {
-        //if( DEBUG) console.log( ".trait( " + _trait.name + ")")
-        var t = new Trait( _trait, config, this)
-        var imp = t.getImp()
-        return imp
+    trait: function(_trait, config) {
+      //if( DEBUG) console.log( ".trait( " + _trait.name + ")")
+      var t = new Trait(_trait, config, this)
+      var imp = t.getImp()
+      return imp
     },
 
     __getRoot: function() {
-        if( this._super)
-            return this._super.__getRoot()
-        else
-            return this
+      if( this._super )
+        return this._super.__getRoot()
+      else
+        return this
     },
 
-    callInstance: function( _selection) {
-        var self = this
-        _selection.call( function( selection) {
-            selection.each( function( _data) {
+    callInstance: function(_selection) {
+      var self = this
+      _selection.call(function(selection) {
+        selection.each(function(_data) {
 //                if( ! this[self.__traitId])
 //                    this[self.__traitId] = {}
 //                self( _data, selection, this[self.__traitId]) // callee example: traitName( selection, data, traitStore)
-                self( _data, selection) // callee example: traitName( selection, data, traitStore)
-                //self.apply( this[self.__traitId], [this, _data, selection] ) // callee example: traitName( element, data, selection)
-            })
-
+          self(_data, selection) // callee example: traitName( selection, data, traitStore)
+          //self.apply( this[self.__traitId], [this, _data, selection] ) // callee example: traitName( element, data, selection)
         })
+
+      })
     },
 
-    call: function( _selection, leafTrait) {
-        if( ! leafTrait)
-            leafTrait = this
-        this.__leafTrait = leafTrait
-        if( this._super)
-            this._super.call( _selection, leafTrait)
+    call: function(_selection, leafTrait) {
+      if( !leafTrait )
+        leafTrait = this
+      this.__leafTrait = leafTrait
+      if( this._super )
+        this._super.call(_selection, leafTrait)
 
-        //this.callInstance( _selection)
-        _selection.call( this)
-        return this
+      //this.callInstance( _selection)
+      _selection.call(this)
+      return this
     }
 
 
-}
-Trait.prototype.constructor = Trait
+  }
+  Trait.prototype.constructor = Trait
 
-d3.selection.prototype.trait = function( trait, config)
-{
-    if( Array.isArray( trait) ) {
-        for( var index in trait)
-            this.trait( trait[index])
+  d3.selection.prototype.trait = function(trait, config) {
+    if( Array.isArray(trait) ) {
+      for( var index in trait )
+        this.trait(trait[index])
     } else {
-        //if( DEBUG) console.log( ".trait( " + trait.name + ")")
-        this._traitsInitialize()
+      //if( DEBUG) console.log( ".trait( " + trait.name + ")")
+      this._traitsInitialize()
 
-        var traitCount = this.traits.length
+      var traitCount = this.traits.length
 
-        var _super = {}
-        if( traitCount > 0)
-            _super = this.traits[ traitCount-1]
+      var _super = {}
+      if( traitCount > 0 )
+        _super = this.traits[ traitCount - 1]
 
-        var _config = extendTraitsConfig( this._traitsConfig, config)
-        var traitInstance = trait( _super, _config, this)
-        stackTrait( _super, traitInstance)
+      var _config = extendTraitsConfig(this._traitsConfig, config)
+      var traitInstance = trait(_super, _config, this)
+      stackTrait(_super, traitInstance)
 
-        this.call( traitInstance)
-        this.traits.push( traitInstance)
+      this.call(traitInstance)
+      this.traits.push(traitInstance)
     }
     return this
-}
+  }
 
-d3.selection.prototype.callTraits = function() {
+  d3.selection.prototype.callTraits = function() {
 
-    for( var index in this.traits) {
-        var traitInstance = this.traits[ index]
-        //if( DEBUG) console.log( ".callTraits  " + index + " " + traitInstance.name)
-        this.call( traitInstance)
+    for( var index in this.traits ) {
+      var traitInstance = this.traits[ index]
+      //if( DEBUG) console.log( ".callTraits  " + index + " " + traitInstance.name)
+      this.call(traitInstance)
     }
     return this
-}
+  }
 
-var DEFAULT_TRAITS_CONFIG = {
+  var DEFAULT_TRAITS_CONFIG = {
 //    seriesFilter: function( d, i) { return true}
-}
+  }
 
-d3.selection.prototype._traitsInitialize = function() {
-    if( ! this._traitsConfig)
-        this._traitsConfig = clone( DEFAULT_TRAITS_CONFIG)
-    if( ! this.traits)
-        this.traits = []
+  d3.selection.prototype._traitsInitialize = function() {
+    if( !this._traitsConfig )
+      this._traitsConfig = clone(DEFAULT_TRAITS_CONFIG)
+    if( !this.traits )
+      this.traits = []
     return this
-}
+  }
 
-d3.selection.prototype.traitConfig = function( config)
-{
+  d3.selection.prototype.traitConfig = function(config) {
     this._traitsInitialize()
-    for( var key in config) {
-        this._traitsConfig[key] = config[key]
+    for( var key in config ) {
+      this._traitsConfig[key] = config[key]
     }
     return this
-}
+  }
 
-function trait( aTrait, config) {
-    return new Trait( aTrait, config).getImp()
-}
+  function trait(aTrait, config) {
+    return new Trait(aTrait, config).getImp()
+  }
 
 // Export traits to d3
-d3.trait = trait
-d3.trait.scale = {}
-d3.trait.chart = { utils: {} }
-d3.trait.axis = {}
-d3.trait.control = {}
-d3.trait.focus = {}
-d3.trait.legend = {}
+  d3.trait = trait
+  d3.trait.scale = {}
+  d3.trait.chart = { utils: {} }
+  d3.trait.axis = {}
+  d3.trait.control = {}
+  d3.trait.focus = {}
+  d3.trait.legend = {}
 
-d3.trait.utils = {
-    clone: clone,
-    extend: extendObject,
-    isX: isX,
-    isY: isY,
-    isData: isData,
-    isValidDate: isValidDate,
-    extentMin: extentMin,
-    extentMax: extentMax,
-    getScaleRange: getScaleRange,
+  d3.trait.utils = {
+    clone:              clone,
+    extend:             extendObject,
+    isX:                isX,
+    isY:                isY,
+    isData:             isData,
+    isValidDate:        isValidDate,
+    extentMin:          extentMin,
+    extentMax:          extentMax,
+    getScaleRange:      getScaleRange,
     getScaleExtensions: getScaleExtensions,
-    getTraitCache: getTraitCache,
-    configMargin: configMargin,
-    configFloat: configFloat
-}
+    getTraitCache:      getTraitCache,
+    configMargin:       configMargin,
+    configFloat:        configFloat
+  }
 
 }(d3));
