@@ -18,21 +18,48 @@
  *
  * Author: Flint O'Brien
  */
-(function (d3, trait) {
+(function(d3, trait) {
+
+  function makeArea( stacked, access, x, y, interpolate) {
+    var area = d3.svg.area()
+      .interpolate( interpolate || "linear")
+
+    if( stacked ) {
+      area = area.x(function(d) { return x( access.x(d)); })
+        .y0(function(d) { return y(d.y0); })
+        .y1(function(d) { return y(d.y0 + access.y(d)); })
+
+    } else {
+
+      area = area.x(function(d) { return x(access.x(d)); })
+        .y1(function(d) { return y(access.y(d)); })
+      // y0 is set in _selection.each.
+    }
+
+    return area
+  }
 
   function _chartArea(_super, _config) {
     // Store the group element here so we can have multiple area charts in one chart.
     // A second "area chart" might have a different y-axis, style or orientation.
-    var group, series, lastDomainMax,
-      x1 = _super.x1(),
-      y1 = _super.y1(),
-      area = d3.svg.area()
-        .interpolate(_config.interpolate || "linear")
-        .x(function(d) { return x1(_config.x1(d)); })
-        .y0(_super.chartHeight())
-        .y1(function(d) { return y1(_config.y1(d)); });
+    var group, series, lastDomainMax, stackLayout,
+        yAxis = _config.yAxis || 'y1',
+        x1 = _super.x1(),
+        y = _super[yAxis](),
+        yMinDomainFromData = _super[yAxis + 'MinDomainFromData'],
+        access = { x: _config.x1, y: _config[yAxis]},
+        interpolate = _config.interpolate || "linear",
+        stacked = _config.stacked ? true : false,
+        area = makeArea( stacked, access, x1, y, interpolate, _super.chartHeight())
+
+    if( stacked ) {
+      stackLayout = d3.layout.stack()
+        .values(function(d) { return _config.seriesData(d) })
+        .y( access.y);
+    }
 
     var dispatch = d3.dispatch('customHover');
+    var filtered
 
     function chartArea(_selection) {
       var self = chartArea
@@ -45,9 +72,17 @@
           group = this._chartGroup.append('g').classed(classes, true);
         }
 
-        var filtered = _config.seriesFilter ? _data.filter(_config.seriesFilter) : _data
+        filtered = _config.seriesFilter ? _data.filter(_config.seriesFilter) : _data
 
-        area.y0(self.chartHeight())
+        if( stacked) {
+          stackLayout( filtered);
+          access.series = _config.seriesData
+          access.data = access.y
+          var extent = trait.utils.extentFromAreaData( filtered, access)
+          yMinDomainFromData( extent)
+        } else {
+          area.y0(self.chartHeight())
+        }
 
         // DATA JOIN
         series = group.selectAll(".series")
@@ -77,6 +112,14 @@
 
       var dur = duration || _super.duration()
       var attrD = function(d) { return area(_config.seriesData(d)); }
+      if( stacked) {
+        stackLayout( filtered);
+        access.series = _config.seriesData
+        access.data = access.y
+        var extent = trait.utils.extentFromAreaData( filtered, access)
+        yMinDomainFromData( extent)
+      }
+
       lastDomainMax = trait.chart.utils.updatePathWithTrend(type, dur, x1, series, attrD, lastDomainMax)
 
       return this;
@@ -88,6 +131,6 @@
 
   }
 
-trait.chart.area = _chartArea
+  trait.chart.area = _chartArea
 
 }(d3, d3.trait));

@@ -43,10 +43,11 @@
 
   function getMillisFromDomain(domain) { return domain[ domain.length - 1].getTime() - domain[0].getTime() }
 
-  function makeAccessorsFromConfig(config, axisName) {
+  function makeAccessorsFromConfig(config, scaleName) {
     return {
       series: config.seriesData,
-      data:   config[axisName]
+      data:   config[scaleName],
+      scaleName: scaleName
     }
   }
 
@@ -156,14 +157,20 @@
    * @param access object containing series, data
    * @returns {*}
    */
-  function getDomain(domainConfig, data, access) {
+  function getDomain( domain, domainConfig, data, access) {
     var min, max, dataDomain
 
     // if domainConfig.domain is specified, it trumps other configs
     if( domainConfig.domain )
       return domainConfig.domain
 
-    var domain
+    // TODO: This overrides trend. The two shold work together.
+    if( domainConfig.minDomainFromData) {
+      if( trait.utils.isExtentExtended( domain, domainConfig.minDomainFromData))
+        domain = trait.utils.extendExtent( domain, domainConfig.minDomainFromData)
+      return domain
+    }
+
 
     if( domainConfig.trend )
       domain = getDomainTrend(domainConfig, data, access)
@@ -309,7 +316,7 @@
         // TODO: store this in each selection?
         filteredData = _config.seriesFilter ? _data.filter(_config.seriesFilter) : _data
 
-        scale.domain(getDomain(domainConfig, filteredData, access))
+        scale.domain(getDomain( scale.domain(), domainConfig, filteredData, access))
 
         // TODO: nice overlaps wth interval. Maybe it's one or the other?
         if( _config.nice )
@@ -371,8 +378,8 @@
             element = this
 
         filteredData = _config.seriesFilter ? _data.filter(_config.seriesFilter) : _data
-
-        scale.domain(getDomain(domainConfig, filteredData, access))
+        var domain = getDomain( scale.domain(), domainConfig, filteredData, access)
+        scale.domain( domain)
         scale.range(d3.trait.utils.getScaleRange(self, scaleName))
 
       })
@@ -386,9 +393,40 @@
       scale.domain(newDomain)
       // TODO: domain updated event?
     }
+    scaleLinear[scaleName + 'MinDomain'] = function(minDomain) {
+      if( !arguments.length ) return domainConfig.minDomain
+
+      if( trait.utils.isExtentExtended( domainConfig.minDomain, minDomain)) {
+        domainConfig.minDomain = trait.utils.extendExtent( domainConfig.minDomain, minDomain)
+
+        var domain = scale.domain()
+        if( trait.utils.isExtentExtended( domain, domainConfig.minDomain)) {
+          domain = trait.utils.extendExtent( domain, domainConfig.minDomain)
+          scale.domain( domain)
+          // TODO: domain updated event?
+        }
+      }
+    }
+    scaleLinear[scaleName + 'MinDomainFromData'] = function(minDomain) {
+      if( !arguments.length ) return domainConfig.minDomainFromData
+
+      if( trait.utils.isExtentExtended( domainConfig.minDomainFromData, minDomain)) {
+        domainConfig.minDomainFromData = trait.utils.extendExtent( domainConfig.minDomainFromData, minDomain)
+
+        var domain = scale.domain()
+        if( trait.utils.isExtentExtended( domain, domainConfig.minDomainFromData)) {
+          domain = trait.utils.extendExtent( domain, domainConfig.minDomainFromData)
+          scale.domain( domain)
+          // TODO: domain updated event?
+        }
+      }
+    }
     scaleLinear.update = function(type, duration) {
       this._super(type, duration)
-      var range = d3.trait.utils.getScaleRange(_super, scaleName)
+      var range = d3.trait.utils.getScaleRange(_super, scaleName);
+
+      // reset the minimum domain from visible data, so later traits can grow the min domain as needed.
+      delete domainConfig.minDomainFromData;
       updateScale(scale, range, domainConfig, filteredData, access)
 
       return this;
