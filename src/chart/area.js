@@ -75,7 +75,8 @@
         filtered = _config.seriesFilter ? _data.filter(_config.seriesFilter) : _data
 
         if( stacked) {
-          stackLayout( filtered);
+          if( filtered.length > 0)
+            stackLayout( filtered)
           access.series = _config.seriesData
           access.data = access.y
           var extent = trait.utils.extentFromAreaData( filtered, access)
