@@ -94,18 +94,6 @@
     return domainMax
   }
 
-  function configFocus(config) {
-    var focus = {
-      distance: 14,
-      axis:     null
-    }
-    if( config.focus ) {
-      focus.distance = d3.trait.utils.configFloat(config.focus.distance, focus.distance)
-      focus.axis = config.focus.axis
-    }
-    return focus
-  }
-
   /**
    * Return the minimum distance between each data point that is within
    * the indicesExtent. The indicesExtent is typically the data indices
@@ -173,7 +161,6 @@
 
 
   trait.chart.utils.updatePathWithTrend = updatePathWithTrend
-  trait.chart.utils.configFocus = configFocus
   trait.chart.utils.minDistanceBetween = minDistanceBetween
   trait.chart.utils.dataIndicesExtentForDomainExtent = dataIndicesExtentForDomainExtent
 

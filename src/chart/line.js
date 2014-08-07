@@ -27,8 +27,12 @@
       yAxis = _config.yAxis || 'y1',
       x1 = _super.x1(),
       y = _super[yAxis](),
-      access = { x: _config.x1, y: _config[yAxis]},
-      focus = d3.trait.chart.utils.configFocus(_config),
+      access = {
+        x: _config.x1,
+        y: _config[yAxis],
+        seriesData: _config.seriesData
+      },
+      focus = d3.trait.focus.utils.makeConfig(_config),
       line = d3.svg.line()
         .interpolate(_config.interpolate || "linear")
         .x(function(d) { return x1(access.x(d)); })
@@ -141,74 +145,78 @@
 
       return this;
     }
-    function distanceX(p1, p2) {
-      return p2.x > p1.x ? p2.x - p1.x : p1.x - p2.x
-    }
 
-    function distanceY(p1, p2) {
-      return p2.y > p1.y ? p2.y - p1.y : p1.y - p2.y
-    }
-
-    function distance(p1, p2) {
-      var dx = distanceX(p1, p2),
-        dy = distanceY(p1, p2)
-      return Math.sqrt(dx * dx + dy * dy)
-    }
-
-    function getFocusItem(series, data, index, focusPoint) {
-      var item, domainPoint, rangePoint, dist, distX
-      item = data[index]
-      //domainPoint = { x: _config.x1(item), y: access.y(item)}
-      rangePoint = new d3.trait.Point(x1(_config.x1(item)), y(access.y(item)))
-      dist = distance(rangePoint, focusPoint)
-      distX = distanceX(rangePoint, focusPoint)
-      return {
-        series: series,
-        index: index,
-        item: item,
-        point: rangePoint,
-        distance: dist,
-        distanceX: distX
-      }
-    }
+//    function distanceX(p1, p2) {
+//      return p2.x > p1.x ? p2.x - p1.x : p1.x - p2.x
+//    }
+//
+//    function distanceY(p1, p2) {
+//      return p2.y > p1.y ? p2.y - p1.y : p1.y - p2.y
+//    }
+//
+//    function distance(p1, p2) {
+//      var dx = distanceX(p1, p2),
+//        dy = distanceY(p1, p2)
+//      return Math.sqrt(dx * dx + dy * dy)
+//    }
+//
+//    function getFocusItem(series, data, index, focusPoint) {
+//      var item, domainPoint, rangePoint, dist, distX
+//      item = data[index]
+//      //domainPoint = { x: _config.x1(item), y: access.y(item)}
+//      rangePoint = new d3.trait.Point(x1( access.x(item)), y(access.y(item)))
+//      dist = distance(rangePoint, focusPoint)
+//      distX = distanceX(rangePoint, focusPoint)
+//      return {
+//        series: series,
+//        index: index,
+//        item: item,
+//        point: rangePoint,
+//        distance: dist,
+//        distanceX: distX
+//      }
+//    }
 
     chartLine.getFocusItems = function(focusPoint) {
       var self = chartLine,
-        foci = this._super(focusPoint)
+        foci = this._super(focusPoint),
+        myFoci = trait.focus.utils.getFocusItems( filteredData, focusPoint, focus, access, x1, y, self.color)
+
+      foci = foci.concat( myFoci)
 
       // Search the domain for the closest point in x
-      var targetDomain = new d3.trait.Point(x1.invert(focusPoint.x), y.invert(focusPoint.y))
-      var bisectLeft = d3.bisector(_config.x1).left
-
-      filteredData.forEach(function(series, seriesIndex, array) {
-        var found, alterIndex,
-          data = _config.seriesData(series),
-        // search the domain for the closest point in x
-          index = bisectLeft(data, targetDomain.x)
-
-        if( index >= data.length )
-          index = data.length - 1
-        found = getFocusItem(series, data, index, focusPoint)
-
-        alterIndex = found.index - 1
-        if( alterIndex >= 0 ) {
-          var alter = getFocusItem(series, data, alterIndex, focusPoint)
-//                console.log( "found x=" + _config.x1( found.item) + " y=" + access.y( found.item) + " d=" + found.distance + "  " + targetDomain.x + " " + targetDomain.y)
-//                console.log( "alter x=" + _config.x1( alter.item) + " y=" + access.y( alter.item) + " d=" + alter.distance + "  " + targetDomain.x + " " + targetDomain.y)
-          if( focus.axis === 'x' ) {
-            if( alter.distanceX < found.distanceX )
-              found = alter
-          } else {
-            if( alter.distance < found.distance )
-              found = alter
-          }
-        }
-
-        if( found.distance <= focus.distance ) {
-          found.color = self.color(series)
-          foci.push(found)
-        }
-      })
+//      var targetDomain = new d3.trait.Point(x1.invert(focusPoint.x), y.invert(focusPoint.y))
+//      var bisectLeft = d3.bisector(access.x).left
+//
+//      filteredData.forEach(function(series, seriesIndex, array) {
+//        var found, alterIndex,
+//          data = _config.seriesData(series),
+//        // search the domain for the closest point in x
+//          index = bisectLeft(data, targetDomain.x)
+//
+//        if( index >= data.length )
+//          index = data.length - 1
+//        found = getFocusItem(series, data, index, focusPoint)
+//
+//        alterIndex = found.index - 1
+//        if( alterIndex >= 0 ) {
+//          var alter = getFocusItem(series, data, alterIndex, focusPoint)
+//          // console.log( "found x=" + access.x( found.item) + " y=" + access.y( found.item) + " d=" + found.distance + "  " + targetDomain.x + " " + targetDomain.y)
+//          // console.log( "alter x=" + access.x( alter.item) + " y=" + access.y( alter.item) + " d=" + alter.distance + "  " + targetDomain.x + " " + targetDomain.y)
+//          if( focus.axis === 'x' ) {
+//            if( alter.distanceX < found.distanceX )
+//              found = alter
+//          } else {
+//            if( alter.distance < found.distance )
+//              found = alter
+//          }
+//        }
+//
+//        if( found.distance <= focus.distance ) {
+//          found.color = self.color(series)
+//          foci.push(found)
+//        }
+//      })
 
       return foci
     }

@@ -212,23 +212,23 @@ describe('d3-traits.layout', function() {
     var inRect = new d3.trait.Rect(),
         item1 = { rect: new d3.trait.Rect(10, 0, 10, 0, 1, 0) }
     d3.trait.layout.byOrientation([item1], inRect, 'left')
-    expect(item1.rect.origin).toEqual({x: 10, y: 0})
+    expect(item1.rect.origin).toEqual( new d3.trait.Point(10, 0))
 
     item1 = { rect: new d3.trait.Rect(20, 0, 10, 0, 1, 0) }
     d3.trait.layout.byOrientation([item1], inRect, 'left')
-    expect(item1.rect.origin).toEqual({x: 10, y: 0})
+    expect(item1.rect.origin).toEqual(new d3.trait.Point( 10, 0))
 
     item1 = { rect: new d3.trait.Rect(0, 0, 10, 0, 1, 0) }
     d3.trait.layout.byOrientation([item1], inRect, 'left')
-    expect(item1.rect.origin).toEqual({x: 10, y: 0})
+    expect(item1.rect.origin).toEqual(new d3.trait.Point( 10, 0))
 
     item1 = { rect: new d3.trait.Rect(0, 0, 10, 0) }
     d3.trait.layout.byOrientation([item1], inRect, 'left')
-    expect(item1.rect.origin).toEqual({x: 0, y: 0})
+    expect(item1.rect.origin).toEqual(new d3.trait.Point( 0, 0))
 
     item1 = { rect: new d3.trait.Rect(10, 0, 10, 0) }
     d3.trait.layout.byOrientation([item1], inRect, 'left')
-    expect(item1.rect.origin).toEqual({x: 0, y: 0})
+    expect(item1.rect.origin).toEqual(new d3.trait.Point( 0, 0))
   });
 
   it('layoutByOrientation should layout two rects on left', function() {
@@ -237,46 +237,46 @@ describe('d3-traits.layout', function() {
         item1 = { rect: new d3.trait.Rect(0, 0, 10, 0, 1, 0) },
         item2 = { rect: new d3.trait.Rect(0, 0, 10, 0, 1, 0) }
     d3.trait.layout.byOrientation([item1, item2], inRect, 'left')
-    expect(item1.rect.origin).toEqual({x: 10, y: 0})
-    expect(item2.rect.origin).toEqual({x: 20, y: 0})
+    expect(item1.rect.origin).toEqual(new d3.trait.Point( 10, 0))
+    expect(item2.rect.origin).toEqual(new d3.trait.Point( 20, 0))
 
     item1 = { rect: new d3.trait.Rect(10, 0, 10, 0, 1, 0) }
     item2 = { rect: new d3.trait.Rect(10, 0, 10, 0, 1, 0) }
     d3.trait.layout.byOrientation([item1, item2], inRect, 'left')
-    expect(item1.rect.origin).toEqual({x: 10, y: 0})
-    expect(item2.rect.origin).toEqual({x: 20, y: 0})
+    expect(item1.rect.origin).toEqual(new d3.trait.Point( 10, 0))
+    expect(item2.rect.origin).toEqual(new d3.trait.Point( 20, 0))
 
     item1 = { rect: new d3.trait.Rect(10, 0, 20, 0, 1, 0) }
     item2 = { rect: new d3.trait.Rect(10, 0, 10, 0, 1, 0) }
     d3.trait.layout.byOrientation([item1, item2], inRect, 'left')
-    expect(item1.rect.origin).toEqual({x: 20, y: 0})
-    expect(item2.rect.origin).toEqual({x: 30, y: 0})
+    expect(item1.rect.origin).toEqual(new d3.trait.Point( 20, 0))
+    expect(item2.rect.origin).toEqual(new d3.trait.Point( 30, 0))
 
     item1 = { rect: new d3.trait.Rect(10, 0, 20, 0) }
     item2 = { rect: new d3.trait.Rect(10, 0, 10, 0) }
     d3.trait.layout.byOrientation([item1, item2], inRect, 'left')
-    expect(item1.rect.origin).toEqual({x: 0, y: 0})
-    expect(item2.rect.origin).toEqual({x: 20, y: 0})
+    expect(item1.rect.origin).toEqual(new d3.trait.Point( 0, 0))
+    expect(item2.rect.origin).toEqual(new d3.trait.Point( 20, 0))
   });
 
   it('layoutByOrientation should layout one rect on right', function() {
     var inRect = new d3.trait.Rect(0, 0, 100, 0),
         item1 = { rect: new d3.trait.Rect(10, 0, 10, 0) }
     d3.trait.layout.byOrientation([item1], inRect, 'right')
-    expect(item1.rect.origin).toEqual({x: 90, y: 0})
+    expect(item1.rect.origin).toEqual(new d3.trait.Point( 90, 0))
 
     item1 = { rect: new d3.trait.Rect(110, 0, 10, 0) }
     d3.trait.layout.byOrientation([item1], inRect, 'right')
-    expect(item1.rect.origin).toEqual({x: 90, y: 0})
+    expect(item1.rect.origin).toEqual(new d3.trait.Point( 90, 0))
 
     item1 = { rect: new d3.trait.Rect(0, 0, 10, 0) }
     d3.trait.layout.byOrientation([item1], inRect, 'right')
-    expect(item1.rect.origin).toEqual({x: 90, y: 0})
+    expect(item1.rect.origin).toEqual(new d3.trait.Point( 90, 0))
 
 
     item1 = { rect: new d3.trait.Rect(0, 0, 10, 0, 1, 0) }
     d3.trait.layout.byOrientation([item1], inRect, 'right')
-    expect(item1.rect.origin).toEqual({x: 100, y: 0})
+    expect(item1.rect.origin).toEqual(new d3.trait.Point( 100, 0))
   });
 
   it('layoutByOrientation should layout two rects on right', function() {
@@ -285,49 +285,49 @@ describe('d3-traits.layout', function() {
         item1 = { rect: new d3.trait.Rect(0, 0, 10, 0) },
         item2 = { rect: new d3.trait.Rect(0, 0, 10, 0) }
     d3.trait.layout.byOrientation([item1, item2], inRect, 'right')
-    expect(item1.rect.origin).toEqual({x: 80, y: 0})
-    expect(item2.rect.origin).toEqual({x: 90, y: 0})
+    expect(item1.rect.origin).toEqual(new d3.trait.Point( 80, 0))
+    expect(item2.rect.origin).toEqual(new d3.trait.Point( 90, 0))
 
     item1 = { rect: new d3.trait.Rect(100, 0, 10, 0) }
     item2 = { rect: new d3.trait.Rect(100, 0, 10, 0) }
     d3.trait.layout.byOrientation([item1, item2], inRect, 'right')
-    expect(item1.rect.origin).toEqual({x: 80, y: 0})
-    expect(item2.rect.origin).toEqual({x: 90, y: 0})
+    expect(item1.rect.origin).toEqual(new d3.trait.Point( 80, 0))
+    expect(item2.rect.origin).toEqual(new d3.trait.Point( 90, 0))
 
     item1 = { rect: new d3.trait.Rect(10, 0, 20, 0) }
     item2 = { rect: new d3.trait.Rect(10, 0, 10, 0) }
     d3.trait.layout.byOrientation([item1, item2], inRect, 'right')
-    expect(item1.rect.origin).toEqual({x: 70, y: 0})
-    expect(item2.rect.origin).toEqual({x: 90, y: 0})
+    expect(item1.rect.origin).toEqual(new d3.trait.Point( 70, 0))
+    expect(item2.rect.origin).toEqual(new d3.trait.Point( 90, 0))
 
     item1 = { rect: new d3.trait.Rect(10, 0, 20, 0, 1, 0) }
     item2 = { rect: new d3.trait.Rect(10, 0, 10, 0, 1, 0) }
     d3.trait.layout.byOrientation([item1, item2], inRect, 'right')
-    expect(item1.rect.origin).toEqual({x: 90, y: 0})
-    expect(item2.rect.origin).toEqual({x: 100, y: 0})
+    expect(item1.rect.origin).toEqual(new d3.trait.Point( 90, 0))
+    expect(item2.rect.origin).toEqual(new d3.trait.Point( 100, 0))
   });
 
   it('layoutByOrientation should layout one rect on top', function() {
     var inRect = new d3.trait.Rect(),
         item1 = { rect: new d3.trait.Rect(0, 10, 0, 10, 0, 1) }
     d3.trait.layout.byOrientation([item1], inRect, 'top')
-    expect(item1.rect.origin).toEqual({x: 0, y: 10})
+    expect(item1.rect.origin).toEqual(new d3.trait.Point( 0, 10))
 
     item1 = { rect: new d3.trait.Rect(0, 20, 0, 10, 0, 1) }
     d3.trait.layout.byOrientation([item1], inRect, 'top')
-    expect(item1.rect.origin).toEqual({x: 0, y: 10})
+    expect(item1.rect.origin).toEqual(new d3.trait.Point( 0, 10))
 
     item1 = { rect: new d3.trait.Rect(0, 0, 0, 10, 0, 1) }
     d3.trait.layout.byOrientation([item1], inRect, 'top')
-    expect(item1.rect.origin).toEqual({x: 0, y: 10})
+    expect(item1.rect.origin).toEqual(new d3.trait.Point( 0, 10))
 
     item1 = { rect: new d3.trait.Rect(0, 0, 0, 10) }
     d3.trait.layout.byOrientation([item1], inRect, 'top')
-    expect(item1.rect.origin).toEqual({x: 0, y: 0})
+    expect(item1.rect.origin).toEqual(new d3.trait.Point( 0, 0))
 
     item1 = { rect: new d3.trait.Rect(0, 10, 0, 10) }
     d3.trait.layout.byOrientation([item1], inRect, 'top')
-    expect(item1.rect.origin).toEqual({x: 0, y: 0})
+    expect(item1.rect.origin).toEqual(new d3.trait.Point( 0, 0))
   });
 
   it('layoutByOrientation should layout two rects on top', function() {
@@ -336,26 +336,26 @@ describe('d3-traits.layout', function() {
         item1 = { rect: new d3.trait.Rect(0, 0, 0, 10, 0, 1) },
         item2 = { rect: new d3.trait.Rect(0, 0, 0, 10, 0, 1) }
     d3.trait.layout.byOrientation([item1, item2], inRect, 'top')
-    expect(item1.rect.origin).toEqual({x: 0, y: 10})
-    expect(item2.rect.origin).toEqual({x: 0, y: 20})
+    expect(item1.rect.origin).toEqual(new d3.trait.Point( 0, 10))
+    expect(item2.rect.origin).toEqual(new d3.trait.Point( 0, 20))
 
     item1 = { rect: new d3.trait.Rect(0, 10, 0, 10, 0, 1) }
     item2 = { rect: new d3.trait.Rect(0, 10, 0, 10, 0, 1) }
     d3.trait.layout.byOrientation([item1, item2], inRect, 'top')
-    expect(item1.rect.origin).toEqual({x: 0, y: 10})
-    expect(item2.rect.origin).toEqual({x: 0, y: 20})
+    expect(item1.rect.origin).toEqual(new d3.trait.Point( 0, 10))
+    expect(item2.rect.origin).toEqual(new d3.trait.Point( 0, 20))
 
     item1 = { rect: new d3.trait.Rect(0, 10, 0, 20, 0, 1) }
     item2 = { rect: new d3.trait.Rect(0, 10, 0, 10, 0, 1) }
     d3.trait.layout.byOrientation([item1, item2], inRect, 'top')
-    expect(item1.rect.origin).toEqual({x: 0, y: 20})
-    expect(item2.rect.origin).toEqual({x: 0, y: 30})
+    expect(item1.rect.origin).toEqual(new d3.trait.Point( 0, 20))
+    expect(item2.rect.origin).toEqual(new d3.trait.Point( 0, 30))
 
     item1 = { rect: new d3.trait.Rect(0, 10, 0, 20) }
     item2 = { rect: new d3.trait.Rect(0, 10, 0, 10) }
     d3.trait.layout.byOrientation([item1, item2], inRect, 'top')
-    expect(item1.rect.origin).toEqual({x: 0, y: 0})
-    expect(item2.rect.origin).toEqual({x: 0, y: 20})
+    expect(item1.rect.origin).toEqual(new d3.trait.Point( 0, 0))
+    expect(item2.rect.origin).toEqual(new d3.trait.Point( 0, 20))
   });
 
 

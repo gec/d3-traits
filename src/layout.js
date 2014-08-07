@@ -28,6 +28,18 @@
       this.x = x
       this.y = y
     }
+
+  }
+  Point.prototype.distanceX = function( other) {
+    return other.x > this.x ? other.x - this.x : this.x - other.x
+  }
+  Point.prototype.distanceY = function( other) {
+    return other.y > this.y ? other.y - this.y : this.y - other.y
+  }
+  Point.prototype.distance = function( other) {
+    var dx = this.distanceX( other),
+        dy = this.distanceY( other)
+    return Math.sqrt(dx * dx + dy * dy)
   }
 
   function Size(width, height) {
