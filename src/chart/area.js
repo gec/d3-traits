@@ -42,12 +42,18 @@
   function _chartArea(_super, _config) {
     // Store the group element here so we can have multiple area charts in one chart.
     // A second "area chart" might have a different y-axis, style or orientation.
-    var group, series, lastDomainMax, stackLayout,
+    var group, series, filteredData, lastDomainMax, stackLayout,
         yAxis = _config.yAxis || 'y1',
         x1 = _super.x1(),
         y = _super[yAxis](),
         yMinDomainFromData = _super[yAxis + 'MinDomainFromData'],
-        access = { x: _config.x1, y: _config[yAxis]},
+        access = {
+          x: _config.x1,
+          y: _config[yAxis],
+          seriesData: _config.seriesData,
+          seriesName: _config.seriesName
+        },
+        focusConfig = d3.trait.focus.utils.makeConfig(_config),
         interpolate = _config.interpolate || "linear",
         stacked = _config.stacked ? true : false,
         area = makeArea( stacked, access, x1, y, interpolate, _super.chartHeight())
@@ -59,7 +65,6 @@
     }
 
     var dispatch = d3.dispatch('customHover');
-    var filtered
 
     function chartArea(_selection) {
       var self = chartArea
@@ -72,14 +77,14 @@
           group = this._chartGroup.append('g').classed(classes, true);
         }
 
-        filtered = _config.seriesFilter ? _data.filter(_config.seriesFilter) : _data
+        filteredData = _config.seriesFilter ? _data.filter(_config.seriesFilter) : _data
 
         if( stacked) {
-          if( filtered.length > 0)
-            stackLayout( filtered)
+          if( filteredData.length > 0)
+            stackLayout( filteredData)
           access.series = _config.seriesData
           access.data = access.y
-          var extent = trait.utils.extentFromAreaData( filtered, access)
+          var extent = trait.utils.extentFromAreaData( filteredData, access)
           yMinDomainFromData( extent)
         } else {
           area.y0(self.chartHeight())
@@ -87,7 +92,7 @@
 
         // DATA JOIN
         series = group.selectAll(".series")
-          .data(filtered)
+          .data(filteredData)
 
         // UPDATE
         series.selectAll("path")
@@ -114,17 +119,26 @@
       var dur = duration || _super.duration()
       var attrD = function(d) { return area(_config.seriesData(d)); }
       if( stacked) {
-        stackLayout( filtered);
+        stackLayout( filteredData);
         access.series = _config.seriesData
         access.data = access.y
-        var extent = trait.utils.extentFromAreaData( filtered, access)
+        var extent = trait.utils.extentFromAreaData( filteredData, access)
         yMinDomainFromData( extent)
       }
 
       lastDomainMax = trait.chart.utils.updatePathWithTrend(type, dur, x1, series, attrD, lastDomainMax)
 
       return this;
-    };
+    }
+
+    chartArea.getFocusItems = function(focusPoint) {
+      var foci = this._super(focusPoint),
+          myFoci = trait.focus.utils.getFocusItems( filteredData, focusPoint, focusConfig, access, x1, y, chartArea.color, stacked) // t: isStacked
+
+      foci = foci.concat( myFoci)
+      return foci
+    }
+
 
     d3.rebind(chartArea, dispatch, 'on');
 

@@ -30,9 +30,10 @@
       access = {
         x: _config.x1,
         y: _config[yAxis],
-        seriesData: _config.seriesData
+        seriesData: _config.seriesData,
+        seriesName: _config.seriesName
       },
-      focus = d3.trait.focus.utils.makeConfig(_config),
+      focusConfig = d3.trait.focus.utils.makeConfig(_config),
       line = d3.svg.line()
         .interpolate(_config.interpolate || "linear")
         .x(function(d) { return x1(access.x(d)); })
@@ -147,9 +148,8 @@
     }
 
     chartLine.getFocusItems = function(focusPoint) {
-      var self = chartLine,
-          foci = this._super(focusPoint),
-          myFoci = trait.focus.utils.getFocusItems( filteredData, focusPoint, focus, access, x1, y, self.color)
+      var foci = this._super(focusPoint),
+          myFoci = trait.focus.utils.getFocusItems( filteredData, focusPoint, focusConfig, access, x1, y, chartLine.color)
 
       foci = foci.concat( myFoci)
       return foci

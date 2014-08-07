@@ -131,7 +131,6 @@
    */
   function _tooltip(_super, _config, _id) {
 
-    var distance = d3.trait.utils.configFloat(_config.distance, 14)
     var axis = _config.axis
     var radius = 4
     var margin = 3
