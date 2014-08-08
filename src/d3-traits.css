@@ -38,3 +38,11 @@ ul.legend li {
     padding: 0 0 0.16em 0;
     margin-right: 1.6em;
 }
+
+.crosshair path, .crosshair line {
+    fill: none;
+    stroke: black;
+    shape-rendering: crispEdges;
+    stroke-width: 1px;
+    opacity: 0.5
+}

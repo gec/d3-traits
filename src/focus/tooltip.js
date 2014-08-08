@@ -98,49 +98,27 @@
     })
   }
 
-  function fociAreTheSame(last, current) {
-    if( !last || last.length !== current.length )
-      return false
-
-    var l, c,
-        index = last.length - 1
-
-    for( ; index >= 0; index-- ) {
-      l = last[index]
-      c = current[index]
-      if( l.index !== c.index || l.point.x !== c.point.x || l.point.y !== c.point.y )
-        return false
-    }
-    return true
-  }
-
-  function mouseNotOnChart(mousePoint, chartWidth, chartHeight) {
-    return  mousePoint[0] < 0 ||
-      mousePoint[0] > chartWidth ||
-      mousePoint[1] < 0 ||
-      mousePoint[1] > chartHeight
-
-  }
-
   /**
    * Tooltip will call focus super. Any charts traits can return a list of items that need tooltips.
    * For example a line chart with two series can return two times.
    *
    * Configure
    *  formatY -- d3.format function.
+   *  transitionDuration — In milliseconds
    */
   function _tooltip(_super, _config, _id) {
 
-    var axis = _config.axis
-    var radius = 4
-    var margin = 3
+    var axis = _config.axis,
+        transitionDuration = trait.utils.configFloat( _config.transitionDuration, 100),
+        radius = 4,
+        margin = 3
 
     function tooltip(_selection) {
       var self = tooltip
 
       _selection.each(function(_data) {
         var element = this
-        var cache = d3.trait.utils.getTraitCache(element, _id)
+        var cache = trait.utils.getTraitCache(element, _id)
 
         cache.tooltips = _data.map(function(d) { return null})
 
@@ -153,7 +131,7 @@
             return
           }
 
-          var anchorMidY = new d3.trait.Point(0, 0.5)
+          var anchorMidY = new trait.Point(0, 0.5)
 
           markTooltipsForRemoval(cache.tooltips)
 
@@ -200,10 +178,10 @@
             var bbox = ttip.text.node().getBBox()
             bbox.height = bbox.height * 2 + margin * 2
             bbox.width += margin * 2 + getCalloutPointerHalfHeight(bbox.height)
-            item.rect = new d3.trait.Rect(item.point, bbox, anchorMidY)
+            item.rect = new trait.Rect(item.point, bbox, anchorMidY)
           })
 
-          d3.trait.layout.verticalAnchorLeftRight(foci, self.chartRect())
+          trait.layout.verticalAnchorLeftRight(foci, self.chartRect())
 
           foci.forEach(function(item, index, array) {
             var seriesIndex = _data.indexOf(item.series),
@@ -232,7 +210,7 @@
               })
             }
 
-            ttip.path.transition()
+            ttip.path.transition().duration(transitionDuration)
               .attr({
                 'opacity': 0.72,
                 'fill':    item.color,

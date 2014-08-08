@@ -247,6 +247,9 @@
                 mousePoint = d3.mouse(element._chartGroup.node()),
                 onChart = mouseOnChart(mousePoint, chartWidth, chartHeight),
                 focusPoint = new d3.trait.Point(mousePoint[0], mousePoint[1])
+            if( onChart)
+              onChartMouseMoveDispatch(element, focusPoint)
+
 
             foci = onChart ? self.getFocusItems.call(element, focusPoint) : []
             foci.forEach(function(item, index, array) {
@@ -315,6 +318,9 @@
       elementDispatch(element, '__onFocusChangeListeners', [foci, focusPoint])
     }
 
+    function onChartMouseMoveDispatch(element, focusPoint) {
+      elementDispatch(element, '__onChartMouseMoveListeners', [focusPoint])
+    }
     function onChartMouseOutDispatch(element) {
       elementDispatch(element, '__onChartMouseOutListeners', [])
     }
@@ -339,6 +345,13 @@
       if( fn )
         element.__onFocusChangeListeners.push(fn)
     }
+    chartBase.onChartMouseMove = function(element, fn) {
+      if( !element.__onChartMouseMoveListeners )
+        element.__onChartMouseMoveListeners = []
+      if( fn )
+        element.__onChartMouseMoveListeners.push(fn)
+    }
+
     chartBase.onChartMouseOut = function(element, fn) {
       if( !element.__onChartMouseOutListeners )
         element.__onChartMouseOutListeners = []
