@@ -25,15 +25,14 @@
    * For example a line chart with two series can return two times.
    *
    * Configure
-   *  orient: 'vertical', 'horizontal', 'both'
+   *  axis: 'x1', 'y1', ['x1', 'y1']
    */
   function _crosshair(_super, _config, _id) {
 
     var group, series, lastX,
         line = d3.svg.line(),
         crosshairs = [],
-        orient = _config.orient || 'vertical',
-        width = _config.width || 3
+        axis = _config.axis || 'x1'
 
     function removeCrosshair() {
       if( group ) {
@@ -79,8 +78,6 @@
         .append("path")
         .attr({
           'class': "line",
-          'stroke': '#000',
-//                'opacity': 1,
           'd': function(d) { return line(d); }
         })
 
@@ -108,8 +105,7 @@
         if( ! group) {
           group = element._container.append('g')
             .attr({
-              'class':      'crosshair-group'//,
-//                'opacity': 0
+              'class':      'crosshair-group'
             });
 
           self.onChartMouseMove( element, chartMouseMove)
