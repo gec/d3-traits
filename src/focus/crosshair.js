@@ -47,16 +47,26 @@
           marginLeft = _super.marginLeft(),
           marginTop = _super.marginTop()
 
-      if( focusPoint.x === lastX)
+      if( focusPoint && focusPoint.x === lastX)
         return
 
-      console.log( 'chartMouseMove x=' + focusPoint.x)
-      if( crosshairs.length === 0)
-        crosshairs[0] = []
-      var crosshairX = crosshairs[0]
+      if( focusPoint) {
 
-      crosshairX[0] = [focusPoint.x + marginLeft, marginTop]
-      crosshairX[1] = [focusPoint.x + marginLeft, chartHeight + marginTop]
+        if( crosshairs.length === 0)
+          crosshairs[0] = []
+        var crosshairX = crosshairs[0]
+
+        crosshairX[0] = [focusPoint.x + marginLeft, marginTop]
+        crosshairX[1] = [focusPoint.x + marginLeft, chartHeight + marginTop]
+
+        lastX = focusPoint.x
+
+      } else {
+
+        if( crosshairs.length > 0)
+          crosshairs.splice(0, 1)
+        lastX =  undefined
+      }
 
       // DATA JOIN
       series = group.selectAll(".crosshair")
@@ -85,7 +95,6 @@
         .style({opacity: 0})
         .remove();
 
-      lastX = focusPoint.x
     }
 
 
@@ -104,7 +113,7 @@
             });
 
           self.onChartMouseMove( element, chartMouseMove)
-          //self.onChartMouseOut(element, function() { removeCrosshair() })
+          self.onChartMouseOut(element, chartMouseMove)
         }
       })
     }
