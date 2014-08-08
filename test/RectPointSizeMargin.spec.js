@@ -9,8 +9,15 @@ describe('d3-traits.layout', function() {
     expect(p.y).toBe(0)
   });
 
-  it('should create a Point', function() {
+  it('should create a Point from x, y', function() {
     var p = new d3.trait.Point(1, 2)
+    expect(p.x).toBe(1)
+    expect(p.y).toBe(2)
+  });
+
+  it('should create a Point from a Point', function() {
+    var p1 = new d3.trait.Point(1, 2)
+    var p = new d3.trait.Point( p1)
     expect(p.x).toBe(1)
     expect(p.y).toBe(2)
   });
@@ -217,6 +224,16 @@ describe('d3-traits.layout', function() {
     below = new d3.trait.Rect(100, 20, 4, 2, 1, 1)
     expect(r.spaceOnBottom(below)).toBe(6)
   });
+
+//  it('should translate Rect to fint in column', function() {
+//    var r = new d3.trait.Rect(100, 0, 10, 1)
+//    r.fitInColumn( 200, 100)
+//    expect(r.origin.x).toBe(200)
+//
+//    r.anchor.x = 1
+//    r.fitInColumn( 200, 100)
+//    expect(r.origin.x).toBe(300)
+//  });
 
 
 });

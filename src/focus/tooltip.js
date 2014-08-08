@@ -105,16 +105,18 @@
    * Configure
    *  formatY -- d3.format function.
    *  transitionDuration — In milliseconds
+   *
+
    */
-  function _tooltip(_super, _config, _id) {
+  function _tooltipDiscrete(_super, _config, _id) {
 
     var axis = _config.axis,
         transitionDuration = trait.utils.configFloat( _config.transitionDuration, 100),
         radius = 4,
         margin = 3
 
-    function tooltip(_selection) {
-      var self = tooltip
+    function tooltipDiscrete(_selection) {
+      var self = tooltipDiscrete
 
       _selection.each(function(_data) {
         var element = this
@@ -228,10 +230,211 @@
       })
     }
 
-    return tooltip;
+    return tooltipDiscrete;
 
   }
 
-  trait.focus.tooltip = _tooltip
+  // TODO: The seriesFilter can't used series index because we don't have it. It can filter on a series attribute.
+  function getFilteredFoci( foci, seriesFilter) {
+    if( ! seriesFilter)
+      return foci
+
+    var filtered = foci.filter( function( focus, index, array) {
+      return seriesFilter( focus.series)
+    })
+    return filtered
+  }
+
+
+  var ItemY = 0,
+      ItemLabel = 1
+  var AnchorLeft = new trait.Point(0, 0),
+      AnchorRight = new trait.Point(1, 0),
+      AnchorCenter = new trait.Point(0.5, 0)
+
+
+  /**
+   *
+   *
+   * line = {
+   *    elements: [
+   *    ],
+   *    group:
+   *
+   *      y: {
+   *        value,
+   *        text,
+   *        bbox,
+   *        element
+   *      },
+   *      label: {
+   *        text,
+   *        bbox,
+   *        element,
+   *      },
+   *      group  -- group element for line
+   *    },
+   * }
+   *
+   * o 134.00 Grid  seriesMarker, seriesValue, seriesLabel
+   * o   1.00 ESS
+   *
+   * @param element
+   * @param focus
+   * @param config
+   */
+  function updateFocusLine( line, focus, config) {
+
+    var item = focus.item,
+        xValue = formatDate(config.x1(item)),
+        yValue = config.y1(item),
+        label = config.seriesLabel( focus.series)
+
+    updateFocusLineItem( line[ItemY], yValue, AnchorRight, config.formatY)
+    updateFocusLineItem( line[ItemLabel], label, AnchorLeft)
+
+    return line[ItemY].changed || line[ItemLabel].changed
+  }
+
+  function updateFocusLineItem( item, value, anchor, format) {
+    if( item.value && item.value === value) {
+      item.changed = false
+    }
+
+    item.value = value
+    item.text = format ? format(value) : value
+
+    item.element.text = item.text
+    item.bbox = item.element.node().getBBox()
+    item.rect = new trait.Rect( 0, 0, item.bbox.width, item.bbox.height, anchor.x, anchor.y)
+
+    item.changed = true
+
+    return item
+  }
+
+//  function getLineItemWidthMax( lines, lineItem) {
+//    var max = 0
+//    lines.forEach( function( line) {
+//      max = Math.max( max, line[lineItem].bbox.width)
+//    })
+//    return max
+//  }
+
+  function makeNewLine( focus, config, group) {
+    var item = focus.item,
+        xValue = formatDate(config.x1(item)),
+        yValue = config.y1(item),
+        label = config.seriesLabel( focus.series),
+        line = [{}, {}],
+        lineY = line[ItemY],
+        lineLabel = line[ItemLabel]
+
+    line.group = group.append('g')
+      .attr({
+        'class':      'tooltip-line'
+      });
+
+
+    lineY.element = line.group.append('text')
+      .style({
+        'font-family':    'monospace',
+        'font-size':      10,
+        'fill':           'black',
+        'text-rendering': 'geometric-precision',
+        'text-anchor': 'end'  // right justified.
+      })
+    lineLabel.element = line.group.append('text')
+      .style({
+        'font-family':    'monospace',
+        'font-size':      10,
+        'fill':           'black',
+        'text-rendering': 'geometric-precision'
+      })
+
+
+    lineY = updateFocusLineItem( lineY, yValue, config.formatY)
+    lineLabel = updateFocusLineItem( lineLabel, label)
+
+    return line
+  }
+
+  /**
+   * Tooltip will call focus super. Any charts traits can return a list of items that need tooltips.
+   * For example a line chart with two series can return two times.
+   *
+   * o Value Label
+   *
+   * Configure
+   *  formatY -- d3.format function.
+   *  transitionDuration — In milliseconds
+   *
+   */
+  function _tooltipUnified(_super, _config, _id) {
+
+    var group,
+        lines = [],
+        axis = _config.axis,
+        transitionDuration = trait.utils.configFloat( _config.transitionDuration, 100),
+        radius = 4,
+        margin = 3
+
+    function focusChange( foci, focusPoint) {
+
+      if( foci.length <= 0 ) {
+        //removeAllTooltips(cache)
+        return
+      }
+
+      var filteredFoci = getFilteredFoci( foci, _config.seriesFilter)
+
+      var changes = { values: false, count: false }
+      filteredFoci.forEach(function( focus, index, array) {
+        var line = lines[index]
+        if( ! line) {
+          line[index] = makeNewLine( focus, _config, group)
+          changes.count = true
+        }
+        else
+          changes.values = changes.values || updateFocusLine( line, focus, _config)
+      })
+
+//      var maxWidthY = getLineItemWidthMax( lines, 'y'),
+//          maxWidthLabel = getLineItemWidthMax( lines, 'label')
+
+      // o 134.00 Grid
+      // o   1.00 ESS
+
+
+    }
+
+    function tooltipUnified(_selection) {
+      var self = tooltipUnified
+
+      _selection.each(function(_data) {
+        var element = this
+
+        if( ! group) {
+          group = element._container.append('g')
+            .attr({
+              'class':      'tooltip-unified-group'
+            });
+
+          self.onFocusChange( element, focusChange)
+          //self.onChartMouseOut( element, focusChange)
+        }
+
+      })
+    }
+
+    return tooltipUnified;
+
+  }
+
+  if( ! trait.focus.tooltip)
+    trait.focus.tooltip = {}
+
+  trait.focus.tooltip.discrete = _tooltipDiscrete
+  trait.focus.tooltip.unified = _tooltipUnified
 
 }(d3, d3.trait));

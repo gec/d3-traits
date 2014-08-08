@@ -21,14 +21,19 @@
 (function(d3, trait) {
 
   function Point(x, y) {
-    if( arguments.length <= 0 ) {
-      this.x = 0
-      this.y = 0
-    } else {
-      this.x = x
-      this.y = y
+    switch( arguments.length) {
+      case 0:
+        this.x = 0
+        this.y = 0
+        break;
+      case 1:
+        this.x = x.x
+        this.y = x.y
+        break;
+      default:
+        this.x = x
+        this.y = y
     }
-
   }
   Point.prototype.distanceX = function( other) {
     return other.x > this.x ? other.x - this.x : this.x - other.x
@@ -135,29 +140,35 @@
         break;
     }
 
-    this.minX = function() { return this.origin.x - this.size.width * this.anchor.x}
-    this.maxX = function() { return this.origin.x + this.size.width * (1 - this.anchor.x)}
-    this.minY = function() { return this.origin.y - this.size.height * this.anchor.y}
-    this.maxY = function() { return this.origin.y + this.size.height * (1 - this.anchor.y)}
-
-    this.spaceOnTop = function(rectAbove) { return this.minY() - rectAbove.maxY() }
-    this.spaceOnBottom = function(rectBelow) { return rectBelow.minY() - this.maxY() }
-
-    this.roomOnRight = function(room) { return room.maxX() - this.maxX()}
-    this.roomOnBottom = function(room) { return room.maxY() - this.maxY()}
-    this.roomOnLeft = function(room) { return this.minX() - room.minX()}
-    this.roomOnTop = function(room) { return this.minY() - room.minY()}
-
-//        this.roomOnRight = function( roomWidth) { return roomWidth - this.maxX()}
-//        this.roomOnBottom = function( roomHeight) { return roomHeight - this.maxY()}
-//        this.roomOnLeft = function() { return this.minX()}
-//        this.roomOnTop = function() { return this.minY()}
-
-    this.translate = function(point) {
-      this.origin.x += point.x
-      this.origin.y += point.y
-    }
   }
+  Rect.prototype.minX = function() { return this.origin.x - this.size.width * this.anchor.x}
+  Rect.prototype.maxX = function() { return this.origin.x + this.size.width * (1 - this.anchor.x)}
+  Rect.prototype.minY = function() { return this.origin.y - this.size.height * this.anchor.y}
+  Rect.prototype.maxY = function() { return this.origin.y + this.size.height * (1 - this.anchor.y)}
+
+  Rect.prototype.spaceOnTop = function(rectAbove) { return this.minY() - rectAbove.maxY() }
+  Rect.prototype.spaceOnBottom = function(rectBelow) { return rectBelow.minY() - this.maxY() }
+
+  Rect.prototype.roomOnRight = function(room) { return room.maxX() - this.maxX()}
+  Rect.prototype.roomOnBottom = function(room) { return room.maxY() - this.maxY()}
+  Rect.prototype.roomOnLeft = function(room) { return this.minX() - room.minX()}
+  Rect.prototype.roomOnTop = function(room) { return this.minY() - room.minY()}
+
+  Rect.prototype.translate = function(point) {
+    this.origin.x += point.x
+    this.origin.y += point.y
+  }
+
+//  Rect.prototype.fitInColumn = function(x, colWidth) {
+//
+//    if( this.anchor.x === 0) {
+//      this.origin.x += x - this.minX()
+//    } else if( this.anchor.x === 1) {
+//      this.origin.x += (x + colWidth) - this.maxX()
+//    } else {
+//      // TODO:
+//    }
+//  }
 
   var LEFT = -1,
       RIGHT = 1
@@ -334,7 +345,7 @@
     }
   }
 
-  function layoutVertical(itemsWithRect, inRect) {
+  function  layoutVertical(itemsWithRect, inRect) {
     if( itemsWithRect.length <= 0 )
       return;
 
@@ -450,6 +461,108 @@
     }
   }
 
+  function fillArray( array, index, defaultValue) {
+    // 0 1  2
+    // 1 1
+    if( ! array || index <= 0)
+      return
+    while( array.length - 1 > index)
+      array.push( defaultValue)
+  }
+  function getRowsColWidthsMax( rows) {
+    var widths = []
+    rows.forEach( function( row) {
+      row.forEach( function( col, colIndex) {
+        fillArray( widths, colIndex, 0)
+        widths[colIndex] = Math.max( widths[colIndex], col.rect.width)
+      })
+    })
+
+    return widths
+  }
+
+  function getRowMaxHeight( row, colPaddings) {
+    var max = 0
+    row.forEach( function( col, index) {
+      var padding = colPaddings[ index]
+      max = Math.max( max, col.rect.height + padding.top + padding.bottom)
+    })
+  }
+
+  /**
+   *
+   * Assume the anchor matches the justification. Don't adjust the anchor.
+   * Just line up the origins.
+   *
+   * @param rows Rows of columns of items with Rect.
+   * @param origin Point of origin (top left)
+   * @param colPaddings Array of columns, each with Margin
+   * @param colJustifications Array of columns with {horizontal: , vertical: }
+   * @returns {Size}
+   */
+  function packRows( rows, origin, colPaddings, colJustifications) {
+    var colWidths = getRowsColWidthsMax( rows),
+        colOriginsX = [],
+        paddingMaxes = [],
+        totalSize = new Size()
+
+
+    // Get colOriginsX and paddingMaxes
+    var x = origin.x
+    colWidths.forEach( function( w, colIndex) {
+      var padding = colPaddings[ colIndex],
+          justification = colJustifications[ colIndex],
+          paddingMax = new Margin()
+
+      x += padding.left
+      if( justification.horizontal === 'left') {
+        colOriginsX.push( x)
+      } else if( justification.horizontal === 'right') {
+        colOriginsX.push( x + w)
+      } else {
+        colOriginsX.push( x + Math.round(w / 2))
+      }
+      x += w + padding.right
+
+      paddingMax.top = Math.max( paddingMax.top, padding.top)
+      paddingMax.right = Math.max( paddingMax.right, padding.right)
+      paddingMax.bottom = Math.max( paddingMax.bottom, padding.bottom)
+      paddingMax.left = Math.max( paddingMax.left, padding.left)
+      paddingMaxes.push( paddingMax)
+    })
+
+    totalSize.width = x
+
+    var y = origin.y
+    rows.forEach( function( row) {
+      var lineHeight = getRowMaxHeight( row, colPaddings)
+
+      row.forEach( function( col, colIndex) {
+        var rect = col.rect,
+            colOriginX = colOriginsX[ colIndex],
+            justification = colJustifications[ colIndex],
+            padding = colPaddings[ colIndex]
+
+        rect.origin.x = colOriginX
+
+        if( justification.vertical === 'top') {
+          rect.origin.y = y + padding.top
+        } else if( justification.vertical === 'bottom') {
+          rect.origin.y = y + lineHeight - padding.bottom
+        } else {
+          var hMinusPadding = lineHeight - padding.bottom - padding.top
+          rect.origin.y = y + padding.top + Math.round(hMinusPadding / 2)
+        }
+      })
+
+      y += lineHeight
+    })
+
+    totalSize.height = y - origin.y
+
+    return totalSize
+  }
+
 
   ///////////////////////////////////
   // Export to d3.trait
@@ -467,6 +580,7 @@
   trait.layout.vertical = layoutVertical
   trait.layout.byOrientation = layoutByOrientation
   trait.layout.verticalAnchorLeftRight = layoutVerticalAnchorLeftRight
+  trait.layout.packRows = packRows
   trait.layout.utils.listNudgeUpFromBottom = listNudgeUpFromBottom
   trait.layout.utils.removeOverlapFromTop = removeOverlapFromTop
   trait.layout.utils.listBalanceFromTop = listBalanceFromTop
