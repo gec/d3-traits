@@ -501,7 +501,7 @@
   function getJustificationHorizontal( colJustifications, colIndex) {
     if( ! colJustifications)
       return 'left'
-    var j = colJustifications[ colIndex]
+    var j = Array.isArray( colJustifications) ? colJustifications[ colIndex] : colJustifications
     if( ! j || ! j.horizontal)
       return 'left'
     return j.horizontal
@@ -509,10 +509,22 @@
   function getJustificationVertical( colJustifications, colIndex) {
     if( ! colJustifications)
       return 'bottom'
-    var j = colJustifications[ colIndex]
+    var j = Array.isArray( colJustifications) ? colJustifications[ colIndex] : colJustifications
     if( ! j || ! j.vertical)
       return 'bottom'
     return j.vertical
+  }
+
+  var MARGIN0 = new Margin()
+  function getPadding( colPaddings, colIndex) {
+    if( !colPaddings)
+      return MARGIN0
+    if( Array.isArray( colPaddings)) {
+      var p = colPaddings[colIndex]
+      return p ? p : MARGIN0
+    } else {
+      return colPaddings  // just one padding
+    }
   }
 
   function packColOriginsX( rows, origin, colPaddings, colJustifications) {
@@ -521,7 +533,7 @@
 
     var x = origin.x
     colWidths.forEach( function( w, colIndex) {
-      var padding = colPaddings[ colIndex],
+      var padding = getPadding( colPaddings, colIndex),
           justHorizontal = getJustificationHorizontal( colJustifications, colIndex)
 
       x += padding.left
@@ -548,7 +560,7 @@
       var rect = col.rect,
           colOriginX = colOriginsX[ colIndex],
           justVertical = getJustificationVertical( colJustifications, colIndex),
-          padding = colPaddings[ colIndex]
+          padding = getPadding( colPaddings, colIndex)
 
       rect.origin.x = colOriginX
 
@@ -572,12 +584,17 @@
    * Just line up the origins.
    *
    * @param rows Rows of columns of items with Rect.
-   * @param origin Point of origin (top left)
-   * @param colPaddings Array of columns, each with Margin
-   * @param colJustifications Array of columns with {horizontal: , vertical: }
+   * @param origin Point of origin (top left). If undefined, Point(0,0) is used.
+   * @param colPaddings Maring for all columns or array of Margins for each column.
+   *                    If undefined, the default padding is 0.
+   * @param colJustifications Justification for all columns or array of justifications for each column.
+   *                    If undefined, the default is {horizontal: 'left', vertical: 'bottom'}
    * @returns {Size}
    */
   function packRows( rows, origin, colPaddings, colJustifications) {
+    if( ! origin)
+      origin = new Point()
+
     var colWidthsMax = packColWidthsMax( rows),
         colOriginsX = packColOriginsX( rows, origin, colPaddings, colJustifications),
         totalSize = new Size()

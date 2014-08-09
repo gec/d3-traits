@@ -442,7 +442,7 @@ describe('d3-traits.layout', function() {
         padding3 = new d3.trait.Margin( 10),
         colPaddings = [padding1, padding2, padding3],
         colJustifications = [
-          {horizontal: 'left'},
+          {horizontal: 'left'}, // vertical defaults to 'bottom'.
           {horizontal: 'right'},
           {horizontal: 'left'}
         ],
@@ -478,7 +478,11 @@ describe('d3-traits.layout', function() {
         padding2 = new d3.trait.Margin( 10),
         padding3 = new d3.trait.Margin( 10),
         colPaddings = [padding1, padding2, padding3],
-        colJustifications = [ {horizontal: 'left'}, {horizontal: 'right'}, {horizontal: 'left'}],
+        colJustifications = [
+          {horizontal: 'left'},   // vertical defaults to 'bottom'.
+          {horizontal: 'right'},
+          {horizontal: 'left'}
+        ],
         origin = new d3.trait.Point(100, 100)
 
     d3.trait.layout.pack.rows( rows, origin, colPaddings, colJustifications)
