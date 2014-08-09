@@ -8,6 +8,7 @@ D3 charts via reusable traits (aka mixins). [See the wiki](https://github.com/ge
 ```
 sudo npm install -g grunt
 sudo npm install -g grunt-cli
+cd d3-traits
 npm install
 bower install d3
 bower install moment
