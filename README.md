@@ -2,9 +2,17 @@
 
 ### Perfect charts. Minimal coding.
 
-D3 charts via reusable traits (aka mixins)
+D3 charts via reusable traits (aka mixins). [See the wiki](https://github.com/gec/d3-traits/wiki)
 
-[See the wiki](https://github.com/gec/d3-traits/wiki)
+### Install
+```
+sudo npm install -g grunt
+sudo npm install -g grunt-cli
+npm install
+bower install d3
+bower install moment
+grunt
+```
 
 ### Problem
 
