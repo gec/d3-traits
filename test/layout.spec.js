@@ -358,6 +358,142 @@ describe('d3-traits.layout', function() {
     expect(item2.rect.origin).toEqual(new d3.trait.Point( 0, 20))
   });
 
+  function makeRowOfColWidths( colWidths, height) {
+    return colWidths.map( function( colWidth) {
+      return { rect: new d3.trait.Rect( new d3.trait.Point(), new d3.trait.Size( colWidth, height))}
+    })
+  }
+
+  function makeRowsFromColWidths( rowsOfColWidths, height) {
+    return rowsOfColWidths.map( function( colWidths) {
+      return makeRowOfColWidths( colWidths, height)
+    })
+  }
+
+  it('pack.utils.colWidthsMax should  ...', function() {
+
+    var colWidthsMax, rows,
+        colWidths1 = [10, 0, 20],
+        colWidths2 = [8, 10, 10],
+        height = 10
+
+    rows = makeRowsFromColWidths( [colWidths1], height)
+    colWidthsMax = d3.trait.layout.pack.utils.colWidthsMax( rows)
+    expect( colWidthsMax).toEqual( [colWidths1[0], colWidths1[1], colWidths1[2]])
+
+    rows = makeRowsFromColWidths( [colWidths1, colWidths2], height)
+    colWidthsMax = d3.trait.layout.pack.utils.colWidthsMax( rows)
+    expect( colWidthsMax).toEqual( [colWidths1[0], colWidths2[1], colWidths1[2]])
+
+  });
+
+  it('pack.utils.lineHeightFromRow should  ...', function() {
+
+    var lineHeight, rows,
+        colWidths1 = [10, 0, 20],
+        colWidths2 = [8, 10, 10],
+        padding1 = new d3.trait.Margin( 10),
+        padding2 = new d3.trait.Margin( 10),
+        padding3 = new d3.trait.Margin( 10),
+        colPaddings = [padding1, padding2, padding3],
+        height = 10
+
+    rows = makeRowsFromColWidths( [colWidths1], height)
+    lineHeight = d3.trait.layout.pack.utils.lineHeightFromRow( rows[0], colPaddings)
+    expect( lineHeight).toEqual(
+      Math.max( height + padding1.top + padding1.bottom,
+        Math.max( height + padding2.top + padding2.bottom,
+                  height + padding3.top + padding3.bottom)
+
+      )
+    )
+
+  });
+
+  it('pack.utils.colOriginsX should  ...', function() {
+
+    var lineHeight, rows, originsX,
+        colWidths1 = [10, 0, 20],
+        colWidths2 = [8, 10, 10],
+        padding1 = new d3.trait.Margin( 10),
+        padding2 = new d3.trait.Margin( 10),
+        padding3 = new d3.trait.Margin( 10),
+        colPaddings = [padding1, padding2, padding3],
+        colJustifications = [ {horizontal: 'left'}, {horizontal: 'right'}, {horizontal: 'left'}],
+        origin = new d3.trait.Point()
+        height = 10
+
+    rows = makeRowsFromColWidths( [colWidths1], height)
+    originsX = d3.trait.layout.pack.utils.colOriginsX( rows, origin, colPaddings, colJustifications)
+
+    var x1 = origin.x + padding1.left,
+        x2 = x1 + colWidths1[0] + padding1.right + padding2.left + colWidths1[1],// right justified.
+        x3 = x2 + padding2.right + padding3.left
+    expect( originsX).toEqual( [ x1, x2, x3 ])
+  });
+
+  it('pack.utils.row should  ...', function() {
+
+    var lineHeight, rows, colOriginsX,
+        colWidths1 = [10, 0, 20],
+        colWidths2 = [8, 10, 10],
+        padding1 = new d3.trait.Margin( 10),
+        padding2 = new d3.trait.Margin( 10),
+        padding3 = new d3.trait.Margin( 10),
+        colPaddings = [padding1, padding2, padding3],
+        colJustifications = [
+          {horizontal: 'left'},
+          {horizontal: 'right'},
+          {horizontal: 'left'}
+        ],
+        height = 10,
+        y = 0
+
+    rows = makeRowsFromColWidths( [colWidths1], height)
+    lineHeight = d3.trait.layout.pack.utils.lineHeightFromRow( rows[0], colPaddings)
+    colOriginsX = d3.trait.layout.pack.utils.colOriginsX( rows, new d3.trait.Point(), colPaddings, colJustifications)
+
+    d3.trait.layout.pack.utils.row( rows[0], colOriginsX, colPaddings, colJustifications, lineHeight, y)
+
+    var r1 = rows[0][0].rect,
+        r2 = rows[0][1].rect,
+        r3 = rows[0][2].rect,
+        y1 = y + padding1.top + r1.size.height,
+        y2 = y1 + padding1.bottom + padding2.top + r2.size.height,
+        y3 = y2 + padding2.bottom  + padding3.top + r3.size.height
+    expect( r1.origin).toEqual( new d3.trait.Point( colOriginsX[0], y1))
+
+  });
+
+  it('pack.rows should layout ...', function() {
+
+    var p = new d3.trait.Point(),
+        s = new d3.trait.Size( 10, 10),
+        c1 = { rect: new d3.trait.Rect( p, s)},
+        c2 = { rect: new d3.trait.Rect( p, s)},
+        c3 = { rect: new d3.trait.Rect( p, s)},
+        row1 = [c1, c2, c3],
+        rows = [ row1 ],
+        padding1 = new d3.trait.Margin( 10),
+        padding2 = new d3.trait.Margin( 10),
+        padding3 = new d3.trait.Margin( 10),
+        colPaddings = [padding1, padding2, padding3],
+        colJustifications = [ {horizontal: 'left'}, {horizontal: 'right'}, {horizontal: 'left'}],
+        origin = new d3.trait.Point(100, 100)
+
+    d3.trait.layout.pack.rows( rows, origin, colPaddings, colJustifications)
+
+    var y1 = origin.y + padding1.top + c1.rect.size.height,
+        x1 = origin.x + padding1.left,
+        x2 = x1 + c1.rect.size.width + padding1.right + padding2.left + c2.rect.size.width,  // right justified.
+        x3 = x2 + padding2.right + padding3.left
+
+    expect(c1.rect.origin).toEqual(new d3.trait.Point( x1, y1))
+    expect(c2.rect.origin).toEqual(new d3.trait.Point( x2, y1))
+    expect(c3.rect.origin).toEqual(new d3.trait.Point( x3, y1))
+
+  });
+
 
 });
 
