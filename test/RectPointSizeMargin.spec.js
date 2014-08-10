@@ -147,6 +147,15 @@ describe('d3-traits.layout', function() {
     expect(r.maxX()).toBe(10)
   });
 
+  it('should calculate Rect.midX()', function() {
+    var r = new d3.trait.Rect(10, 100, 2, 4)
+    expect(r.midX()).toBe(11)
+    r = new d3.trait.Rect(10, 100, 2, 4, 0.5, 0.5)
+    expect(r.midX()).toBe(10)
+    r = new d3.trait.Rect(10, 100, 2, 4, 1, 1)
+    expect(r.midX()).toBe(9)
+  });
+
   it('should calculate Rect.minY()', function() {
     var r = new d3.trait.Rect(100, 10, 4, 2)
     expect(r.minY()).toBe(10)
@@ -163,6 +172,15 @@ describe('d3-traits.layout', function() {
     expect(r.maxY()).toBe(11)
     r = new d3.trait.Rect(100, 10, 4, 2, 1, 1)
     expect(r.maxY()).toBe(10)
+  });
+
+  it('should calculate Rect.midY()', function() {
+    var r = new d3.trait.Rect(100, 10, 4, 2)
+    expect(r.midY()).toBe(11)
+    r = new d3.trait.Rect(100, 10, 4, 2, 0.5, 0.5)
+    expect(r.midY()).toBe(10)
+    r = new d3.trait.Rect(100, 10, 4, 2, 1, 1)
+    expect(r.midY()).toBe(9)
   });
 
   it('should calculate Rect.RoomOnRight( roomWidth)', function() {

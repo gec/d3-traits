@@ -143,8 +143,10 @@
   }
   Rect.prototype.minX = function() { return this.origin.x - this.size.width * this.anchor.x}
   Rect.prototype.maxX = function() { return this.origin.x + this.size.width * (1 - this.anchor.x)}
+  Rect.prototype.midX = function() { return this.origin.x + (this.size.width * (1 - 2 * this.anchor.x)) / 2}
   Rect.prototype.minY = function() { return this.origin.y - this.size.height * this.anchor.y}
   Rect.prototype.maxY = function() { return this.origin.y + this.size.height * (1 - this.anchor.y)}
+  Rect.prototype.midY = function() { return this.origin.y + (this.size.height * (1 - 2 *this.anchor.y)) / 2}
 
   Rect.prototype.spaceOnTop = function(rectAbove) { return this.minY() - rectAbove.maxY() }
   Rect.prototype.spaceOnBottom = function(rectBelow) { return rectBelow.minY() - this.maxY() }
@@ -461,160 +463,6 @@
     }
   }
 
-  function fillArray( array, length, defaultValue) {
-    if( ! array || length < 0 || length > 100)
-      return
-    while( array.length < length)
-      array.push( defaultValue)
-  }
-
-  function packColWidthsMax( rows) {
-    var widths = []
-    rows.forEach( function( row) {
-      fillArray( widths, row.length, 0)
-      row.forEach( function( col, colIndex) {
-        var w = col.rect.size.width
-        widths[colIndex] = widths[colIndex] ? Math.max( widths[colIndex], w) : w
-      })
-    })
-    return widths
-  }
-
-  function packTotalWidthFromColWidthsMax( colWidthsMax, colPaddings) {
-    var x = 0
-    colWidthsMax.forEach( function( w, colIndex) {
-      var padding = colPaddings[ colIndex]
-      x += padding.left + w + padding.right
-    })
-    return x
-  }
-
-  function packLineHeightFromRow( row, colPaddings) {
-    var max = 0
-    row.forEach( function( col, index) {
-      var padding = colPaddings[ index]
-      max = Math.max( max, col.rect.size.height + padding.top + padding.bottom)
-    })
-    return max
-  }
-
-  function getJustificationHorizontal( colJustifications, colIndex) {
-    if( ! colJustifications)
-      return 'left'
-    var j = Array.isArray( colJustifications) ? colJustifications[ colIndex] : colJustifications
-    if( ! j || ! j.horizontal)
-      return 'left'
-    return j.horizontal
-  }
-  function getJustificationVertical( colJustifications, colIndex) {
-    if( ! colJustifications)
-      return 'bottom'
-    var j = Array.isArray( colJustifications) ? colJustifications[ colIndex] : colJustifications
-    if( ! j || ! j.vertical)
-      return 'bottom'
-    return j.vertical
-  }
-
-  var MARGIN0 = new Margin()
-  function getPadding( colPaddings, colIndex) {
-    if( !colPaddings)
-      return MARGIN0
-    if( Array.isArray( colPaddings)) {
-      var p = colPaddings[colIndex]
-      return p ? p : MARGIN0
-    } else {
-      return colPaddings  // just one padding
-    }
-  }
-
-  function packColOriginsX( rows, origin, colPaddings, colJustifications) {
-    var colWidths = packColWidthsMax( rows),
-        colOriginsX = []
-
-    var x = origin.x
-    colWidths.forEach( function( w, colIndex) {
-      var padding = getPadding( colPaddings, colIndex),
-          justHorizontal = getJustificationHorizontal( colJustifications, colIndex)
-
-      x += padding.left
-      switch( justHorizontal) {
-        case 'right':
-          colOriginsX.push( x + w)
-          break;
-        case 'center':
-          colOriginsX.push( x + Math.round(w / 2))
-          break;
-        default: // or 'left'
-          colOriginsX.push( x)
-      }
-      x += w + padding.right
-
-    })
-
-    return colOriginsX
-  }
-
-  function packRow( row, colOriginsX, colPaddings, colJustifications, lineHeight, y) {
-
-    row.forEach( function( col, colIndex) {
-      var rect = col.rect,
-          colOriginX = colOriginsX[ colIndex],
-          justVertical = getJustificationVertical( colJustifications, colIndex),
-          padding = getPadding( colPaddings, colIndex)
-
-      rect.origin.x = colOriginX
-
-      switch( justVertical) {
-        case 'top':
-          rect.origin.y = y + padding.top;
-          break;
-        case 'middle':
-          var hMinusPadding = lineHeight - padding.bottom - padding.top
-          rect.origin.y = y + padding.top + Math.round(hMinusPadding / 2)
-          break;
-        default: // or bottom
-          rect.origin.y = y + lineHeight - padding.bottom
-          break;
-      }
-    })
-  }
-  /**
-   *
-   * Assume the anchor matches the justification. Don't adjust the anchor.
-   * Just line up the origins.
-   *
-   * @param rows Rows of columns of items with Rect.
-   * @param origin Point of origin (top left). If undefined, Point(0,0) is used.
-   * @param colPaddings Maring for all columns or array of Margins for each column.
-   *                    If undefined, the default padding is 0.
-   * @param colJustifications Justification for all columns or array of justifications for each column.
-   *                    If undefined, the default is {horizontal: 'left', vertical: 'bottom'}
-   * @returns {Size}
-   */
-  function packRows( rows, origin, colPaddings, colJustifications) {
-    if( ! origin)
-      origin = new Point()
-
-    var colWidthsMax = packColWidthsMax( rows),
-        colOriginsX = packColOriginsX( rows, origin, colPaddings, colJustifications),
-        totalSize = new Size()
-
-    totalSize.width = packTotalWidthFromColWidthsMax( colWidthsMax, colPaddings)
-
-    var y = origin.y
-    rows.forEach( function( row) {
-      var lineHeight = packLineHeightFromRow( row, colPaddings)
-
-      packRow( row, colOriginsX, colPaddings, colJustifications, lineHeight, y)
-      y += lineHeight
-    })
-
-    totalSize.height = y - origin.y
-
-    return totalSize
-  }
-
-
   ///////////////////////////////////
   // Export to d3.trait
   //
@@ -631,15 +479,6 @@
   trait.layout.vertical = layoutVertical
   trait.layout.byOrientation = layoutByOrientation
   trait.layout.verticalAnchorLeftRight = layoutVerticalAnchorLeftRight
-  trait.layout.pack = {
-    utils: {
-      colWidthsMax: packColWidthsMax,
-      colOriginsX: packColOriginsX,
-      lineHeightFromRow: packLineHeightFromRow,
-      row: packRow
-    },
-    rows: packRows
-  }
   trait.layout.utils.listNudgeUpFromBottom = listNudgeUpFromBottom
   trait.layout.utils.removeOverlapFromTop = removeOverlapFromTop
   trait.layout.utils.listBalanceFromTop = listBalanceFromTop
