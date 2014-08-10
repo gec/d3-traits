@@ -327,9 +327,12 @@
         xValue = formatDate(config.x1(item)),
         yValue = config.y1(item),
         label = config.seriesLabel( focus.series),
-        line = [{}, {}],
-        lineY = line[ItemY],
-        lineLabel = line[ItemLabel]
+        line = {
+          group: undefined,
+          children: [{}, {}]
+        },
+        lineY = line.children[ItemY],
+        lineLabel = line.children[ItemLabel]
 
     line.group = group.append('g')
       .attr({
