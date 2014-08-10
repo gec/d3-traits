@@ -136,6 +136,38 @@
     return margin
   }
 
+  function getValueOrArrayItem( valueOrArray, index, defaultValue) {
+    if( !valueOrArray)
+      return defaultValue
+    if( Array.isArray( valueOrArray)) {
+      var length = valueOrArray.length
+      if( length === 0)
+        return defaultValue
+      else {
+        // If we're off the end of the array, use the last index.
+        var i = Math.min( length-1, index)
+        var item = valueOrArray[i]
+        return item ? item : defaultValue
+      }
+    } else {
+      return valueOrArray
+    }
+
+  }
+
+  function getValueOrObjectProperty( valueOrObject, property, defaultValue) {
+    if( !valueOrObject)
+      return defaultValue
+    if( typeof valueOrObject === 'object') {
+      var item = valueOrObject[property]
+      return item ? item : defaultValue
+    } else {
+      return valueOrObject
+    }
+
+  }
+
+
   function clone(obj) {
     if( null == obj || "object" !== typeof obj ) return obj;
     var copy = obj.constructor();
@@ -544,7 +576,9 @@
     getScaleExtensions: getScaleExtensions,
     getTraitCache:      getTraitCache,
     configMargin:       configMargin,
-    configFloat:        configFloat
+    configFloat:        configFloat,
+    getValueOrArrayItem: getValueOrArrayItem,
+    getValueOrObjectProperty: getValueOrObjectProperty
   }
 
 }(d3));

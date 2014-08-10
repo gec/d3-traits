@@ -23,7 +23,7 @@ module.exports = function(grunt) {
       ' Licensed <%= _.pluck(pkg.licenses, "type").join(", ") %> */\n',
 
     watch: {
-      files: ['src/<%= pkg.name %>.js', 'src/layout.js', 'src/*/*.js', 'test/**/*.spec.js'],
+      files: ['src/<%= pkg.name %>.js', 'src/layout.js', 'src/table.js', 'src/*/*.js', 'test/**/*.spec.js'],
       tasks: ['jshint', 'concat', 'karma:continuous', 'uglify']
     },
 
@@ -91,7 +91,7 @@ module.exports = function(grunt) {
         stripBanners: true
       },
       js: {
-        src: ['src/<%= pkg.name %>.js', 'src/layout.js', 'src/*/*.js'],
+        src: ['src/<%= pkg.name %>.js', 'src/layout.js',  'src/table.js', 'src/*/*.js'],
         dest: 'dist/<%= pkg.name %>.js'
       },
       css: {

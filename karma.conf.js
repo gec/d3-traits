@@ -24,6 +24,7 @@ module.exports = function(config) {
           // Use the actual source files for testing.
           'src/d3-traits.js',
           'src/layout.js',
+          'src/table.js',
           'src/*/*.js',
 
           'test/jasmine-matchers.js',

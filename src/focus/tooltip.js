@@ -299,6 +299,7 @@
   function updateFocusLineItem( item, value, anchor, format) {
     if( item.value && item.value === value) {
       item.changed = false
+      return
     }
 
     item.value = value
@@ -388,7 +389,8 @@
 
       var filteredFoci = getFilteredFoci( foci, _config.seriesFilter)
 
-      var changes = { values: false, count: false }
+      var changes = { values: false, count: false },
+          lineCount = 0
       filteredFoci.forEach(function( focus, index, array) {
         var line = lines[index]
         if( ! line) {
@@ -397,14 +399,25 @@
         }
         else
           changes.values = changes.values || updateFocusLine( line, focus, _config)
+        lineCount ++
       })
+      // TODO: remove lines if the lineCount is less than previous
 
-//      var maxWidthY = getLineItemWidthMax( lines, 'y'),
-//          maxWidthLabel = getLineItemWidthMax( lines, 'label')
 
       // o 134.00 Grid
       // o   1.00 ESS
+      var origin = new d3.trait.Point(),
+          padding = new d3.trait.Margin( 6, 6), // top/bottom right/left
+          colJustifications = [
+            //{horizontal: 'left'},   // vertical defaults to 'bottom'.
+            {horizontal: 'right'},
+            {horizontal: 'left'}
+          ]
+      d3.trait.layout.pack.rows( lines, origin, padding, colJustifications)
 
+      // rects are good
+      // translate the elements
+      // do the box
 
     }
 
