@@ -500,20 +500,6 @@
           table.getRow( index).setFocus( focus)
         rowCount ++
       })
-      filteredFoci.forEach(function( focus, index, array) {
-        if( table.rowCount() - 1 < rowCount)
-          table.addRow( focus)
-        else
-          table.getRow( rowCount).setFocus( focus)
-        rowCount ++
-      })
-      filteredFoci.forEach(function( focus, index, array) {
-        if( table.rowCount() - 1 < rowCount)
-          table.addRow( focus)
-        else
-          table.getRow( rowCount).setFocus( focus)
-        rowCount ++
-      })
       table.truncateRows( rowCount)
 
 
