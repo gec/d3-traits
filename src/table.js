@@ -55,17 +55,63 @@
 
     // Include padding.
     function calculateColWidths( rows) {
-      var widths = []
+      var widths = [],
+          colspans = []
+
       rows.forEach(function (row, rowIndex) {
-        var cols = children.call(table, row, row.depth)
+        var colspan = 0,
+            cols = children.call(table, row, row.depth)
         fillArray(widths, cols.length, 0)
+        var spanOffset = 0
         cols.forEach(function (node, colIndex) {
-          var pad = padding.get( node, rowIndex, colIndex),
-              w = pad.left + node.rect.size.width + pad.right
-          widths[colIndex] = widths[colIndex] ? Math.max(widths[colIndex], w) : w
+          var actual = colIndex + spanOffset
+          if( node.colspan) {
+            colspans.push( { node: node, row: rowIndex, col: actual})
+            spanOffset += node.colspan
+          } else {
+            var w = colWidthIncludingPadding( node, rowIndex, actual)
+            widths[actual] = widths[actual] ? Math.max(widths[actual], w) : w
+          }
         })
       })
+
+      // Adjust columns that have colspans
+      //
+      colspans.sort( function( a, b) { return a.node.colspan - b.node.colspan})
+      colspans.forEach( function( spanner) {
+        var node = spanner.node,
+            maxColWidth = getColspanWidth( spanner.col, node.colspan, widths),
+            requestedWidth = colWidthIncludingPadding( node, node.row, node.col)
+        if( maxColWidth < requestedWidth)
+          stretchColumnWidthsForColspan( requestedWidth, maxColWidth, spanner.col, node.colspan, widths);
+      })
       return widths
+    }
+
+    function colWidthIncludingPadding( node, rowIndex, colIndex) {
+      var pad = padding.get( node, rowIndex, colIndex),
+          w = pad.left + node.rect.size.width + pad.right
+      return w
+    }
+    function getColspanWidth( start, span, widths) {
+      var total = 0
+      for( span--; span >= 0; span--)
+        total += widths[start+span]
+      return total
+    }
+    function stretchColumnWidthsForColspan( requestedWidth, currentWidth, start, span, widths) {
+      var stretch = requestedWidth - currentWidth,
+          each = stretch / span,
+          total = 0
+
+      for( span--; span >= 0; span--) {
+        var index = start+span
+        widths[index] = Math.round(widths[index] + each)
+        total += widths[index]
+      }
+      // if we lost one in the division, add 1 to the first column.
+      if( total < requestedWidth)
+        widths[start] ++
     }
 
     // Include padding.

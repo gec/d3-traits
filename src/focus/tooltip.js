@@ -290,7 +290,8 @@
       : 'left'
   }
   function textAlignRLL( node, depth, row, col) {
-    return col === 0 ? 'right'
+    return row === 0 ? 'left'
+      : col === 0 ? 'right'
       : col === 1 ? 'left'
       : 'left'
   }
@@ -319,16 +320,54 @@
   }
 
   FocusTable.prototype.addRow   = function( focus) {
-    var row = new FocusTableRow( this, focus)
+
+    var cols = [
+      {
+        anchor: AnchorRight,
+        accessValue: function( f, config) {return config.y1( f.item)},
+        format: this.config.formatY
+      },
+      {
+        anchor: AnchorLeft,
+        accessValue: function( f, config) { return config.seriesLabel( f.series)}
+      }
+    ]
+
+    var row = new FocusTableRow( this, focus, cols)
     this.children.push( row)
-    this.dirtyRows.push( row)
+    // the new FocusTableRow will call table.rowDirty.
+
     return row
   }
+
   FocusTable.prototype.getRow = function( index) { return this.children[ index]}
   FocusTable.prototype.rowCount = function() { return this.children.length }
   FocusTable.prototype.rowDirty = function( row) { this.dirtyRows.push( row) }
   FocusTable.prototype.truncateRows = function( rowCount) {
     // TODO: We have less focus items. Remove excess rows.
+  }
+
+  FocusTable.prototype.setHeaderRow = function( focus) {
+
+    if( ! this.header) {
+
+      var cols = [
+        {
+          colspan: 2,
+          anchor: AnchorLeft,
+          accessValue: function( f, config) {return config.x1( f.item)},
+          format: this.config.formatHeader
+        }
+      ]
+
+      this.header = new FocusTableRow( this, focus, cols)
+      this.children.unshift( this.header)
+      // the new FocusTableRow will call table.rowDirty.
+    } else {
+      this.header.setFocus( focus)
+    }
+
+    return this.header
   }
 
   FocusTable.prototype.render = function( layout, focusPoint, chartRect) {
@@ -381,65 +420,82 @@
   }
 
 
-  function FocusTableRow( focusTable, focus) {
+  function FocusTableRow( focusTable, focus, cols) {
     this.focusTable = focusTable
     this.focus = focus
     this.rect = new trait.Rect()
-//    this.element = undefined
-    this.children = [{}, {}]
+//    this.children = [{}, {}]
+    this.children = cols
     this.config = focusTable.config
 
     this.item = focus.item
-    this.yValue = this.config.y1( this.item)
-    this.label = this.config.seriesLabel( focus.series)
-    var colY = this.children[ColY],
-        colLabel = this.children[ColLabel]
+//    this.value = this.config.y1( this.item)
+//    this.label = this.config.seriesLabel( focus.series)
 
     this.group = this.focusTable.group.append('g')
       .attr({
         'class':      'd3-trait-tooltip-row'
       })
 
-    colY.element = this.group.append('text')
-      .style({
-//        'font-family':    'monospace',
-//        'font-size':      10,
-//        'fill':           'black',
-//        'text-rendering': 'geometric-precision',
-        'text-anchor': 'end'  // right justified.
-      })
-    colLabel.element = this.group.append('text')
+    this.setFocus( focus)
+
+//    this.children.forEach( function( col) {
+//      col.element = this.group.append('text')
+//
+//      if( col.anchor == AnchorRight)
+//        col.element.style('text-anchor', 'end')
+//
+//      var value = col.accessValue( focus, this.config)
+//      this.setCol( col, value, col.anchor, col.format)
+//    })
+
+
+//    var colY = this.children[ColY],
+//        colLabel = this.children[ColLabel]
+//
+//    colY.element = this.group.append('text')
 //      .style({
-//        'font-family':    'monospace',
-//        'font-size':      10,
-//        'fill':           'black',
-//        'text-rendering': 'geometric-precision'
+//        'text-anchor': 'end'  // right justified.
 //      })
-
-
-    this.setCol( ColY, this.yValue, AnchorRight, this.config.formatY)
-    this.setCol( ColLabel, this.label, AnchorLeft)
+//    colLabel.element = this.group.append('text')
+//
+//    this.setCol( ColY, this.value, AnchorRight, this.config.formatY)
+//    this.setCol( ColLabel, this.label, AnchorLeft)
   }
 
   FocusTableRow.prototype.setFocus = function( focus) {
-    var rectChanged = false
+    var self = this,
+        rectChanged = false
 
-    this.focus = focus
-    this.item = focus.item
-//        xValue = formatDate(config.x1(item)),
-    this.yValue = this.config.y1( this.item)
-    this.label = this.config.seriesLabel( focus.series)
+    self.focus = focus
+    self.item = focus.item
+//    this.value = this.config.y1( this.item)
+//    this.label = this.config.seriesLabel( focus.series)
 
-    rectChanged = rectChanged || this.setCol( ColY, this.yValue, AnchorRight, this.config.formatY)
-    rectChanged = rectChanged || this.setCol( ColLabel, this.label, AnchorLeft)
+    self.children.forEach( function( col) {
+      if( ! col.element) {
+        col.element = self.group.append('text')
+
+        if( col.anchor === AnchorRight)
+          col.element.style('text-anchor', 'end')
+      }
+
+      rectChanged = rectChanged || self.setCol( col, col.accessValue, col.anchor, col.format)
+    })
+
+//    rectChanged = rectChanged || this.setCol( ColY, this.value, AnchorRight, this.config.formatY)
+//    rectChanged = rectChanged || this.setCol( ColLabel, this.label, AnchorLeft)
 
     if( rectChanged)
-      this.focusTable.rowDirty( this)
+      self.focusTable.rowDirty( self)
     return rectChanged
   }
 
-  FocusTableRow.prototype.setCol = function( colIndex, value, anchor, format) {
-    var col = this.children[ colIndex]
+  FocusTableRow.prototype.setCol = function( col, accessValue, anchor, format) {
+    var value = col.accessValue( this.focus, this.config)
+
+    if( col.value && col.value === value && !col.rect)
+      console.error( 'how did we get here!')
     if( col.value && col.value === value)
       return false // no change
 
@@ -485,19 +541,21 @@
 
     function focusChange( foci, focusPoint) {
 
-      if( foci.length <= 0 ) {
+      var filteredFoci = getFilteredFoci( foci, _config.seriesFilter)
+
+      if( filteredFoci.length <= 0 ) {
         table.truncateRows(0)
         return
       }
 
-      var filteredFoci = getFilteredFoci( foci, _config.seriesFilter)
+      table.setHeaderRow( filteredFoci[0])
 
-      var rowCount = 0
+      var rowCount = 1
       filteredFoci.forEach(function( focus, index, array) {
-        if( table.rowCount() - 1 < index)
+        if( table.rowCount() - 1 < rowCount)
           table.addRow( focus)
         else
-          table.getRow( index).setFocus( focus)
+          table.getRow( rowCount).setFocus( focus)
         rowCount ++
       })
       table.truncateRows( rowCount)
@@ -527,8 +585,6 @@
               'class':      'd3-trait-tooltip'
             });
           table = new FocusTable( _config, group)
-
-
 
           self.onFocusChange( element, focusChange)
           //self.onChartMouseOut( element, focusChange)

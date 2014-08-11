@@ -84,6 +84,37 @@ describe('d3-traits.table', function() {
 
   });
 
+  it('layout.table.utils.calculateColWidths should process colspans', function() {
+
+    var colWidths, table, tds, header,
+        layout = d3.trait.layout.table(),
+        colWidths1 = [10, 0, 20],
+        colWidths2 = [8, 10, 10],
+        height = 10
+
+    table = makeTable( 2, 3, [colWidths1, colWidths2], height)
+
+    // Add a header row that spans all three columns.
+    tds = makeTds( 1, 30, height),
+    header = { rect: new d3.trait.Rect(), children:tds}
+    tds[0].colspan = 3
+    table.children.unshift( header)
+
+    // Header fits within calculated column widths for non-header rows.
+    //
+    layout.utils.setDepthOnNodes( table, 0)
+    colWidths = layout.utils.calculateColWidths( table.children)
+    expect( colWidths).toEqual( [colWidths1[0], colWidths2[1], colWidths1[2]])
+
+    // Header bigger than calculated column widths for non-header rows.
+    // Need to stretch all column widths to fit header.
+    //
+    tds[0].rect.size.width = 80
+    colWidths = layout.utils.calculateColWidths( table.children)
+    expect( colWidths).toEqual( [colWidths1[0]+14, colWidths2[1]+13, colWidths1[2]+13])
+
+  });
+
   it('layout.table.utils.calculateRowHeight should work with various paddings', function() {
 
     var rowHeight, table, rows,
