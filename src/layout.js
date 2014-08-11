@@ -35,6 +35,12 @@
         this.y = y
     }
   }
+  Point.prototype.set = function( other) {
+    if( other && typeof other === 'object') {
+      this.x = other.x
+      this.y = other.y
+    }
+  }
   Point.prototype.distanceX = function( other) {
     return other.x > this.x ? other.x - this.x : this.x - other.x
   }

@@ -197,7 +197,7 @@
           colWidths = calculateColWidths(rows)
 
 
-      var y = rect.origin.y
+      var y = 0
       rows.forEach(function (row, rowIndex) {
         var rowHeight = calculateRowHeight(row, rowIndex)
         row.rect.origin.x = 0  // TODO: row padding?
@@ -208,7 +208,7 @@
       })
 
       rect.size.width = d3.sum( colWidths)
-      rect.size.height = y - rect.origin.y
+      rect.size.height = y - 0
 
       return nodes
     }

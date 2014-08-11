@@ -246,8 +246,8 @@
   }
 
 
-  var ItemY = 0,
-      ItemLabel = 1
+  var ColY = 0,
+      ColLabel = 1
   var AnchorLeft = new trait.Point(0, 0),
       AnchorRight = new trait.Point(1, 0),
       AnchorCenter = new trait.Point(0.5, 0)
@@ -256,7 +256,7 @@
   /**
    *
    *
-   * line = {
+   * row = {
    *    elements: [
    *    ],
    *    group:
@@ -283,84 +283,6 @@
    * @param focus
    * @param config
    */
-  function updateFocusLine( line, focus, config) {
-
-    var item = focus.item,
-        xValue = formatDate(config.x1(item)),
-        yValue = config.y1(item),
-        label = config.seriesLabel( focus.series)
-
-    updateFocusLineItem( line[ItemY], yValue, AnchorRight, config.formatY)
-    updateFocusLineItem( line[ItemLabel], label, AnchorLeft)
-
-    return line[ItemY].changed || line[ItemLabel].changed
-  }
-
-  function updateFocusLineItem( item, value, anchor, format) {
-    if( item.value && item.value === value) {
-      item.changed = false
-      return false
-    }
-
-    item.value = value
-    item.text = format ? format(value) : value
-
-    item.element.text = item.text
-    item.bbox = item.element.node().getBBox()
-    item.rect = new trait.Rect( 0, 0, item.bbox.width, item.bbox.height, anchor.x, anchor.y)
-
-    item.changed = true
-    return true
-  }
-
-//  function getLineItemWidthMax( lines, lineItem) {
-//    var max = 0
-//    lines.forEach( function( line) {
-//      max = Math.max( max, line[lineItem].bbox.width)
-//    })
-//    return max
-//  }
-
-  function makeNewLine( focus, config, group) {
-    var item = focus.item,
-        xValue = formatDate(config.x1(item)),
-        yValue = config.y1(item),
-        label = config.seriesLabel( focus.series),
-        row = {
-          group: undefined,
-          children: [{}, {}]
-        },
-        rowY = row.children[ItemY],
-        rowLabel = row.children[ItemLabel]
-
-    row.group = group.append('g')
-      .attr({
-        'class':      'tooltip-line'
-      });
-
-
-    rowY.element = row.group.append('text')
-      .style({
-        'font-family':    'monospace',
-        'font-size':      10,
-        'fill':           'black',
-        'text-rendering': 'geometric-precision',
-        'text-anchor': 'end'  // right justified.
-      })
-    rowLabel.element = row.group.append('text')
-      .style({
-        'font-family':    'monospace',
-        'font-size':      10,
-        'fill':           'black',
-        'text-rendering': 'geometric-precision'
-      })
-
-
-    updateFocusLineItem( rowY, yValue, config.formatY)
-    updateFocusLineItem( rowLabel, label)
-
-    return row
-  }
 
   function textAlignLRL( node, depth, row, col) {
     return col === 0 ? 'left'
@@ -372,6 +294,175 @@
       : col === 1 ? 'left'
       : 'left'
   }
+
+  function FocusTable( config, group) {
+    this.config = config
+    this.group = group
+    this.rect = new trait.Rect( 0, 0, 0, 0, 0, 0.5) // y anchor in middle
+    this.children = []
+    this.dirtyRows = []
+    this.radius = 2
+
+    this.element = group.append('rect')   // for background
+      .attr({
+        x:  0,
+        y:  0,
+        rx: this.radius,
+        ry: this.radius
+      })
+//      .style({
+//        fill: 'white',
+//        stroke: 'gray',
+//        'stroke-width': 1,
+//        opacity: 0.9
+//      })
+  }
+
+  FocusTable.prototype.addRow   = function( focus) {
+    var row = new FocusTableRow( this, focus)
+    this.children.push( row)
+    this.dirtyRows.push( row)
+    return row
+  }
+  FocusTable.prototype.getRow = function( index) { return this.children[ index]}
+  FocusTable.prototype.rowCount = function() { return this.children.length }
+  FocusTable.prototype.rowDirty = function( row) { this.dirtyRows.push( row) }
+  FocusTable.prototype.truncateRows = function( rowCount) {
+    // TODO: We have less focus items. Remove excess rows.
+  }
+
+  FocusTable.prototype.render = function( layout, focusPoint, chartRect) {
+
+    // TODO: use dirtyRows.
+    if( this.dirtyRows.length === 0)
+      return
+
+    // TODO: what can we do to optimize dirtyRows?
+    layout( this)
+    this.setOrigin( focusPoint, chartRect)
+
+    this.group.attr('transform', 'translate(' + this.rect.minX() + ',' + this.rect.minY() + ')')
+
+    this.renderTableBox()
+    this.children.forEach( function( row, rowIndex) {
+      row.render()
+    })
+
+    this.dirtyRows = []
+  }
+
+  FocusTable.prototype.setOrigin = function( focusPoint, chartRect) {
+    var  offsetX = 8,
+         x = focusPoint.x + chartRect.origin.x,
+         y = focusPoint.y + chartRect.origin.y
+    this.rect.origin.x = x
+    this.rect.origin.y = y
+
+    // Fit the tooltip to the left or right of the vertical line.
+    // Use an offset so the box is sitting a little away from the
+    // vertical crosshair.
+    //
+    this.rect.size.width += offsetX
+    trait.layout.verticalAnchorLeftRight( [this], chartRect)
+    this.rect.size.width -= offsetX
+    if( this.rect.anchor.x < 0.5)
+      this.rect.origin.x += offsetX
+    else
+      this.rect.origin.x -= offsetX
+
+  }
+
+  FocusTable.prototype.renderTableBox = function() {
+    this.element.attr({
+      width:  this.rect.size.width,
+      height: this.rect.size.height + 2
+    })
+    this.group.transition().style('opacity', 1)
+  }
+
+
+  function FocusTableRow( focusTable, focus) {
+    this.focusTable = focusTable
+    this.focus = focus
+    this.rect = new trait.Rect()
+//    this.element = undefined
+    this.children = [{}, {}]
+    this.config = focusTable.config
+
+    this.item = focus.item
+    this.yValue = this.config.y1( this.item)
+    this.label = this.config.seriesLabel( focus.series)
+    var colY = this.children[ColY],
+        colLabel = this.children[ColLabel]
+
+    this.group = this.focusTable.group.append('g')
+      .attr({
+        'class':      'd3-trait-tooltip-row'
+      })
+
+    colY.element = this.group.append('text')
+      .style({
+//        'font-family':    'monospace',
+//        'font-size':      10,
+//        'fill':           'black',
+//        'text-rendering': 'geometric-precision',
+        'text-anchor': 'end'  // right justified.
+      })
+    colLabel.element = this.group.append('text')
+//      .style({
+//        'font-family':    'monospace',
+//        'font-size':      10,
+//        'fill':           'black',
+//        'text-rendering': 'geometric-precision'
+//      })
+
+
+    this.setCol( ColY, this.yValue, AnchorRight, this.config.formatY)
+    this.setCol( ColLabel, this.label, AnchorLeft)
+  }
+
+  FocusTableRow.prototype.setFocus = function( focus) {
+    var rectChanged = false
+
+    this.focus = focus
+    this.item = focus.item
+//        xValue = formatDate(config.x1(item)),
+    this.yValue = this.config.y1( this.item)
+    this.label = this.config.seriesLabel( focus.series)
+
+    rectChanged = rectChanged || this.setCol( ColY, this.yValue, AnchorRight, this.config.formatY)
+    rectChanged = rectChanged || this.setCol( ColLabel, this.label, AnchorLeft)
+
+    if( rectChanged)
+      this.focusTable.rowDirty( this)
+    return rectChanged
+  }
+
+  FocusTableRow.prototype.setCol = function( colIndex, value, anchor, format) {
+    var col = this.children[ colIndex]
+    if( col.value && col.value === value)
+      return false // no change
+
+    col.value = value
+    col.text = format ? format(value) : value
+
+    col.element.text(col.text)
+    col.bbox = col.element.node().getBBox()
+    col.rect = new trait.Rect( 0, 0, col.bbox.width, col.bbox.height, anchor.x, anchor.y)
+
+    return true // rect changed
+  }
+
+  FocusTableRow.prototype.render = function() {
+    var origin = this.rect.origin
+    this.group.attr('transform', 'translate(' + this.rect.minX() + ',' + this.rect.minY() + ')')
+
+    this.children.forEach( function( col, colIndex) {
+      origin = col.rect.origin
+      col.element.attr('transform', 'translate(' + origin.x + ',' + origin.y + ')')
+    })
+  }
+
 
   /**
    * Tooltip will call focus super. Any charts traits can return a list of items that need tooltips.
@@ -386,40 +477,44 @@
    */
   function _tooltipUnified(_super, _config, _id) {
 
-    var group, layout,
-        table = {
-          rect: new trait.Rect(),
-          element: undefined,  // svgRect
-          children: []
-        },
+    var group, layout, table,
         axis = _config.axis,
         transitionDuration = trait.utils.configFloat( _config.transitionDuration, 100),
-        radius = 4,
-        padding = _config.padding || new trait.Margin( 8, 16)  // top/bottom, left/right
+        padding = _config.padding || new trait.Margin( 0, 8, 4),  // top, left/right bottom
+        offsetX = 8
 
     function focusChange( foci, focusPoint) {
 
       if( foci.length <= 0 ) {
-        //removeAllTooltips(cache)
+        table.truncateRows(0)
         return
       }
 
       var filteredFoci = getFilteredFoci( foci, _config.seriesFilter)
 
-      var rows = table.children,
-          changes = { values: false, count: false },
-          rowCount = 0
+      var rowCount = 0
       filteredFoci.forEach(function( focus, index, array) {
-        var row = rows[index]
-        if( ! row) {
-          rows[index] = makeNewLine( focus, _config, group)
-          changes.count = true
-        }
+        if( table.rowCount() - 1 < index)
+          table.addRow( focus)
         else
-          changes.values = changes.values || updateFocusLine( row, focus, _config)
+          table.getRow( index).setFocus( focus)
         rowCount ++
       })
-      // TODO: remove lines if the lineCount is less than previous
+      filteredFoci.forEach(function( focus, index, array) {
+        if( table.rowCount() - 1 < rowCount)
+          table.addRow( focus)
+        else
+          table.getRow( rowCount).setFocus( focus)
+        rowCount ++
+      })
+      filteredFoci.forEach(function( focus, index, array) {
+        if( table.rowCount() - 1 < rowCount)
+          table.addRow( focus)
+        else
+          table.getRow( rowCount).setFocus( focus)
+        rowCount ++
+      })
+      table.truncateRows( rowCount)
 
 
       // o 134.00 Grid
@@ -429,41 +524,10 @@
           .padding( padding)
           .textAlign( textAlignRLL)
       }
-      layout( table)
-
-      render()
+      table.render( layout, focusPoint, _super.chartRect())
     }
 
-    function renderTableBox() {
-      var rect = table.rect
-      table.element.attr({
-        x:     rect.origin.x,
-        y:     rect.origin.y,
-        width:  rect.size.width,
-        height: rect.size.height,
-        rx: radius, ry: radius
-      })
-    }
 
-    function renderRow( row, rowIndex) {
-      var origin = row.rect.origin
-      row.group.attr('transform', 'translate(' + origin.x + ',' + origin.y + ')')
-
-      var cols = row.children
-      cols.forEach( function( col, colIndex) {
-        origin = col.rect.origin
-        col.element.attr('transform', 'translate(' + origin.x + ',' + origin.y + ')')
-      })
-    }
-
-    function render() {
-      renderTableBox()
-
-      var rows = table.children
-      rows.forEach( function( row, rowIndex) {
-        renderRow( row, rowIndex)
-      })
-    }
 
     function tooltipUnified(_selection) {
       var self = tooltipUnified
@@ -474,10 +538,10 @@
         if( ! group) {
           group = element._container.append('g')
             .attr({
-              'class':      'tooltip'
+              'class':      'd3-trait-tooltip'
             });
-          table.element = group.append('rect')
-            .attr('fill', 'darkgray')
+          table = new FocusTable( _config, group)
+
 
 
           self.onFocusChange( element, focusChange)

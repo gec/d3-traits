@@ -241,13 +241,18 @@ describe('d3-traits.table', function() {
         height = 10,
         padding = new d3.trait.Margin( 5, 10),  // top/bottom, right/left
         rowWidth = d3.sum( colWidths1, function( d) { return padding.left + d + padding.right}),
-        rowHeight = padding.top + height + padding.bottom
+        rowHeight = padding.top + height + padding.bottom,
+        rowCount = 2,
+        colCount = 3
 
     layout.padding( padding)
       .textAlign( textAlignLRL)
 
-    table = makeTable( 2, 3, [colWidths1], height)
+    table = makeTable( rowCount, colCount, [colWidths1], height)
     layout( table)
+
+    expect( table.rect.size.width).toEqual( rowWidth)
+    expect( table.rect.size.height).toEqual( rowHeight * rowCount)
 
     // Row rects
     var r1 = table.children[0].rect,
