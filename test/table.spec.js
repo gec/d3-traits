@@ -8,9 +8,12 @@ describe('d3-traits.table', function() {
   function makeTds( colCount, width, height) {
     var tds = []
     for( var i = 0; i < colCount; i++) {
-      var w = d3.trait.utils.getValueOrArrayItem( width, i, 0),
+      var origin = new d3.trait.Point(),
+          w = d3.trait.utils.getValueOrArrayItem( width, i, 0),
           h = d3.trait.utils.getValueOrArrayItem( height, i, 0),
-          td = { rect: new d3.trait.Rect( new d3.trait.Point(), new d3.trait.Size( w, h))}
+          size = new d3.trait.Size( w, h),
+          anchor = new d3.trait.Point( i % 2, 1)
+          td = { rect: new d3.trait.Rect( origin, size, anchor)}
       tds.push(td)
     }
     return tds
@@ -52,6 +55,13 @@ describe('d3-traits.table', function() {
       children: trs
     }
   }
+
+  function textAlignLRL( node, depth, row, col) {
+    return col === 0 ? 'left'
+      : col === 1 ? 'right'
+      : 'left'
+  }
+
 
   it('layout.table.utils.calculateColWidths should  ...', function() {
 
@@ -199,14 +209,9 @@ describe('d3-traits.table', function() {
     function padding( node, depth, row, col) {
       return new d3.trait.Margin( 5+col, 10+col) // top/bottom, right/left
     }
-    function textAlign( node, depth, row, col) {
-      return col === 0 ? 'left'
-        : col === 1 ? 'right'
-        : 'left'
-    }
 
     layout.padding( padding)
-      .textAlign( textAlign)
+      .textAlign( textAlignLRL)
 
     table = makeTable( 1, 3, [colWidths1], height)
     row = table.children[0]
@@ -228,38 +233,56 @@ describe('d3-traits.table', function() {
 
   });
 
-//  it('table.layout should layout ...', function() {
-//
-//    var p = new d3.trait.Point(),
-//        s = new d3.trait.Size( 10, 10),
-//        c1 = { rect: new d3.trait.Rect( p, s)},
-//        c2 = { rect: new d3.trait.Rect( p, s)},
-//        c3 = { rect: new d3.trait.Rect( p, s)},
-//        row1 = [c1, c2, c3],
-//        rows = [ row1 ],
-//        padding1 = new d3.trait.Margin( 10),
-//        padding2 = new d3.trait.Margin( 10),
-//        padding3 = new d3.trait.Margin( 10),
-//        colPaddings = [padding1, padding2, padding3],
-//        colJustifications = [
-//          {horizontal: 'left'},   // vertical defaults to 'bottom'.
-//          {horizontal: 'right'},
-//          {horizontal: 'left'}
-//        ],
-//        origin = new d3.trait.Point(100, 100)
-//
-//    d3.trait.table.layout( rows, origin, colPaddings, colJustifications)
-//
-//    var y1 = origin.y + padding1.top + c1.rect.size.height,
-//        x1 = origin.x + padding1.left,
-//        x2 = x1 + c1.rect.size.width + padding1.right + padding2.left + c2.rect.size.width,  // right justified.
-//        x3 = x2 + padding2.right + padding3.left
-//
-//    expect(c1.rect.origin).toEqual(new d3.trait.Point( x1, y1))
-//    expect(c2.rect.origin).toEqual(new d3.trait.Point( x2, y1))
-//    expect(c3.rect.origin).toEqual(new d3.trait.Point( x3, y1))
-//
-//  });
+  it('layout.table should layout rows and columns ...', function() {
+
+    var table, row,
+        layout = d3.trait.layout.table(),
+        colWidths1 = [5, 10, 20],
+        height = 10,
+        padding = new d3.trait.Margin( 5, 10),  // top/bottom, right/left
+        rowWidth = d3.sum( colWidths1, function( d) { return padding.left + d + padding.right}),
+        rowHeight = padding.top + height + padding.bottom
+
+    layout.padding( padding)
+      .textAlign( textAlignLRL)
+
+    table = makeTable( 2, 3, [colWidths1], height)
+    layout( table)
+
+    // Row rects
+    var r1 = table.children[0].rect,
+        r2 = table.children[1].rect
+    expect( r1.origin).toEqual( new d3.trait.Point( 0, 0 * rowHeight))
+    expect( r2.origin).toEqual( new d3.trait.Point( 0, 1 * rowHeight))
+
+    expect( r1.size).toEqual( new d3.trait.Size( rowWidth, rowHeight))
+    expect( r2.size).toEqual( new d3.trait.Size( rowWidth, rowHeight))
+
+    // Col rects for row 1
+    var x = 0,
+        row = table.children[0],
+        cols = row.children
+    x += padding.left   // textAlign left
+    expect( cols[0].rect.origin).toEqual( new d3.trait.Point( x, 1 * rowHeight - padding.bottom))
+    x += colWidths1[0] + padding.right
+    x += padding.left + colWidths1[1]  // textAlign right
+    expect( cols[1].rect.origin).toEqual( new d3.trait.Point( x, 1 * rowHeight - padding.bottom))
+    x += padding.right + padding.left   // textAlign left
+    expect( cols[2].rect.origin).toEqual( new d3.trait.Point( x, 1 * rowHeight - padding.bottom))
+
+    // Col rects for row 2
+    x = 0
+    row = table.children[1]
+    cols = row.children
+    x += padding.left   // textAlign left
+    expect( cols[0].rect.origin).toEqual( new d3.trait.Point( x, 1 * rowHeight - padding.bottom))
+    x += colWidths1[0] + padding.right
+    x += padding.left + colWidths1[1]  // textAlign right
+    expect( cols[1].rect.origin).toEqual( new d3.trait.Point( x, 1 * rowHeight - padding.bottom))
+    x += padding.right + padding.left   // textAlign left
+    expect( cols[2].rect.origin).toEqual( new d3.trait.Point( x, 1 * rowHeight - padding.bottom))
+
+  });
 
 
 });

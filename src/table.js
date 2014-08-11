@@ -125,12 +125,12 @@
           lineHeight = row.rect.size.height,
           x = 0,
           y = 0
-
       cols.forEach(function (node, colIndex) {
         var cellRect = new trait.Rect( x, y, colWidths[colIndex], lineHeight)
         node.rect.origin = nodeOriginInCellRect( node, rowIndex, colIndex, cellRect)
         x += cellRect.size.width
       })
+      row.rect.size.width = x
     }
 
 
