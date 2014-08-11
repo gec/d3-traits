@@ -299,7 +299,7 @@
   function updateFocusLineItem( item, value, anchor, format) {
     if( item.value && item.value === value) {
       item.changed = false
-      return
+      return false
     }
 
     item.value = value
@@ -310,8 +310,7 @@
     item.rect = new trait.Rect( 0, 0, item.bbox.width, item.bbox.height, anchor.x, anchor.y)
 
     item.changed = true
-
-    return item
+    return true
   }
 
 //  function getLineItemWidthMax( lines, lineItem) {
@@ -327,20 +326,20 @@
         xValue = formatDate(config.x1(item)),
         yValue = config.y1(item),
         label = config.seriesLabel( focus.series),
-        line = {
+        row = {
           group: undefined,
           children: [{}, {}]
         },
-        lineY = line.children[ItemY],
-        lineLabel = line.children[ItemLabel]
+        rowY = row.children[ItemY],
+        rowLabel = row.children[ItemLabel]
 
-    line.group = group.append('g')
+    row.group = group.append('g')
       .attr({
         'class':      'tooltip-line'
       });
 
 
-    lineY.element = line.group.append('text')
+    rowY.element = row.group.append('text')
       .style({
         'font-family':    'monospace',
         'font-size':      10,
@@ -348,7 +347,7 @@
         'text-rendering': 'geometric-precision',
         'text-anchor': 'end'  // right justified.
       })
-    lineLabel.element = line.group.append('text')
+    rowLabel.element = row.group.append('text')
       .style({
         'font-family':    'monospace',
         'font-size':      10,
@@ -357,10 +356,21 @@
       })
 
 
-    lineY = updateFocusLineItem( lineY, yValue, config.formatY)
-    lineLabel = updateFocusLineItem( lineLabel, label)
+    updateFocusLineItem( rowY, yValue, config.formatY)
+    updateFocusLineItem( rowLabel, label)
 
-    return line
+    return row
+  }
+
+  function textAlignLRL( node, depth, row, col) {
+    return col === 0 ? 'left'
+      : col === 1 ? 'right'
+      : 'left'
+  }
+  function textAlignRLL( node, depth, row, col) {
+    return col === 0 ? 'right'
+      : col === 1 ? 'left'
+      : 'left'
   }
 
   /**
@@ -376,12 +386,16 @@
    */
   function _tooltipUnified(_super, _config, _id) {
 
-    var group,
-        lines = [],
+    var group, layout,
+        table = {
+          rect: new trait.Rect(),
+          element: undefined,  // svgRect
+          children: []
+        },
         axis = _config.axis,
         transitionDuration = trait.utils.configFloat( _config.transitionDuration, 100),
         radius = 4,
-        margin = 3
+        padding = _config.padding || new trait.Margin( 8, 16)  // top/bottom, left/right
 
     function focusChange( foci, focusPoint) {
 
@@ -392,36 +406,63 @@
 
       var filteredFoci = getFilteredFoci( foci, _config.seriesFilter)
 
-      var changes = { values: false, count: false },
-          lineCount = 0
+      var rows = table.children,
+          changes = { values: false, count: false },
+          rowCount = 0
       filteredFoci.forEach(function( focus, index, array) {
-        var line = lines[index]
-        if( ! line) {
-          line[index] = makeNewLine( focus, _config, group)
+        var row = rows[index]
+        if( ! row) {
+          rows[index] = makeNewLine( focus, _config, group)
           changes.count = true
         }
         else
-          changes.values = changes.values || updateFocusLine( line, focus, _config)
-        lineCount ++
+          changes.values = changes.values || updateFocusLine( row, focus, _config)
+        rowCount ++
       })
       // TODO: remove lines if the lineCount is less than previous
 
 
       // o 134.00 Grid
       // o   1.00 ESS
-      var origin = new d3.trait.Point(),
-          padding = new d3.trait.Margin( 6, 6), // top/bottom right/left
-          colJustifications = [
-            //{horizontal: 'left'},   // vertical defaults to 'bottom'.
-            {horizontal: 'right'},
-            {horizontal: 'left'}
-          ]
-      d3.trait.layout.pack.rows( lines, origin, padding, colJustifications)
+      if( ! layout) {
+        layout = d3.trait.layout.table()
+          .padding( padding)
+          .textAlign( textAlignRLL)
+      }
+      layout( table)
 
-      // rects are good
-      // translate the elements
-      // do the box
+      render()
+    }
 
+    function renderTableBox() {
+      var rect = table.rect
+      table.element.attr({
+        x:     rect.origin.x,
+        y:     rect.origin.y,
+        width:  rect.size.width,
+        height: rect.size.height,
+        rx: radius, ry: radius
+      })
+    }
+
+    function renderRow( row, rowIndex) {
+      var origin = row.rect.origin
+      row.group.attr('transform', 'translate(' + origin.x + ',' + origin.y + ')')
+
+      var cols = row.children
+      cols.forEach( function( col, colIndex) {
+        origin = col.rect.origin
+        col.element.attr('transform', 'translate(' + origin.x + ',' + origin.y + ')')
+      })
+    }
+
+    function render() {
+      renderTableBox()
+
+      var rows = table.children
+      rows.forEach( function( row, rowIndex) {
+        renderRow( row, rowIndex)
+      })
     }
 
     function tooltipUnified(_selection) {
@@ -433,8 +474,11 @@
         if( ! group) {
           group = element._container.append('g')
             .attr({
-              'class':      'tooltip-unified-group'
+              'class':      'tooltip'
             });
+          table.element = group.append('rect')
+            .attr('fill', 'darkgray')
+
 
           self.onFocusChange( element, focusChange)
           //self.onChartMouseOut( element, focusChange)
