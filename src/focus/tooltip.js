@@ -248,9 +248,10 @@
 
   var ColY = 0,
       ColLabel = 1
-  var AnchorLeft = new trait.Point(0, 0),
-      AnchorRight = new trait.Point(1, 0),
-      AnchorCenter = new trait.Point(0.5, 0)
+  var AnchorBottomLeft = new trait.Point(0, 1),
+      AnchorBottomRight = new trait.Point(1, 1),
+      AnchorBottomCenter = new trait.Point(0.5, 1),
+      AnchorMiddle = new trait.Point(0.5,0.5)
 
 
   /**
@@ -323,12 +324,12 @@
 
     var cols = [
       {
-        anchor: AnchorRight,
+        anchor: AnchorBottomRight,
         accessValue: function( f, config) {return config.y1( f.item)},
         format: this.config.formatY
       },
       {
-        anchor: AnchorLeft,
+        anchor: AnchorBottomLeft,
         accessValue: function( f, config) { return config.seriesLabel( f.series)}
       }
     ]
@@ -358,7 +359,7 @@
       var cols = [
         {
           colspan: 2,
-          anchor: AnchorLeft,
+          anchor: AnchorBottomLeft,
           accessValue: function( f, config) {return config.x1( f.item)},
           format: this.config.formatHeader
         }
@@ -480,7 +481,7 @@
       if( ! col.element) {
         col.element = self.group.append('text')
 
-        if( col.anchor === AnchorRight)
+        if( col.anchor === AnchorBottomRight)
           col.element.style('text-anchor', 'end')
       }
 
@@ -537,49 +538,173 @@
    */
   function _tooltipUnified(_super, _config, _id) {
 
-    var group, layout, table,
+    var group, allText, layout, table,
         axis = _config.axis,
         transitionDuration = trait.utils.configFloat( _config.transitionDuration, 100),
-        padding = _config.padding || new trait.Margin( 0, 8, 4),  // top, left/right bottom
+        paddingEm = _config.padding || new trait.Margin( 0, 2, 0.25),  // top, left/right bottom
         offsetX = 8
+
+    var box,
+        klass = { main: _config['class'] || 'd3-trait-tooltip'}
+    klass.box = klass.main + '-box'
+    klass.allText = klass.main + '-alltext'
+    klass.rows = klass.main + '-rows'
+    klass.row = klass.main + '-row'
+    klass.value = klass.main + '-value'
+    klass.values = klass.main + '-values'
+    klass.label = klass.main + '-label'
+    klass.labels = klass.main + '-labels'
+    klass.header = klass.main + '-header'
+
+    function valueY( f) {
+      var v = _config.y1( f.item)
+      if( _config.formatY)
+        v = _config.formatY( v)
+      return v
+    }
+    var cols = [
+      {
+        groupKlass: klass.values,
+        klass: klass.value,
+        anchor: AnchorBottomRight,
+        textAnchor: 'end',
+        accessValue: valueY,
+        format: _config.formatY
+      },
+      {
+        groupKlass: klass.labels,
+        klass: klass.label,
+        anchor: AnchorBottomLeft,
+        textAnchor: 'start',
+        accessValue: function( f) { return _config.seriesLabel( f.series)}
+      }
+    ]
+
+    function setOrigin( obj, focusPoint, chartRect) {
+      var  offsetX = 8,
+           x = focusPoint.x + chartRect.origin.x,
+           y = focusPoint.y + chartRect.origin.y
+      obj.rect.origin.x = x
+      obj.rect.origin.y = y
+
+      // Fit the tooltip to the left or right of the vertical line.
+      // Use an offset so the box is sitting a little away from the
+      // vertical crosshair.
+      //
+      obj.rect.size.width += offsetX
+      trait.layout.verticalAnchorLeftRight( [obj], chartRect)
+      obj.rect.size.width -= offsetX
+      if( obj.rect.anchor.x < 0.5)
+        obj.rect.origin.x += offsetX
+      else
+        obj.rect.origin.x -= offsetX
+
+    }
+
+    function yEmWithPadding( d, i) {
+      var p = i === 0 ? paddingEm.top : paddingEm.top + (paddingEm.top + paddingEm.bottom + 1) * i
+      return p + 'em'
+    }
+    function columnEnter( col, foci) {
+      var li
+
+      li = col.group.selectAll('.' + col.klass)
+        .data(foci)
+
+      li.enter()
+        .append('text')
+        .classed(col.klass,true)
+        .attr('y', yEmWithPadding)
+        .attr('x',0)
+        .style('text-anchor', col.textAnchor)
+        .text( col.accessValue )
+
+      li.exit()
+        .remove()
+
+      var heightEm = 0,
+          padBottom = 0,
+          heightTotal = 0,
+          bbox = col.group[0][0].getBBox()
+
+      if( foci.length > 0) {
+        if( foci.length === 1)
+          heightEm = bbox.height - paddingEm.top
+        else
+          heightEm = bbox.height / (paddingEm.top + (paddingEm.top + paddingEm.bottom + 1) * (foci.length-1))
+        padBottom = heightEm * paddingEm.bottom
+        heightTotal = bbox.height + padBottom
+      }
+
+      col.rect = new trait.Rect( 0, 0, bbox.width, heightTotal, col.anchor.x, col.anchor.y)
+      return foci.length === 0 ? 0 : heightTotal / foci.length
+    }
 
     function focusChange( foci, focusPoint) {
 
-      var filteredFoci = getFilteredFoci( foci, _config.seriesFilter)
+      var filteredFoci = getFilteredFoci( foci, _config.seriesFilter),
+          lineHeight = 0
 
-      if( filteredFoci.length <= 0 ) {
-        // TODO: Don't truncate here. Hide the whole tooltip. When we come back we'll reuse the rows.
-        table.truncateRows(0)
-        return
-      }
-
-      // TODO: change to addRow and take col args. Same for addRow below.
-      table.setHeaderRow( filteredFoci[0])
-
-      // rowCount            1 2 1 2
-      // table.rowCount      1 2 3 3
-      // table.rowCount - 1  0 1 2 2
-      // t.rC - 1 < rowCount T T F F
-      //                     + + s s
-      var rowCount = 1
-      filteredFoci.forEach(function( focus, index, array) {
-        if( table.rowCount() - 1 < rowCount)
-          table.addRow( focus)
-        else
-          table.getRow( rowCount).setFocus( focus)
-        rowCount ++
+      cols.forEach( function( col) {
+        lineHeight = Math.max( lineHeight, columnEnter( col, filteredFoci))
       })
-      table.truncateRows( rowCount)
+      var x = 0
+      cols.forEach( function( col) {
+        if( col.rect.anchor.x < 0.5) {
+          col.rect.origin.x = x
+          col.group.attr('transform', 'translate(' + col.rect.minX() + ',' + col.rect.maxY() + ')')
+          x += col.rect.size.width
+        } else {
+          x += col.rect.size.width
+          col.rect.origin.x = x
+          col.group.attr('transform', 'translate(' + col.rect.maxX() + ',' + col.rect.maxY() + ')')
+        }
+      })
 
+      var bbox = allText[0][0].getBBox()
+      var allTextRect = { rect: new trait.Rect( 0, 0, bbox.width, bbox.height)}
+      setOrigin( allTextRect, focusPoint, _super.chartRect())
+      group.attr('transform', 'translate(' + allTextRect.rect.minX() + ',' + allTextRect.rect.minY() + ')')
 
-      // o 134.00 Grid
-      // o   1.00 ESS
-      if( ! layout) {
-        layout = d3.trait.layout.table()
-          .padding( padding)
-          .textAlign( textAlignRLL)
-      }
-      table.render( layout, focusPoint, _super.chartRect())
+      box.attr({
+        y: -lineHeight,
+        width:  allTextRect.rect.size.width + 2,
+        height: allTextRect.rect.size.height + lineHeight / 3
+      })
+
+//      if( filteredFoci.length <= 0 ) {
+//        // TODO: Don't truncate here. Hide the whole tooltip. When we come back we'll reuse the rows.
+//        table.truncateRows(0)
+//        return
+//      }
+//
+//      // TODO: change to addRow and take col args. Same for addRow below.
+//      table.setHeaderRow( filteredFoci[0])
+//
+//      // rowCount            1 2 1 2
+//      // table.rowCount      1 2 3 3
+//      // table.rowCount - 1  0 1 2 2
+//      // t.rC - 1 < rowCount T T F F
+//      //                     + + s s
+//      var rowCount = 1
+//      filteredFoci.forEach(function( focus, index, array) {
+//        if( table.rowCount() - 1 < rowCount)
+//          table.addRow( focus)
+//        else
+//          table.getRow( rowCount).setFocus( focus)
+//        rowCount ++
+//      })
+//      table.truncateRows( rowCount)
+//
+//
+//      // o 134.00 Grid
+//      // o   1.00 ESS
+//      if( ! layout) {
+//        layout = d3.trait.layout.table()
+//          .padding( padding)
+//          .textAlign( textAlignRLL)
+//      }
+//      table.render( layout, focusPoint, _super.chartRect())
     }
 
 
@@ -595,6 +720,17 @@
             .attr({
               'class':      'd3-trait-tooltip'
             });
+          box = group.append('rect')
+            .classed(klass.box,true)
+          allText = group.append('g')
+            .classed(klass.allText,true)
+          cols.forEach( function( col) {
+            col.group = allText.append('g')
+              .classed(col.groupKlass,true)
+              .attr('transform', 'translate(0,0)')
+          })
+
+
           table = new FocusTable( _config, group)
 
           self.onFocusChange( element, focusChange)
