@@ -550,6 +550,11 @@
 
       table.setHeaderRow( filteredFoci[0])
 
+      // rowCount            1 2 1 2
+      // table.rowCount      1 2 3 3
+      // table.rowCount - 1  0 1 2 2
+      // t.rC - 1 < rowCount T T F F
+      //                     + + s s
       var rowCount = 1
       filteredFoci.forEach(function( focus, index, array) {
         if( table.rowCount() - 1 < rowCount)

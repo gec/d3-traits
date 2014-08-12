@@ -61,6 +61,11 @@ describe('d3-traits.table', function() {
       : col === 1 ? 'right'
       : 'left'
   }
+  function textAlignRLR( node, depth, row, col) {
+    return col === 0 ? 'right'
+      : col === 1 ? 'left'
+      : 'right'
+  }
 
 
   it('layout.table.utils.calculateColWidths should  ...', function() {
@@ -90,6 +95,7 @@ describe('d3-traits.table', function() {
         layout = d3.trait.layout.table(),
         colWidths1 = [10, 0, 20],
         colWidths2 = [8, 10, 10],
+        totalWidth = colWidths1[0] + colWidths2[1] + colWidths1[2],
         height = 10
 
     table = makeTable( 2, 3, [colWidths1, colWidths2], height)
@@ -262,6 +268,42 @@ describe('d3-traits.table', function() {
     expect( r2.origin).toEqual( new d3.trait.Point( colWidths[0] + colWidths[1] - 11, rowHeight - 6))
     expect( r3.origin).toEqual( new d3.trait.Point( colWidths[0] + colWidths[1] + 12, rowHeight - 7))
 
+  });
+
+  it('table.utils.layoutRow should handle colspans', function() {
+
+    var rowHeight, table, row, colWidths,
+        layout = d3.trait.layout.table(),
+        colWidths1 = [10, 0, 20],
+        totalWidths = d3.sum( colWidths1)
+        height = 10
+
+    function padding( node, depth, row, col) {
+      return new d3.trait.Margin( 5+col, 10+col) // top/bottom, right/left
+    }
+
+    layout.padding( padding)
+      .textAlign( textAlignRLR)   // first row is right, so header is right.
+
+    table = makeTable( 1, 3, [colWidths1], height)
+    // Add a header row that spans all three columns.
+    tds = makeTds( 1, 30, height),
+      header = { rect: new d3.trait.Rect(), children:tds}
+    tds[0].colspan = 3
+    table.children.unshift( header)
+
+    row = table.children[0]
+    layout.utils.setDepthOnNodes( table, 0)
+    colWidths = layout.utils.calculateColWidths( table.children)
+    rowHeight = layout.utils.calculateRowHeight( table.children[0], 0)
+    expect( rowHeight).toEqual( 20)  // just one row and column
+    row.rect.origin.x = 100
+    row.rect.origin.y = 200  // node y is relative to row, so shouldn't include 100
+    row.rect.size.height = rowHeight
+    layout.utils.layoutRow( row, 0, colWidths)
+
+    var r1 = row.children[0].rect
+    expect( r1.origin).toEqual( new d3.trait.Point( totalWidths - 10 , rowHeight - 5))
   });
 
   it('layout.table should layout rows and columns ...', function() {
