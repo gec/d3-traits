@@ -347,6 +347,10 @@
     // TODO: We have less focus items. Remove excess rows.
   }
 
+  // TODO: How about
+  //   var row = table.addRow( cols)
+  //   row.setValue( focus) or row.update( focus)
+  //
   FocusTable.prototype.setHeaderRow = function( focus) {
 
     if( ! this.header) {
@@ -544,10 +548,12 @@
       var filteredFoci = getFilteredFoci( foci, _config.seriesFilter)
 
       if( filteredFoci.length <= 0 ) {
+        // TODO: Don't truncate here. Hide the whole tooltip. When we come back we'll reuse the rows.
         table.truncateRows(0)
         return
       }
 
+      // TODO: change to addRow and take col args. Same for addRow below.
       table.setHeaderRow( filteredFoci[0])
 
       // rowCount            1 2 1 2
@@ -592,6 +598,7 @@
           table = new FocusTable( _config, group)
 
           self.onFocusChange( element, focusChange)
+          // TODO: add mouse out.
           //self.onChartMouseOut( element, focusChange)
         }
 
