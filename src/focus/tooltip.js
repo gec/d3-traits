@@ -251,6 +251,8 @@
   var AnchorBottomLeft = new trait.Point(0, 1),
       AnchorBottomRight = new trait.Point(1, 1),
       AnchorBottomCenter = new trait.Point(0.5, 1),
+      AnchorTopLeft = new trait.Point(0,0),
+      AnchorMiddleLeft = new trait.Point(0,0.5),
       AnchorMiddle = new trait.Point(0.5,0.5)
 
 
@@ -524,6 +526,7 @@
     })
   }
 
+  function formatNull( d) { return d}
 
   /**
    * Tooltip will call focus super. Any charts traits can return a list of items that need tooltips.
@@ -538,23 +541,64 @@
    */
   function _tooltipUnified(_super, _config, _id) {
 
-    var group, allText, layout, table,
+    var group, table,
         axis = _config.axis,
         transitionDuration = trait.utils.configFloat( _config.transitionDuration, 100),
         paddingEm = _config.padding || new trait.Margin( 0, 2, 0.25),  // top, left/right bottom
-        offsetX = 8
+        offsetX = 8,
+        emDefault= 10,  // size of em space
+        formatHeader = _config.formatHeader || formatNull
 
     var box,
         klass = { main: _config['class'] || 'd3-trait-tooltip'}
     klass.box = klass.main + '-box'
-    klass.allText = klass.main + '-alltext'
-    klass.rows = klass.main + '-rows'
-    klass.row = klass.main + '-row'
-    klass.value = klass.main + '-value'
-    klass.values = klass.main + '-values'
-    klass.label = klass.main + '-label'
-    klass.labels = klass.main + '-labels'
-    klass.header = klass.main + '-header'
+
+    function layoutLeftToRight( child, origin) {
+      origin.x += paddingEm.left * child.em
+
+      if( child.rect.anchor.x < 0.5) {
+        child.rect.origin.x = origin.x
+        child.group.attr('transform', 'translate(' + child.rect.minX() + ',' + child.rect.maxY() + ')')
+        origin.x += child.rect.size.width
+      } else {
+        origin.x += child.rect.size.width
+        child.rect.origin.x = origin.x
+        child.group.attr('transform', 'translate(' + child.rect.maxX() + ',' + child.rect.maxY() + ')')
+      }
+
+      origin.x += paddingEm.right * child.em
+      return origin
+    }
+
+    function layoutTopToBottom( child, origin) {
+      origin.y += paddingEm.top * child.em
+
+      if( child.rect.anchor.y < 0.5) {
+        child.rect.origin.y = origin.y
+        child.group.attr('transform', 'translate(' + child.rect.minX() + ',' + child.rect.minY() + ')')
+        origin.y += child.rect.size.height
+      } else {
+        origin.y += child.rect.size.height
+        child.rect.origin.y = origin.y
+        child.group.attr('transform', 'translate(' + child.rect.minX() + ',' + child.rect.maxY() + ')')
+      }
+
+      origin.y += paddingEm.bottom * child.em
+      return origin
+    }
+
+    function layout( node) {
+      var origin = new trait.Point()
+
+      node.children.forEach( function( child) {
+        if( child.children)
+          layout( child)
+        origin = node.layoutChildren( child, origin)
+      })
+
+      // TODO: resize children so vertical layout has the same widths, etc.
+    }
+
 
     function valueY( f) {
       var v = _config.y1( f.item)
@@ -562,23 +606,64 @@
         v = _config.formatY( v)
       return v
     }
-    var cols = [
-      {
-        groupKlass: klass.values,
-        klass: klass.value,
-        anchor: AnchorBottomRight,
-        textAnchor: 'end',
-        accessValue: valueY,
-        format: _config.formatY
-      },
-      {
-        groupKlass: klass.labels,
-        klass: klass.label,
-        anchor: AnchorBottomLeft,
-        textAnchor: 'start',
-        accessValue: function( f) { return _config.seriesLabel( f.series)}
-      }
-    ]
+
+    // [ Header         ]
+    // circle value label
+    // circle value label
+    // circle value label
+    //
+
+    table = {
+      group: undefined,
+      klass: klass.main + '-table',
+      layoutChildren: layoutTopToBottom,
+      em: emDefault, // TODO: update em at all depths to max em of children.
+      children: [
+        { // Header
+          group: undefined,
+          klass: klass.main + '-header',
+          limit: 1,  // one header for all foci.
+          anchor: AnchorTopLeft,
+          layoutChildren: layoutLeftToRight,
+          em: emDefault,
+          children: [  // columns
+            {
+              group: undefined,
+              klass: klass.main + '-header',
+              anchor: AnchorBottomLeft,
+              textAnchor: 'start',
+              accessValue: function( f) { return formatHeader( _config.x1( f.item)) },
+              em: emDefault
+            }
+          ]
+        },
+        { // Body
+          group: undefined,
+          klass: klass.main + '-body',
+          anchor: AnchorTopLeft,
+          layoutChildren: layoutLeftToRight,
+          em: emDefault,
+          children: [  // columns
+            {
+              group: undefined,
+              klass: klass.main + '-value',
+              anchor: AnchorBottomRight,
+              textAnchor: 'end',
+              accessValue: valueY,
+              em: emDefault
+            },
+            {
+              group: undefined,
+              klass: klass.main + '-label',
+              anchor: AnchorBottomLeft,
+              textAnchor: 'start',
+              accessValue: function( f) { return _config.seriesLabel( f.series)},
+              em: emDefault
+            }
+          ]
+        }
+      ]
+    }
 
     function setOrigin( obj, focusPoint, chartRect) {
       var  offsetX = 8,
@@ -601,19 +686,30 @@
 
     }
 
+    function getSelectionRect( selection, anchor) {
+      var bbox = selection[0][0].getBBox()
+      return new trait.Rect(
+        0, 0,
+        bbox.width, bbox.height,
+        anchor ? anchor.x : 0,
+        anchor ? anchor.y : 0
+      )
+    }
+
+
     function yEmWithPadding( d, i) {
       var p = i === 0 ? paddingEm.top : paddingEm.top + (paddingEm.top + paddingEm.bottom + 1) * i
       return p + 'em'
     }
+
     function columnEnter( col, foci) {
       var li
 
-      li = col.group.selectAll('.' + col.klass)
+      li = col.group.selectAll('text')
         .data(foci)
 
       li.enter()
         .append('text')
-        .classed(col.klass,true)
         .attr('y', yEmWithPadding)
         .attr('x',0)
         .style('text-anchor', col.textAnchor)
@@ -623,53 +719,82 @@
         .remove()
 
       var heightEm = 0,
-          padBottom = 0,
-          heightTotal = 0,
-          bbox = col.group[0][0].getBBox()
+          padBottom = 0
+//          heightTotal = 0
+
+      col.rect = getSelectionRect( col.group, col.anchor)
+      var size = col.rect.size
+//          size = col.group[0][0].getBBox()
 
       if( foci.length > 0) {
         if( foci.length === 1)
-          heightEm = bbox.height - paddingEm.top
+          heightEm = size.height - paddingEm.top
         else
-          heightEm = bbox.height / (paddingEm.top + (paddingEm.top + paddingEm.bottom + 1) * (foci.length-1))
+          heightEm = size.height / (paddingEm.top + (paddingEm.top + paddingEm.bottom + 1) * (foci.length-1))
         padBottom = heightEm * paddingEm.bottom
-        heightTotal = bbox.height + padBottom
+//        heightTotal = size.height + padBottom
+        size.height += padBottom
       }
+      col.em = heightEm
 
-      col.rect = new trait.Rect( 0, 0, bbox.width, heightTotal, col.anchor.x, col.anchor.y)
-      return foci.length === 0 ? 0 : heightTotal / foci.length
+//      col.rect = new trait.Rect( 0, 0, size.width, heightTotal, col.anchor.x, col.anchor.y)
+      return foci.length === 0 ? 0 : size.height / foci.length
     }
+
+    function sectionEnter( section, foci) {
+      var lineHeight = 0
+
+      if( section.limit)
+        foci = foci.slice( 0, section.limit)
+
+      section.children.forEach( function( col) {
+        lineHeight = Math.max( lineHeight, columnEnter( col, foci))
+      })
+      section.lineHeight = lineHeight
+      return lineHeight
+    }
+
+//    function layoutColsHorizontal( section) {
+//
+//      var x = 0
+//      section.children.forEach( function( col) {
+//        x += padding.left * col.em
+//        if( col.rect.anchor.x < 0.5) {
+//          col.rect.origin.x = x
+//          col.group.attr('transform', 'translate(' + col.rect.minX() + ',' + col.rect.maxY() + ')')
+//          x += col.rect.size.width
+//        } else {
+//          x += col.rect.size.width
+//          col.rect.origin.x = x
+//          col.group.attr('transform', 'translate(' + col.rect.maxX() + ',' + col.rect.maxY() + ')')
+//        }
+//        x += padding.right * col.em
+//      })
+//    }
 
     function focusChange( foci, focusPoint) {
 
-      var filteredFoci = getFilteredFoci( foci, _config.seriesFilter),
-          lineHeight = 0
+      var filteredFoci,
+          headerFoci,
+          lineHeight,
+          headerHeight
 
-      cols.forEach( function( col) {
-        lineHeight = Math.max( lineHeight, columnEnter( col, filteredFoci))
-      })
-      var x = 0
-      cols.forEach( function( col) {
-        if( col.rect.anchor.x < 0.5) {
-          col.rect.origin.x = x
-          col.group.attr('transform', 'translate(' + col.rect.minX() + ',' + col.rect.maxY() + ')')
-          x += col.rect.size.width
-        } else {
-          x += col.rect.size.width
-          col.rect.origin.x = x
-          col.group.attr('transform', 'translate(' + col.rect.maxX() + ',' + col.rect.maxY() + ')')
-        }
+      filteredFoci = getFilteredFoci( foci, _config.seriesFilter)
+      table.children.forEach( function( child) {
+        lineHeight = sectionEnter( child, filteredFoci)
+//        layoutColsHorizontal( child)
       })
 
-      var bbox = allText[0][0].getBBox()
-      var allTextRect = { rect: new trait.Rect( 0, 0, bbox.width, bbox.height)}
-      setOrigin( allTextRect, focusPoint, _super.chartRect())
-      group.attr('transform', 'translate(' + allTextRect.rect.minX() + ',' + allTextRect.rect.minY() + ')')
+      layout( table)
+
+      table.children[1].rect = getSelectionRect( table.children[1].group)
+      setOrigin( table.children[1], focusPoint, _super.chartRect())
+      group.attr('transform', 'translate(' + table.children[1].rect.minX() + ',' + table.children[1].rect.minY() + ')')
 
       box.attr({
         y: -lineHeight,
-        width:  allTextRect.rect.size.width + 2,
-        height: allTextRect.rect.size.height + lineHeight / 3
+        width:  table.children[1].rect.size.width + 2,
+        height: table.children[1].rect.size.height + lineHeight / 3
       })
 
 //      if( filteredFoci.length <= 0 ) {
@@ -708,6 +833,20 @@
     }
 
 
+    function makeChildGroups( parent) {
+
+      parent.children.forEach( function( child) {
+
+        child.group = group.append('g')
+          .classed(child.klass,true)
+        child.children.forEach( function( col) {
+          col.group = child.group.append('g')
+            .classed(col.klass,true)
+            .attr('transform', 'translate(0,0)')
+        })
+      })
+
+    }
 
     function tooltipUnified(_selection) {
       var self = tooltipUnified
@@ -722,16 +861,20 @@
             });
           box = group.append('rect')
             .classed(klass.box,true)
-          allText = group.append('g')
-            .classed(klass.allText,true)
-          cols.forEach( function( col) {
-            col.group = allText.append('g')
-              .classed(col.groupKlass,true)
-              .attr('transform', 'translate(0,0)')
-          })
+
+          makeChildGroups( table)
+//          table.children[1].group = group.append('g')
+//            .classed(table.children[1].klass,true)
+//          table.children[0].group = group.append('g')
+//            .classed(table.children[0].klass,true)
+//          table.children[1].children.forEach( function( col) {
+//            col.group = table.children[1].group.append('g')
+//              .classed(col.klass,true)
+//              .attr('transform', 'translate(0,0)')
+//          })
 
 
-          table = new FocusTable( _config, group)
+//          table = new FocusTable( _config, group)
 
           self.onFocusChange( element, focusChange)
           // TODO: add mouse out.
