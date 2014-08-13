@@ -548,7 +548,11 @@
 //        paddingEm = _config.padding || new trait.Margin( 0, 0, 0),  // top, left/right bottom
         offsetX = 8,
         emDefault= 10,  // size of em space
-        formatHeader = _config.formatHeader || formatNull
+        formatHeader = _config.formatHeader || formatNull,
+        targets = _config.target
+
+    if( targets && ! Array.isArray( targets))
+      targets = [targets]
 
     var layout = trait.layout.tilestack()
       .paddingEm( paddingEm)
@@ -868,6 +872,15 @@
 
     }
 
+    function updateTargets( foci, focusPoint) {
+      if( ! targets)
+        return
+
+      targets.forEach( function(target) {
+        target.update( 'focus', foci, focusPoint)
+      })
+    }
+
     function tooltipUnified(_selection) {
       var self = tooltipUnified
 
@@ -898,10 +911,11 @@
 
           self.onFocusChange( element, function( foci, focusPoint){
             focusChange( foci, focusPoint, self.color)
+            updateTargets( foci, focusPoint)
           } )
           self.onChartMouseOut( element, function() {
             group.transition().duration(100).style('opacity', 0)
-
+            updateTargets( [])
           })
         }
 
