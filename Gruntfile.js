@@ -12,6 +12,14 @@ module.exports = function(grunt) {
     return grunt.util._.extend(options, customOptions, travisOptions);
   };
 
+  var srcFiles = [
+    'src/<%= pkg.name %>.js',
+    'src/core/utils.js',
+    'src/core/*.js',
+    'src/*/utils.js',
+    'src/*/*.js'
+  ]
+
   // Project configuration.
   grunt.initConfig({
     // Metadata.
@@ -23,7 +31,7 @@ module.exports = function(grunt) {
       ' Licensed <%= _.pluck(pkg.licenses, "type").join(", ") %> */\n',
 
     watch: {
-      files: ['src/<%= pkg.name %>.js', 'src/layout.js', 'src/table.js', 'src/*/*.js', 'test/**/*.spec.js'],
+      files: srcFiles,
       tasks: ['jshint', 'concat', 'karma:continuous', 'uglify']
     },
 
@@ -91,7 +99,7 @@ module.exports = function(grunt) {
         stripBanners: true
       },
       js: {
-        src: ['src/<%= pkg.name %>.js', 'src/layout.js',  'src/table.js', 'src/*/*.js'],
+        src: srcFiles,
         dest: 'dist/<%= pkg.name %>.js'
       },
       css: {

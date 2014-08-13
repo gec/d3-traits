@@ -544,60 +544,20 @@
     var group, table,
         axis = _config.axis,
         transitionDuration = trait.utils.configFloat( _config.transitionDuration, 100),
-        paddingEm = _config.padding || new trait.Margin( 0, 2, 0.25),  // top, left/right bottom
+        paddingEm = _config.padding || new trait.Margin( 0, 0.6, 0.25),  // top, left/right bottom
+//        paddingEm = _config.padding || new trait.Margin( 0, 0, 0),  // top, left/right bottom
         offsetX = 8,
         emDefault= 10,  // size of em space
         formatHeader = _config.formatHeader || formatNull
+
+    var layout = trait.layout.tilestack()
+      .paddingEm( paddingEm)
+      .translate( function( node, x, y) { node.group.attr('transform', 'translate(' + x + ',' + y + ')' )})
 
     var box,
         klass = { main: _config['class'] || 'd3-trait-tooltip'}
     klass.box = klass.main + '-box'
 
-    function layoutLeftToRight( child, origin) {
-      origin.x += paddingEm.left * child.em
-
-      if( child.rect.anchor.x < 0.5) {
-        child.rect.origin.x = origin.x
-        child.group.attr('transform', 'translate(' + child.rect.minX() + ',' + child.rect.maxY() + ')')
-        origin.x += child.rect.size.width
-      } else {
-        origin.x += child.rect.size.width
-        child.rect.origin.x = origin.x
-        child.group.attr('transform', 'translate(' + child.rect.maxX() + ',' + child.rect.maxY() + ')')
-      }
-
-      origin.x += paddingEm.right * child.em
-      return origin
-    }
-
-    function layoutTopToBottom( child, origin) {
-      origin.y += paddingEm.top * child.em
-
-      if( child.rect.anchor.y < 0.5) {
-        child.rect.origin.y = origin.y
-        child.group.attr('transform', 'translate(' + child.rect.minX() + ',' + child.rect.minY() + ')')
-        origin.y += child.rect.size.height
-      } else {
-        origin.y += child.rect.size.height
-        child.rect.origin.y = origin.y
-        child.group.attr('transform', 'translate(' + child.rect.minX() + ',' + child.rect.maxY() + ')')
-      }
-
-      origin.y += paddingEm.bottom * child.em
-      return origin
-    }
-
-    function layout( node) {
-      var origin = new trait.Point()
-
-      node.children.forEach( function( child) {
-        if( child.children)
-          layout( child)
-        origin = node.layoutChildren( child, origin)
-      })
-
-      // TODO: resize children so vertical layout has the same widths, etc.
-    }
 
 
     function valueY( f) {
@@ -616,7 +576,7 @@
     table = {
       group: undefined,
       klass: klass.main + '-table',
-      layoutChildren: layoutTopToBottom,
+      layoutChildren: 'TopToBottom',
       em: emDefault, // TODO: update em at all depths to max em of children.
       children: [
         { // Header
@@ -624,12 +584,13 @@
           klass: klass.main + '-header',
           limit: 1,  // one header for all foci.
           anchor: AnchorTopLeft,
-          layoutChildren: layoutLeftToRight,
+          layoutChildren: 'LeftToRight',
           em: emDefault,
           children: [  // columns
             {
+              type: 'text',
               group: undefined,
-              klass: klass.main + '-header',
+              klass: klass.main + '-header-td',
               anchor: AnchorBottomLeft,
               textAnchor: 'start',
               accessValue: function( f) { return formatHeader( _config.x1( f.item)) },
@@ -641,10 +602,20 @@
           group: undefined,
           klass: klass.main + '-body',
           anchor: AnchorTopLeft,
-          layoutChildren: layoutLeftToRight,
+          layoutChildren: 'LeftToRight',
           em: emDefault,
           children: [  // columns
             {
+              type: 'mark',
+              group: undefined,
+              klass: klass.main + '-mark',
+              anchor: AnchorBottomRight,
+              textAnchor: 'end',
+              accessValue: valueY,
+              em: emDefault
+            },
+            {
+              type: 'text',
               group: undefined,
               klass: klass.main + '-value',
               anchor: AnchorBottomRight,
@@ -653,6 +624,7 @@
               em: emDefault
             },
             {
+              type: 'text',
               group: undefined,
               klass: klass.main + '-label',
               anchor: AnchorBottomLeft,
@@ -688,21 +660,49 @@
 
     function getSelectionRect( selection, anchor) {
       var bbox = selection[0][0].getBBox()
+      var x = anchor ? anchor.x * bbox.width : 0,
+          y = 0 // anchor ? anchor.y * bbox.height : 0
       return new trait.Rect(
-        0, 0,
+        x, y,
         bbox.width, bbox.height,
         anchor ? anchor.x : 0,
-        anchor ? anchor.y : 0
+        0 //anchor ? anchor.y : 0
       )
     }
 
 
     function yEmWithPadding( d, i) {
-      var p = i === 0 ? paddingEm.top : paddingEm.top + (paddingEm.top + paddingEm.bottom + 1) * i
+      // The first line is y = 1em because character y is the baseline.
+      var p = i === 0 ? paddingEm.top + 1 : paddingEm.top + (paddingEm.top + paddingEm.bottom + 1) * i + 1
+      return p + 'em'
+    }
+    function yEmWithPaddingCircle( d, i) {
+      // The first line is y = 1em because character y is the baseline.
+      var p = i === 0 ? paddingEm.top + 0.64 : paddingEm.top + (paddingEm.top + paddingEm.bottom + 1) * i + 0.64
       return p + 'em'
     }
 
-    function columnEnter( col, foci) {
+    function calculateEm( col, fociLength) {
+      var heightEm = 0,
+          padBottom = 0,
+          size = col.rect.size
+
+      if( fociLength > 0) {
+        if( fociLength === 1)
+          // h = (1+.t)*em
+          heightEm = size.height / ( 1+ paddingEm.top)
+        else
+          // h = (1+.t)*em + (1+.t+.b)*em * (length-1)
+          // h = {(1+.t) + (1+.t+.b) * (length-1)} * em
+          // em = h / {(1+.t) + (1+.t+.b) * (length-1)}
+          heightEm = size.height / (paddingEm.top + 1 + (paddingEm.top + paddingEm.bottom + 1) * (fociLength-1))
+        padBottom = heightEm * paddingEm.bottom
+        size.height += padBottom
+      }
+      return heightEm
+    }
+
+    function textColumnEnter( col, foci) {
       var li
 
       li = col.group.selectAll('text')
@@ -715,43 +715,60 @@
         .style('text-anchor', col.textAnchor)
         .text( col.accessValue )
 
+      // UPDATE
+      li.text( col.accessValue )
+
       li.exit()
         .remove()
 
-      var heightEm = 0,
-          padBottom = 0
-//          heightTotal = 0
+      col.rect = getSelectionRect( col.group, col.anchor)
+      col.em = calculateEm( col, foci.length)
+
+//      return foci.length === 0 ? 0 : size.height / foci.length
+      return col.em
+    }
+    function markColumnEnter( col, foci, color) {
+      var li
+
+      li = col.group.selectAll('circle')
+        .data(foci)
+
+      li.enter()
+        .append('circle')
+        .attr('cy', yEmWithPaddingCircle)
+        .attr('cx', '0.5em')
+        .attr('r','0.4em')
+        .style('fill', function( f) { return color(f.series)})
+
+      // UPDATE
+      li.style('fill', function( f) { return color(f.series)})
+
+      li.exit()
+        .remove()
 
       col.rect = getSelectionRect( col.group, col.anchor)
-      var size = col.rect.size
-//          size = col.group[0][0].getBBox()
+      col.em = calculateEm( col, foci.length)
 
-      if( foci.length > 0) {
-        if( foci.length === 1)
-          heightEm = size.height - paddingEm.top
-        else
-          heightEm = size.height / (paddingEm.top + (paddingEm.top + paddingEm.bottom + 1) * (foci.length-1))
-        padBottom = heightEm * paddingEm.bottom
-//        heightTotal = size.height + padBottom
-        size.height += padBottom
-      }
-      col.em = heightEm
-
-//      col.rect = new trait.Rect( 0, 0, size.width, heightTotal, col.anchor.x, col.anchor.y)
-      return foci.length === 0 ? 0 : size.height / foci.length
+      return col.em
     }
 
-    function sectionEnter( section, foci) {
-      var lineHeight = 0
+    function sectionEnter( section, foci, color) {
+      var markCol,
+          em = 10
 
       if( section.limit)
         foci = foci.slice( 0, section.limit)
 
       section.children.forEach( function( col) {
-        lineHeight = Math.max( lineHeight, columnEnter( col, foci))
+        if( col.type === 'text')
+          em = textColumnEnter( col, foci)
+        else
+          markCol = col
       })
-      section.lineHeight = lineHeight
-      return lineHeight
+
+      if( markCol)
+        markColumnEnter( markCol, foci, color)
+
     }
 
 //    function layoutColsHorizontal( section) {
@@ -772,30 +789,33 @@
 //      })
 //    }
 
-    function focusChange( foci, focusPoint) {
+    function focusChange( foci, focusPoint, color) {
 
       var filteredFoci,
           headerFoci,
-          lineHeight,
           headerHeight
 
+      // Reverse so stack area charts have the series in the correct visual order.
+      foci = foci.reverse()
       filteredFoci = getFilteredFoci( foci, _config.seriesFilter)
       table.children.forEach( function( child) {
-        lineHeight = sectionEnter( child, filteredFoci)
-//        layoutColsHorizontal( child)
+        sectionEnter( child, filteredFoci, color)
       })
 
       layout( table)
 
-      table.children[1].rect = getSelectionRect( table.children[1].group)
-      setOrigin( table.children[1], focusPoint, _super.chartRect())
-      group.attr('transform', 'translate(' + table.children[1].rect.minX() + ',' + table.children[1].rect.minY() + ')')
+      setOrigin( table, focusPoint, _super.chartRect())
+      group.attr('transform', 'translate(' + table.rect.minX() + ',' + table.rect.minY() + ')')
 
       box.attr({
-        y: -lineHeight,
-        width:  table.children[1].rect.size.width + 2,
-        height: table.children[1].rect.size.height + lineHeight / 3
+        x: 0.5,
+        y: Math.round( table.em * -0.25) + 0.5,
+        width:  Math.round( table.rect.size.width + table.em * 0.1),
+        height: Math.round( table.rect.size.height + table.em * 0.25)
       })
+
+      group.style('opacity', 1)
+
 
 //      if( filteredFoci.length <= 0 ) {
 //        // TODO: Don't truncate here. Hide the whole tooltip. When we come back we'll reuse the rows.
@@ -876,9 +896,13 @@
 
 //          table = new FocusTable( _config, group)
 
-          self.onFocusChange( element, focusChange)
-          // TODO: add mouse out.
-          //self.onChartMouseOut( element, focusChange)
+          self.onFocusChange( element, function( foci, focusPoint){
+            focusChange( foci, focusPoint, self.color)
+          } )
+          self.onChartMouseOut( element, function() {
+            group.transition().duration(100).style('opacity', 0)
+
+          })
         }
 
       })
