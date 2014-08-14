@@ -528,6 +528,17 @@
 
   function formatNull( d) { return d}
 
+  var defaultConfig = {
+    transition: {
+      duration: 100
+    },
+    radius: 3,
+    paddingEm: new trait.Margin( 0, 0.6, 0.25),  // top, left/right bottom
+    offsetX: 8,
+    em: undefined,
+    formatHeader: formatNull,
+    targets: undefined // object or array of objects
+  }
   /**
    * Tooltip will call focus super. Any charts traits can return a list of items that need tooltips.
    * For example a line chart with two series can return two times.
@@ -544,6 +555,7 @@
     var group, table,
         axis = _config.axis,
         transitionDuration = trait.utils.configFloat( _config.transitionDuration, 100),
+        radius = trait.utils.configFloat( _config.radius, 3),
         paddingEm = _config.padding || new trait.Margin( 0, 0.6, 0.25),  // top, left/right bottom
 //        paddingEm = _config.padding || new trait.Margin( 0, 0, 0),  // top, left/right bottom
         offsetX = 8,
@@ -814,6 +826,8 @@
       box.attr({
         x: 0.5,
         y: Math.round( table.em * -0.25) + 0.5,
+        rx: radius,
+        ry: radius,
         width:  Math.round( table.rect.size.width + table.em * 0.1),
         height: Math.round( table.rect.size.height + table.em * 0.25)
       })
