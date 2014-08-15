@@ -47,7 +47,8 @@
           tickPadding: config.tickPadding,
           tickFormat:  config.tickFormat,
           nice:        config.nice,
-          label:       config.label
+          label:       config.label,
+          lines:       config.lines
         }
 
     c.labelLineHeight = c.label ? (config.labelLineHeight || 14) : 0
@@ -172,6 +173,16 @@
         c = axisConfig(_config),
         scale = _super[c.name]()  // ex: x1()
 
+    function makePath( d) {
+      var //domainExtent = scale.domain(),
+          scaleD = scale(d)
+      if( c.axisChar === 'x')
+        return 'M' + scaleD + ','+'0L' + scaleD + ',' + _super.chartHeight()
+      else
+        return 'M0,' + scaleD + 'L' + _super.chartWidth() + ',' + scaleD
+    }
+
+
     // TODO: No don't call this. We're using self.layoutAxis now!
     //adjustChartMarginForAxis( _super, c)
 
@@ -224,6 +235,18 @@
             .attr("d", function(d) {
               return "M" + d[0] + ",0L" + d[1] + ",0";
             })
+        }
+
+        if(c.lines && Array.isArray(c.lines)) {
+          var line = groupAxis.selectAll("path.axis-line")
+            .data(c.lines)
+          line.enter()
+            .append("path")
+            .attr("class", "axis-line")
+            .attr("d", makePath)
+
+          line.attr("class", "axis-line")
+            .attr("d", makePath)
         }
 
 
