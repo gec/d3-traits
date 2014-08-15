@@ -156,6 +156,13 @@
       axis.tickFormat(c.tickFormat)
   }
 
+  var AxisLineClass = 'axis-line'
+
+  function makeLineClass( d) {
+    return typeof(d) === 'object' && d.hasOwnProperty( 'class') ? AxisLineClass + ' ' + d['class'] : AxisLineClass
+  }
+
+
   /**
    *
    * config.ticks
@@ -173,13 +180,13 @@
         c = axisConfig(_config),
         scale = _super[c.name]()  // ex: x1()
 
-    function makePath( d) {
-      var //domainExtent = scale.domain(),
-          scaleD = scale(d)
+    function makeLinePath( d) {
+      var v = isNaN( d) ? d.value : d,
+          sv = scale(v)
       if( c.axisChar === 'x')
-        return 'M' + scaleD + ','+'0L' + scaleD + ',' + _super.chartHeight()
+        return 'M' + sv + ','+'0L' + sv + ',' + _super.chartHeight()
       else
-        return 'M0,' + scaleD + 'L' + _super.chartWidth() + ',' + scaleD
+        return 'M0,' + sv + 'L' + _super.chartWidth() + ',' + sv
     }
 
 
@@ -238,15 +245,15 @@
         }
 
         if(c.lines && Array.isArray(c.lines)) {
-          var line = groupAxis.selectAll("path.axis-line")
+          var line = groupAxis.selectAll('path.' + AxisLineClass)
             .data(c.lines)
           line.enter()
             .append("path")
-            .attr("class", "axis-line")
-            .attr("d", makePath)
+            .attr("class", makeLineClass)
+            .attr("d", makeLinePath)
 
           line.attr("class", "axis-line")
-            .attr("d", makePath)
+            .attr("d", makeLinePath)
         }
 
 

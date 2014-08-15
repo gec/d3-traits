@@ -43,16 +43,11 @@
     // Store the group element here so we can have multiple area charts in one chart.
     // A second "area chart" might have a different y-axis, style or orientation.
     var group, series, filteredData, lastDomainMax, stackLayout,
-        yAxis = _config.yAxis || 'y1',
-        x1 = _super.x1(),
-        y = _super[yAxis](),
-        yMinDomainFromData = _super[yAxis + 'MinDomainFromData'],
-        access = {
-          x: _config.x1,
-          y: _config[yAxis],
-          seriesData: _config.seriesData,
-          seriesName: _config.seriesName
-        },
+        axes = trait.config.axes( _config),
+        access = trait.config.accessorsXY( _config, axes),
+        x1 = _super[axes.x](),
+        y = _super[axes.y](),
+        yMinDomainFromData = _super[axes.y + 'MinDomainFromData'],
         focusConfig = d3.trait.focus.utils.makeConfig(_config),
         interpolate = _config.interpolate || "linear",
         stacked = _config.stacked ? true : false,
@@ -60,7 +55,7 @@
 
     if( stacked ) {
       stackLayout = d3.layout.stack()
-        .values(function(d) { return _config.seriesData(d) })
+        .values(function(d) { return access.seriesData(d) })
         .y( access.y);
     }
 
@@ -82,7 +77,7 @@
         if( stacked) {
           if( filteredData.length > 0)
             stackLayout( filteredData)
-          access.series = _config.seriesData
+          access.series = access.seriesData
           access.data = access.y
           var extent = trait.utils.extentFromAreaData( filteredData, access)
           yMinDomainFromData( extent)
@@ -98,7 +93,7 @@
         series.selectAll("path")
           .transition()
           .duration(500)
-          .attr("d", function(d) { return area(_config.seriesData(d)); })
+          .attr("d", function(d) { return area(access.seriesData(d)); })
 
         // ENTER
         series.enter()
@@ -106,7 +101,7 @@
           .attr("class", "series")
           .append("path")
           .attr("class", "area")
-          .attr("d", function(d) { return area(_config.seriesData(d)); })
+          .attr("d", function(d) { return area(access.seriesData(d)); })
           .style("fill", self.color);
 
         lastDomainMax = d3.trait.utils.extentMax(x1.domain())
@@ -117,10 +112,10 @@
       this._super(type, duration)
 
       var dur = duration || _super.duration()
-      var attrD = function(d) { return area(_config.seriesData(d)); }
+      var attrD = function(d) { return area(access.seriesData(d)); }
       if( stacked) {
         stackLayout( filteredData);
-        access.series = _config.seriesData
+        access.series = access.seriesData
         access.data = access.y
         var extent = trait.utils.extentFromAreaData( filteredData, access)
         yMinDomainFromData( extent)

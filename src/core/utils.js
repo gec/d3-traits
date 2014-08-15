@@ -179,83 +179,6 @@
 //  }
 
 
-  function emptyIfNotObjectOrNull( target) {
-    return typeof(target) !== 'object' || target === null || target === 'undefined' ? {} : target
-  }
-
-
-  function updateDeep(target, o) {
-    // Inspired by: https://github.com/danvk/dygraphs/blob/master/dygraph-utils.js updateDeep
-    if (typeof(o) !== 'undefined' && o !== null) {
-      for (var k in o) {
-        if (o.hasOwnProperty(k)) {
-          var val = o[k]
-          target[k] = val === null || val === undefined ? val
-            : Array.isArray(val) ? val.slice(0)
-            : typeof(val) === 'object' ? updateDeep( emptyIfNotObjectOrNull(target[k]), val)
-            : val
-        }
-      }
-    }
-    return target;
-  }
-
-  // Code depends on certain object hierarchies in the config. We don't want the user
-  // to supply null to clip a whole object out of the config.
-  //
-  function wontOverwriteObjectWithNull( tVal, oVal) {
-    // if tVal is not an object, we're OK
-    // if tVal is an object then
-    //  tVal  oVal
-    // ----- -----
-    // !null !null true deepUpdate
-    //  null !null true assign with deep copy
-    // !null  null false
-    //  null  null // no op
-    //
-    if( typeof( tVal) !== 'object') {
-      return true
-    } else {
-      var tNull = tVal === null || tVal === undefined
-      var oNull = oVal === null || oVal === undefined
-      var bothNotNull = ! tNull && ! oNull
-      return bothNotNull || (tNull && ! oNull)
-    }
-  }
-
-  /**
-   * Nice idea to force the user config to match the default config. The problem is when
-   * a config parameter can be a number or array or function. We would need extra meta data
-   * to support this. Even with that, the Javascript type system isn't great at determining
-   * types.
-   *
-   * @param target
-   * @param o
-   * @returns {*}
-   */
-  function updateExistingKeysDeep(target, o) {
-    if( typeof(o) !== 'undefined' && o !== null) {
-      for( var k in target) {
-        if( target.hasOwnProperty(k) && o.hasOwnProperty(k)) {
-          var tVal = target[k],
-              oVal = o[k],
-              oTyp = typeof oVal
-          if( typeof(tVal) === oTyp && wontOverwriteObjectWithNull( tVal, oVal) )
-          target[k] = oVal === null ? target[k] = null
-            : Array.isArray(oVal) ? target[k] = oVal.slice(0)  // TODO: should we make array objects deep update?
-            : oTyp === 'object' ? updateExistingKeysDeep( tVal, oVal)
-            : oVal
-        }
-      }
-    }
-    return target
-  }
-
-  function makeConfig( defaultConfig, config) {
-    var deepCopy = JSON.parse(JSON.stringify(defaultConfig))
-    return updateDeep( deepCopy, config)
-  }
-
   ///////////////////////////////////
   // Export to d3.trait
   //
@@ -265,7 +188,5 @@
   trait.Size = Size
   trait.Margin = Margin
   trait.Rect = Rect
-
-  trait.utils.makeConfig = makeConfig
 
 }(d3, d3.trait));

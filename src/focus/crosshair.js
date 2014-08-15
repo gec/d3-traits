@@ -41,6 +41,8 @@
       }
     }
 
+    // If focusPoint, then mouse move, else mouse out.
+    //
     function chartMouseMove( focusPoint) {
       var chartHeight = _super.chartHeight(),
           marginLeft = _super.marginLeft(),
@@ -108,8 +110,8 @@
               'class':      'crosshair-group'
             });
 
-          self.onChartMouseMove( element, chartMouseMove)
-          self.onChartMouseOut(element, chartMouseMove)
+          self.onChartMouseMove( chartMouseMove, element)
+          self.onChartMouseOut( chartMouseMove, element)
         }
       })
     }

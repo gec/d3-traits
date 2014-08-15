@@ -20,20 +20,20 @@
  */
 (function(d3, trait) {
 
-  function barAttr(_config, barOffsetX, barW, chartHeight, x1, y1) {
-    // NOTE: for transition from enter, use  y1(0) for y: and height:
+  function barAttr(access, barOffsetX, barW, chartHeight, x1, y) {
+    // NOTE: for transition from enter, use  y(0) for y: and height:
     return {
-      x:      function(d, i) { return x1(_config.x1(d)) + barOffsetX; },
-      y:      function(d, i) { return y1(_config.y1(d)); },
+      x:      function(d) { return x1(access.x(d)) + barOffsetX; },
+      y:      function(d) { return y(access.y(d)); },
       width:  barW,
-      height: function(d, i) { return chartHeight - y1(_config.y1(d)); }
+      height: function(d) { return chartHeight - y(access.y(d)); }
     }
   }
 
-  function circleAttr(_config, x1, y1) {
+  function circleAttr(access, x1, y) {
     return {
-      cx: function(d, i) { return x1(_config.x1(d)) },
-      cy: function(d, i) { return y1(_config.y1(d)) },
+      cx: function(d) { return x1(access.x(d)) },
+      cy: function(d) { return y(access.y(d)) },
       r:  8
     }
   }
@@ -42,8 +42,10 @@
     // Store the group element here so we can have multiple bar charts in one chart.
     // A second "bar chart" might have a different y-axis, style or orientation.
     var group, series, points, barW, barOffsetX, lastDomainMax,
-        x1 = _super.x1(),
-        y1 = _super.y1(),
+        axes = trait.config.axes( _config),
+        access = trait.config.accessorsXY( _config, axes),
+        x1 = _super[axes.x](),
+        y = _super[axes.y](),
         shape = "circle" // rect
 
     var dispatch = d3.dispatch('customHover');
@@ -76,23 +78,23 @@
 
         // DATA JOIN
         points = series.selectAll(shape)
-          .data(_config.seriesData)
+          .data(access.seriesData)
         {
           // UPDATE
           points.transition()
             .duration(500).delay(500).ease(self.ease())
-            .attr(circleAttr(_config, x1, y1));
+            .attr(circleAttr(access, x1, y));
 
           // ENTER
           points.enter().append(shape)
             .classed('scatter-point', true)
-            .attr(circleAttr(_config, x1, y1))
+            .attr(circleAttr(access, x1, y))
             //.on('mouseover', dispatch.customHover);
             .on("mouseover", function(d, i) {
-              return element._svg.append("text").text("data: " + _config.y1(d).toFixed(1))
+              return element._svg.append("text").text("data: " + access.y(d).toFixed(1))
                 .attr("id", "tooltip")
-                .attr("x", x1(_config.x1(d)) + 10)
-                .attr("y", y1(_config.y1(d)))
+                .attr("x", x1(access.x(d)) + 10)
+                .attr("y", y(access.y(d)))
                 .attr("fill", "black")
                 .attr("opacity", 0)
                 .style("font-family", "sans-serif")
@@ -132,15 +134,15 @@
 
       // redraw the line and no transform
       series.attr("transform", null)
-      points.attr(barAttr(_config, barOffsetX, barW, _super.chartHeight(), x1, y1));
+      points.attr(barAttr(access, barOffsetX, barW, _super.chartHeight(), x1, y));
 
       points = series.selectAll("rect")
-        .data(_config.seriesData)
+        .data(access.seriesData)
 
       // ENTER
       points.enter().append('rect')
         .classed('bar', true)
-        .attr(barAttr(_config, barOffsetX, barW, _super.chartHeight(), x1, y1))
+        .attr(barAttr(access, barOffsetX, barW, _super.chartHeight(), x1, y))
 
       points.exit()
         .transition()

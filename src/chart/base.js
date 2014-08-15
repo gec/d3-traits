@@ -135,7 +135,8 @@
         chartHeight = height - margin.top - margin.bottom,
         colorIndexNext = 0,
         colors = d3.scale.category10(),
-        colorsUsed = []
+        colorsUsed = [],
+        externalListeners = {}  // subscribption listeners here or on each element.
 
 
     var select, duration = 0
@@ -157,11 +158,34 @@
       return pathId
     }
 
-    function mouseOnChart(mousePoint, chartWidth, chartHeight) {
-      return  mousePoint[0] >= 0 && mousePoint[0] <= chartWidth &&
-        mousePoint[1] >= 0 && mousePoint[1] <= chartHeight
+    function mouseOnChart(focusPoint, chartWidth, chartHeight) {
+      return  focusPoint.x >= 0 && focusPoint.x <= chartWidth &&
+        focusPoint.y >= 0 && focusPoint.y <= chartHeight
 
     }
+
+    function onMouseMoveListener( element, focusPoint, onChart, sourceInternal, marginLeft, marginTop) {
+      var foci
+      if( onChart)
+        onChartMouseMoveDispatch(element, [focusPoint], sourceInternal)
+
+
+      foci = onChart ? chartBase.getFocusItems.call(element, focusPoint) : []
+      foci.forEach(function(item) {
+        item.point.x += margin.left
+        item.point.y += margin.top
+      })
+
+      if( fociDifferentFromLast(element, foci) )
+        onFocusDispatch(element, [foci, focusPoint], sourceInternal)
+      element.__onFocusChangeLastFoci = foci
+
+    }
+
+    function onMouseOutListener( element, sourceInternal) {
+      onChartMouseOutDispatch(element, sourceInternal)
+    }
+
 
     function getDimension(sizeFromElement, dimension, elementOffsetDimension) {
       if( !sizeFromElement )
@@ -245,27 +269,17 @@
           this._svg.on("mousemove", function() {
             var foci,
                 mousePoint = d3.mouse(element._chartGroup.node()),
-                onChart = mouseOnChart(mousePoint, chartWidth, chartHeight),
-                focusPoint = new d3.trait.Point(mousePoint[0], mousePoint[1])
-            if( onChart)
-              onChartMouseMoveDispatch(element, focusPoint)
-
-
-            foci = onChart ? self.getFocusItems.call(element, focusPoint) : []
-            foci.forEach(function(item, index, array) {
-              item.point.x += margin.left
-              item.point.y += margin.top
-            })
-
-            if( fociDifferentFromLast(element, foci) )
-              onFocusDispatch(element, foci, focusPoint)
-            element.__onFocusChangeLastFoci = foci
+                focusPoint = new d3.trait.Point(mousePoint[0], mousePoint[1]),
+                onChart = mouseOnChart(focusPoint, chartWidth, chartHeight)
+            onMouseMoveListener( element, focusPoint, onChart, true, margin.left, margin.top)
           })
+
           this._svg.on("mouseout", function() {
             var mousePoint = d3.mouse(element._chartGroup.node()),
-                onChart = mouseOnChart(mousePoint, chartWidth, chartHeight)
+                focusPoint = new d3.trait.Point(mousePoint[0], mousePoint[1]),
+                onChart = mouseOnChart(focusPoint, chartWidth, chartHeight)
             if( !onChart )
-              onChartMouseOutDispatch(element)
+              onMouseOutListener( element, true) // t: sourceInternal
           })
 
           colorsUsed = []
@@ -314,15 +328,21 @@
       return false
     }
 
-    function onFocusDispatch(element, foci, focusPoint) {
-      elementDispatch(element, '__onFocusChangeListeners', [foci, focusPoint])
+    function onFocusDispatch(element, args, sourceInternal) {
+      elementDispatch(element, '__onFocusChangeListeners', args)
+      if( sourceInternal)
+        elementDispatch(externalListeners, '__onFocusChangeListeners', args)
     }
 
-    function onChartMouseMoveDispatch(element, focusPoint) {
-      elementDispatch(element, '__onChartMouseMoveListeners', [focusPoint])
+    function onChartMouseMoveDispatch(element, args, sourceInternal) {
+      elementDispatch(element, '__onChartMouseMoveListeners', args)
+      if( sourceInternal)
+        elementDispatch(externalListeners, '__onChartMouseMoveListeners', args)
     }
-    function onChartMouseOutDispatch(element) {
+    function onChartMouseOutDispatch(element, sourceInternal) {
       elementDispatch(element, '__onChartMouseOutListeners', [])
+      if( sourceInternal)
+        elementDispatch(externalListeners, '__onChartMouseOutListeners', [])
     }
 
     // __onFocusChangeListeners
@@ -339,24 +359,120 @@
       }
     }
 
-    chartBase.onFocusChange = function(element, fn) {
-      if( !element.__onFocusChangeListeners )
-        element.__onFocusChangeListeners = []
-      if( fn )
-        element.__onFocusChangeListeners.push(fn)
-    }
-    chartBase.onChartMouseMove = function(element, fn) {
-      if( !element.__onChartMouseMoveListeners )
-        element.__onChartMouseMoveListeners = []
-      if( fn )
-        element.__onChartMouseMoveListeners.push(fn)
+    /**
+     *
+     * Subscribe:
+     *    subscribe( function(){}, element)
+     *    subscribe( function(){})
+     *
+     * Unsubscribe:
+     *    subscribe( function(){}, element, false)
+     *    subscribe( function(){}, false)
+     * @param name
+     * @param fn
+     * @param element
+     * @param isSubscribe
+     * @returns {boolean}
+     */
+    function subscribe( name, fn, element, isSubscribe) {
+      var unsub = element === false || isSubscribe === false
+
+      if( ! fn)
+        return false
+
+      var listenerMap = element === undefined || element === false ? externalListeners : element
+      if( !listenerMap[name] ) {
+        if( unsub)
+          return false
+        else
+          listenerMap[name] = []
+      }
+      if( unsub) {
+        var listeners = listenerMap[name]
+        if( listeners ) {
+          var index = listeners.indexOf(fn)
+          if( index >= 0) {
+            listeners.splice( index, 1)
+          }
+        }
+        return false
+      } else {
+        listenerMap[name].push(fn)
+      }
+      return true // successful subscribe or unsubscribe
     }
 
-    chartBase.onChartMouseOut = function(element, fn) {
-      if( !element.__onChartMouseOutListeners )
-        element.__onChartMouseOutListeners = []
-      if( fn )
-        element.__onChartMouseOutListeners.push(fn)
+    /**
+     * Subscribe to events from another chart and treat them as our own.
+     * This is useful when we want the crosshair from another chart to
+     * show up in our chart (along with our tooltips).
+     *
+     * @param source The source chart that we're subscribing to.
+     * @param events List of events to subscribe to.
+     * @returns {chartBase}
+     */
+    chartBase.subscribeToEvents = function( source, events) {
+      if( ! source)
+        return this
+
+      events.forEach( function( event) {
+        var eventHandler
+        if( event === 'onChartMouseMove') {
+          eventHandler = function() {
+            var args = arguments // 0 or more arguments
+            if( selection )
+              selection.each(function(_data) {
+                var element = this, // the div element
+                    focusPoint = args[0]
+                focusPoint.x = Math.min(focusPoint.x, chartWidth)
+                focusPoint.y = Math.min(focusPoint.y, chartHeight)
+                onMouseMoveListener(element, focusPoint, true, false, margin.left, margin.top)
+              })
+          }
+        } else if( event === 'onChartMouseOut') {
+          eventHandler =  function() {
+            var args = arguments // 0 or more arguments
+            if( selection)
+              selection.each(function(_data) {
+                var element = this // the div element
+                onMouseOutListener(element, false)
+              })
+            }
+        }
+
+        // subscribe to source
+        if( eventHandler)
+          source[event]( eventHandler)
+      })
+      return this
+    }
+
+    /**
+     * Subscribe or unsubscribe to focus change events.
+     *
+     * Subscribe:
+     *    onFocusChange( function(){}, element)
+     *    onFocusChange( function(){})
+     *
+     * Unsubscribe:
+     *    onFocusChange( function(){}, element, false)
+     *    onFocusChange( function(){}, false)
+     *
+     *
+     * @param fn Function to call. Ex: function( foci, focusPoint)
+     * @param element Current element to hang listeners on or isSubscribe=false
+     * @param isSubscribe If isSubscribe === false, unsubscribe
+     * @return True on success
+     */
+    chartBase.onFocusChange = function(fn, element, isSubscribe) {
+      return subscribe( '__onFocusChangeListeners', fn, element, isSubscribe)
+    }
+    chartBase.onChartMouseMove = function(fn, element, isSubscribe) {
+      return subscribe( '__onChartMouseMoveListeners', fn, element, isSubscribe)
+    }
+
+    chartBase.onChartMouseOut = function(fn, element, isSubscribe) {
+      return subscribe( '__onChartMouseOutListeners', fn, element, isSubscribe)
     }
 
     function updateChartSize() {

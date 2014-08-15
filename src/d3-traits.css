@@ -20,6 +20,13 @@
   shape-rendering: crispEdges;
 }
 
+path.axis-line {
+  fill: none;
+  stroke: #808080;
+  shape-rendering: crispEdges;
+  opacity: 0.3
+}
+
 .line {
   fill: none;
   stroke: steelblue;

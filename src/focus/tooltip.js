@@ -125,9 +125,7 @@
 
         cache.tooltips = _data.map(function(d) { return null})
 
-        self.onChartMouseOut(element, function() { removeAllTooltips(cache) })
-
-        self.onFocusChange(element, function(foci, focusPoint) {
+        function focusChange(foci, focusPoint) {
 
           if( foci.length <= 0 ) {
             removeAllTooltips(cache)
@@ -226,9 +224,14 @@
           removeUnusedTooltips(cache.tooltips)
           cache.lastFoci = foci
 
-        })
+        }
+
+        self.onChartMouseOut( function() { removeAllTooltips(cache) }, element)
+
+        self.onFocusChange( focusChange, element)
 
       })
+
     }
 
     return tooltipDiscrete;
@@ -899,6 +902,16 @@
     function tooltipUnified(_selection) {
       var self = tooltipUnified
 
+      function focusChangeListener( foci, focusPoint){
+        focusChange( foci, focusPoint, self.color)
+//            updateTargets( foci, focusPoint)
+      }
+      function chartMouseOutListener() {
+        if( group)
+          group.transition().duration(100).style('opacity', 0)
+//            updateTargets( [])
+      }
+
       _selection.each(function(_data) {
         var element = this
 
@@ -911,27 +924,10 @@
             .classed(klass.box,true)
 
           makeChildGroups( table)
-//          table.children[1].group = group.append('g')
-//            .classed(table.children[1].klass,true)
-//          table.children[0].group = group.append('g')
-//            .classed(table.children[0].klass,true)
-//          table.children[1].children.forEach( function( col) {
-//            col.group = table.children[1].group.append('g')
-//              .classed(col.klass,true)
-//              .attr('transform', 'translate(0,0)')
-//          })
-
-
 //          table = new FocusTable( _config, group)
 
-          self.onFocusChange( element, function( foci, focusPoint){
-            focusChange( foci, focusPoint, self.color)
-            updateTargets( foci, focusPoint)
-          } )
-          self.onChartMouseOut( element, function() {
-            group.transition().duration(100).style('opacity', 0)
-            updateTargets( [])
-          })
+          self.onFocusChange( focusChangeListener, element)
+          self.onChartMouseOut( chartMouseOutListener, element)
         }
 
       })

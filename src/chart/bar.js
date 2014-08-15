@@ -48,13 +48,13 @@
   }
 
 
-  function barAttr(config, barDimensions, chartHeight, x1, y1) {
-    // NOTE: for transition from enter, use  y1(0) for y: and height:
+  function barAttr(access, barDimensions, chartHeight, x1, y) {
+    // NOTE: for transition from enter, use  y(0) for y: and height:
     return {
-      x:      function(d, i) { return x1(config.x1(d)) + barDimensions.offset; },
-      y:      function(d, i) { return y1(config.y1(d)); },
+      x:      function(d) { return x1(access.x(d)) + barDimensions.offset; },
+      y:      function(d) { return y(access.y(d)); },
       width:  barDimensions.width,
-      height: function(d, i) { return chartHeight - y1(config.y1(d)); }
+      height: function(d) { return chartHeight - y(access.y(d)); }
     }
   }
 
@@ -93,9 +93,9 @@
     return [Math.floor(minValue), Math.ceil(maxValue)]
   }
 
-  function rangeExtentOfBarsAndOuterGap(filteredSeries, indicesExtents, seriesData, accessor, scale, barWidth, gap, outerGap, justification) {
+  function rangeExtentOfBarsAndOuterGap(filteredData, indicesExtents, seriesData, accessor, scale, barWidth, gap, outerGap, justification) {
 
-    var rangeExtents = filteredSeries.map(function(s, i) { return rangeExtentOfBarsAndOuterGapForOneSeries(seriesData(s), indicesExtents[i], accessor, scale, barWidth, gap, outerGap, justification) })
+    var rangeExtents = filteredData.map(function(s, i) { return rangeExtentOfBarsAndOuterGapForOneSeries(seriesData(s), indicesExtents[i], accessor, scale, barWidth, gap, outerGap, justification) })
     var min = d3.min(rangeExtents, function(extent, i) { return extent[0]})
     var max = d3.min(rangeExtents, function(extent, i) { return extent[1]})
 
@@ -116,7 +116,7 @@
    *   Calculate the first and last bar outer edges plus a nice "inset" and scale that down
    *   to fit in the pixels available (current range).
    */
-  function getBarDimensions(filteredSeries, seriesData, accessor, c, scale, chartWidth) {
+  function getBarDimensions(filteredData, seriesData, accessor, c, scale, chartWidth) {
 
     // minimum scale distance between any two adjacent bars visible within the current domain.
     var width,
@@ -132,16 +132,16 @@
     } else {
       var scaleDomain = scale.domain(),
           // Find the data indices (across all series) for what's visible with current domain.
-          indicesExtents = filteredSeries.map(function(s) { return trait.chart.utils.dataIndicesExtentForDomainExtent(seriesData(s), accessor, scaleDomain) }),
+          indicesExtents = filteredData.map(function(s) { return trait.chart.utils.dataIndicesExtentForDomainExtent(seriesData(s), accessor, scaleDomain) }),
           // Get the minimum distance between bar centers across all data in all series
-          minDistanceX = d3.min(filteredSeries, function(s, i) { return trait.chart.utils.minDistanceBetween(seriesData(s), indicesExtents[i], accessor, scale) })
+          minDistanceX = d3.min(filteredData, function(s, i) { return trait.chart.utils.minDistanceBetween(seriesData(s), indicesExtents[i], accessor, scale) })
 
       width = c.width === 'auto' ? Math.max(1, Math.floor(minDistanceX * (1 - c.gap))) : c.width
       gap = Math.round(width * c.gap)
       outerGap = Math.floor(width * c.outerGap)
 
       // Get the minimun distance between bar centers across all data in all series
-      var rangeExtent = rangeExtentOfBarsAndOuterGap(filteredSeries, indicesExtents, seriesData, accessor, scale, width, gap, outerGap, c.justification),
+      var rangeExtent = rangeExtentOfBarsAndOuterGap(filteredData, indicesExtents, seriesData, accessor, scale, width, gap, outerGap, c.justification),
           min = rangeExtent[0],
           max = rangeExtent[1]
       //console.log( "minDistanceX: " + minDistanceX + " width: " + width + " rangeExtent: " + rangeExtent)
@@ -160,7 +160,7 @@
           }
 
           if( c.insets === INSETS_INSET_RANGE ) {
-            rangeExtent = rangeExtentOfBarsAndOuterGap(filteredSeries, indicesExtents, seriesData, accessor, scale, width, gap, outerGap, c.justification)
+            rangeExtent = rangeExtentOfBarsAndOuterGap(filteredData, indicesExtents, seriesData, accessor, scale, width, gap, outerGap, c.justification)
             min = rangeExtent[0]
             max = rangeExtent[1]
 
@@ -238,12 +238,15 @@
   function _chartBar(_super, _config) {
     // Store the group element here so we can have multiple bar charts in one chart.
     // A second "bar chart" might have a different y-axis, style or orientation.
-    var group, series, bars, barDimensions, lastDomainMax,
-        x1 = _super.x1(),
-        y1 = _super.y1(),
+    var group, series, filteredData, bars, barDimensions, lastDomainMax,
+        axes = trait.config.axes( _config),
+        access = trait.config.accessorsXY( _config, axes),
+        x1 = _super[axes.x](),
+        y = _super[axes.y](),
         barCount = _config.barCount,
         dispatch = d3.dispatch('customHover'),
         c = barConfig(_config),
+        focusConfig = d3.trait.focus.utils.makeConfig(_config),
         x1IsRangeBand = typeof x1.rangeBand === "function"
 
 
@@ -252,10 +255,11 @@
 
       _selection.each(function(_data) {
         var element = this,
-            chartWidth = _super.chartWidth(),
-            filteredSeries = _config.seriesFilter ? _data.filter(_config.seriesFilter) : _data
+            chartWidth = _super.chartWidth()
 
-        barDimensions = getBarDimensions(filteredSeries, _config.seriesData, _config.x1, c, x1, chartWidth)
+        filteredData = _config.seriesFilter ? _data.filter(_config.seriesFilter) : _data
+
+        barDimensions = getBarDimensions(filteredData, access.seriesData, access.x, c, x1, chartWidth)
 
         if( barDimensions.minRangeMargin || barDimensions.domainExtent ) {
 
@@ -265,7 +269,7 @@
             _super.x1Domain(barDimensions.domainExtent)
           }
 
-          barDimensions = getBarDimensions(filteredSeries, _config.seriesData, _config.x1, c, x1, chartWidth)
+          barDimensions = getBarDimensions(filteredData, access.seriesData, access.x, c, x1, chartWidth)
         }
 
         if( !group ) {
@@ -275,7 +279,7 @@
 
         // DATA JOIN
         series = group.selectAll(".series")
-          .data(filteredSeries)
+          .data(filteredData)
         {
           // UPDATE
 
@@ -288,18 +292,18 @@
 
         // DATA JOIN
         bars = series.selectAll("rect")
-          .data(_config.seriesData)
+          .data(access.seriesData)
 
         // ENTER
         bars.enter().append('rect')
           .classed('bar', true)
-          .attr(barAttr(_config, barDimensions, self.chartHeight(), x1, y1))
+          .attr(barAttr(access, barDimensions, self.chartHeight(), x1, y))
           .on('mouseover', dispatch.customHover);
 
         // UPDATE
         bars.transition()
           .duration(0).delay(0).ease(self.ease())
-          .attr(barAttr(_config, barDimensions, self.chartHeight(), x1, y1));
+          .attr(barAttr(access, barDimensions, self.chartHeight(), x1, y));
 
         // EXIT
         bars.exit()
@@ -323,15 +327,15 @@
 
       // redraw the line and no transform
       series.attr("transform", null)
-      bars.attr(barAttr(_config, barDimensions, _super.chartHeight(), x1, y1));
+      bars.attr(barAttr(access, barDimensions, _super.chartHeight(), x1, y));
 
       bars = series.selectAll("rect")
-        .data(_config.seriesData)
+        .data(access.seriesData)
 
       // ENTER
       bars.enter().append('rect')
         .classed('bar', true)
-        .attr(barAttr(_config, barDimensions, _super.chartHeight(), x1, y1))
+        .attr(barAttr(access, barDimensions, _super.chartHeight(), x1, y))
 
       bars.exit()
         .transition()
@@ -357,6 +361,15 @@
 
       return this;
     };
+
+    chartBar.getFocusItems = function(focusPoint) {
+      var foci = this._super(focusPoint),
+          myFoci = trait.focus.utils.getFocusItems( filteredData, focusPoint, focusConfig, access, x1, y, chartBar.color, false) // t: isStacked
+
+      foci = foci.concat( myFoci)
+      return foci
+    }
+
 
     d3.rebind(chartBar, dispatch, 'on');
 //    _super.onRangeMarginChanged( 'chartBar', chartBar)

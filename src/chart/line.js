@@ -24,20 +24,15 @@
     // Store the group element here so we can have multiple line charts in one chart.
     // A second "line chart" might have a different y-axis, style or orientation.
     var group, series, filteredData, lastDomainMax,
-      yAxis = _config.yAxis || 'y1',
-      x1 = _super.x1(),
-      y = _super[yAxis](),
-      access = {
-        x: _config.x1,
-        y: _config[yAxis],
-        seriesData: _config.seriesData,
-        seriesName: _config.seriesName
-      },
-      focusConfig = d3.trait.focus.utils.makeConfig(_config),
-      line = d3.svg.line()
-        .interpolate(_config.interpolate || "linear")
-        .x(function(d) { return x1(access.x(d)); })
-        .y(function(d) { return y(access.y(d)); });
+        axes = trait.config.axes( _config),
+        access = trait.config.accessorsXY( _config, axes),
+        x1 = _super[axes.x](),
+        y = _super[axes.y](),
+        focusConfig = d3.trait.focus.utils.makeConfig(_config),
+        line = d3.svg.line()
+          .interpolate(_config.interpolate || "linear")
+          .x(function(d) { return x1(access.x(d)); })
+          .y(function(d) { return y(access.y(d)); });
 
     function chartLine(_selection) {
       var self = chartLine
