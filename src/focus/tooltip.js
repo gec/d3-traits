@@ -112,8 +112,9 @@
 
     var axis = _config.axis,
         transitionDuration = trait.utils.configFloat( _config.transitionDuration, 100),
-        radius = 4,
-        margin = 3
+        radius = 6,
+        margin = 3,
+        formatX = _config.formatX || formatDate
 
     function tooltipDiscrete(_selection) {
       var self = tooltipDiscrete
@@ -144,7 +145,7 @@
             var formattedText,
                 seriesIndex = _data.indexOf(item.series),
                 ttip = cache.tooltips[ seriesIndex],
-                xValue = formatDate(_config.x1(item.item)),
+                xValue = formatX(_config.x1(item.item)),
                 yValue = _config.y1(item.item)
 
             if( _config.formatY )
