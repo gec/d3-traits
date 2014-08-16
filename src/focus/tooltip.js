@@ -120,6 +120,9 @@
       var self = tooltipDiscrete
 
       _selection.each(function(_data) {
+        if( _data.length === 0)
+          return
+
         var element = this
         var cache = trait.utils.getTraitCache(element, _id)
 
@@ -129,6 +132,11 @@
 
           if( foci.length <= 0 ) {
             removeAllTooltips(cache)
+            return
+          }
+
+          if( _data.length <= 0) {
+            console.error( 'tooltipDiscrete.focusChange foci.length=' + foci.length + ' but _data.length=' + _data.length)
             return
           }
 
@@ -142,9 +150,14 @@
 
             var formattedText,
                 seriesIndex = _data.indexOf(item.series),
-                ttip = cache.tooltips[ seriesIndex],
+                ttip = seriesIndex >= 0 ? cache.tooltips[ seriesIndex] : null,
                 xValue = formatX(_config.x1(item.item)),
                 yValue = _config.y1(item.item)
+
+            if( seriesIndex < 0) {
+              console.error( 'tooltipDiscrete.focusChange forci.forEach seriesIndex=' + seriesIndex + ' but should have found a series.')
+              return
+            }
 
             if( _config.formatY )
               yValue = _config.formatY(yValue)
