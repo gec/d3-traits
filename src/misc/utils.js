@@ -104,7 +104,12 @@
     return [min, max]
   }
 
-
+  /**
+   * Is new extend greater than current extent?
+   * @param currentExtent
+   * @param newExtent
+   * @returns {boolean}
+   */
   function isExtentExtended( currentExtent, newExtent) {
     if( ! currentExtent || currentExtent.length < 2) {
       return true

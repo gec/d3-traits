@@ -407,9 +407,18 @@
         }
       }
     }
+
+    /**
+     * Each chart can specify the minimum required for domain extent (ex: min height or width).
+     * If a chart is stacked it needs more height from the scale's domain.
+     *
+     * @param minDomain
+     * @returns {*|minDomainFromData}
+     */
     scaleLinear[scaleName + 'MinDomainFromData'] = function(minDomain) {
       if( !arguments.length ) return domainConfig.minDomainFromData
 
+      // Is new extend greater than current extent?
       if( trait.utils.isExtentExtended( domainConfig.minDomainFromData, minDomain)) {
         domainConfig.minDomainFromData = trait.utils.extendExtent( domainConfig.minDomainFromData, minDomain)
 
