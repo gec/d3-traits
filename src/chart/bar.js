@@ -48,13 +48,45 @@
   }
 
 
+  /**
+   *
+   *  Domain                 Range
+   *   5     +-----------    0
+   *   4                     1
+   *   3   y  ___            2
+   *   2     |***|           3
+   *   1     |***|           4
+   *   0  y0 +-----------+   5 chartHeight
+   *  -1           |***| y0  6
+   *  -2           |***|     7
+   *  -3            ---  y   8 chartHeight
+   *
+   *  y = y < 0 ? y0 : y same as Math.max( y, y0)
+   *  h = y(0) - y( abs(y-y0))
+   *
+   * @param access
+   * @param barDimensions
+   * @param chartHeight
+   * @param x1
+   * @param y
+   * @returns {{x: x, y: y, width: *, height: height}}
+   */
   function barAttr(access, barDimensions, chartHeight, x1, y) {
     // NOTE: for transition from enter, use  y(0) for y: and height:
+    // x is middle of bar.
+    // y is top of bar. Remember, the scale range is flipped for y.
+    // height - chartHeight - y OR y0 - y for stacked.
+
+    // For pos/neg bars:
+    // x - same
+    // y - pos: same. neg:
+    //
     return {
       x:      function(d) { return x1(access.x(d)) + barDimensions.offset; },
-      y:      function(d) { return y(access.y(d)); },
+      y:      function(d) { return y(  Math.max(access.y(d),0) ); },
       width:  barDimensions.width,
-      height: function(d) { return chartHeight - y(access.y(d)); }
+      height: function(d) { return y(0) - y( Math.abs( access.y(d))); }
+//      height: function(d) { return chartHeight - y( Math.abs( access.y(d))); }
     }
   }
 
