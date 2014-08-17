@@ -164,7 +164,7 @@
     if( domainConfig.domain )
       return domainConfig.domain
 
-    // TODO: This overrides trend. The two shold work together.
+    // TODO: This overrides trend. The two should work together.
     if( domainConfig.minDomainFromData) {
       if( trait.utils.isExtentExtended( domain, domainConfig.minDomainFromData))
         domain = trait.utils.extendExtent( domain, domainConfig.minDomainFromData)
@@ -393,7 +393,7 @@
       scale.domain(newDomain)
       // TODO: domain updated event?
     }
-    scaleLinear[scaleName + 'MinDomain'] = function(minDomain) {
+    scaleLinear[scaleName + 'MinDomainExtent'] = function(minDomain) {
       if( !arguments.length ) return domainConfig.minDomain
 
       if( trait.utils.isExtentExtended( domainConfig.minDomain, minDomain)) {
@@ -415,7 +415,7 @@
      * @param minDomain
      * @returns {*|minDomainFromData}
      */
-    scaleLinear[scaleName + 'MinDomainFromData'] = function(minDomain) {
+    scaleLinear[scaleName + 'MinDomainExtentFromData'] = function(minDomain) {
       if( !arguments.length ) return domainConfig.minDomainFromData
 
       // Is new extend greater than current extent?

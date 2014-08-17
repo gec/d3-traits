@@ -47,7 +47,7 @@
         access = trait.config.accessorsXY( _config, axes),
         x1 = _super[axes.x](),
         y = _super[axes.y](),
-        yMinDomainFromData = _super[axes.y + 'MinDomainFromData'],
+        yMinDomainExtentFromData = _super[axes.y + 'MinDomainExtentFromData'],
         focusConfig = d3.trait.focus.utils.makeConfig(_config),
         interpolate = _config.interpolate || "linear",
         stacked = _config.stacked ? true : false,
@@ -80,7 +80,7 @@
           access.series = access.seriesData
           access.data = access.y
           var extent = trait.utils.extentFromAreaData( filteredData, access)
-          yMinDomainFromData( extent)
+          yMinDomainExtentFromData( extent)
         } else {
           area.y0(self.chartHeight())
         }
@@ -118,7 +118,7 @@
         access.series = access.seriesData
         access.data = access.y
         var extent = trait.utils.extentFromAreaData( filteredData, access)
-        yMinDomainFromData( extent)
+        yMinDomainExtentFromData( extent)
       }
 
       lastDomainMax = trait.chart.utils.updatePathWithTrend(type, dur, x1, series, attrD, lastDomainMax)
