@@ -20,27 +20,102 @@
  */
 (function(d3, trait) {
 
+//  function makeAxes( config) {
+//    return {
+//      x: config.xAxis || 'x1',
+//      y: config.yAxis || 'y1'
+//    }
+//  }
+//
+//  function accessXDefault( d) { return d[0]}
+//  function accessYDefault( d) { return d[1]}
+//  function accessNull( d) { return d}
+//  function accessIndex( d, i) { return i}
+//
+//  function accessorsXY( config, axes) {
+//    return {
+//      x: config[axes.x] || accessXDefault,
+//      y: config[axes.y] || accessYDefault,
+//      seriesData: config.seriesData || accessNull,
+//      seriesName: config.seriesName || accessIndex
+//    }
+//  }
+//
+//  function makeConstantAccessors( proto, keys) {
+//    var i = keys.length
+//    while( --i >= 0) {
+//      var key = keys[i]
+//      makeConfigAccessor( proto, key)
+//    }
+//  }
+//  function makeConfigAccessor( proto, key) {
+//    var variable = '_' + key
+//    proto[key] = function (x) {
+//      if (!arguments.length) {
+//        return this[variable]
+//      }
+//      this[variable] = x
+//      return this
+//    }
+//  }
+//
+//
+//  function Configuration( _config) {
+//    this.axes = makeAxes( _config)
+//    this.access = accessorsXY( _config, this.axes)
+//    this._stacked = _config.stacked || false
+//
+//  }
+//  Configuration.prototype.stacked = function( x) {
+//    if (!arguments.length) return this._stacked;
+//    this._stacked = x
+//    return this
+//  }
+//
+//
+//  var allValidProps = {
+//    focus: ['distance', 'axis']
+//  }
+//  Configuration.prototype.setGetProps = function( root, validProps, name, value, argLength) {
+//    if (argLength < 2) {
+//      if( name === 'string') {
+//        return root[name]
+////        return validProps.indexOf( name) >= 0 ? root[name] : undefined
+//      }
+//      else {
+//        // name is an object with name-value pairs.
+//        for( var key in name) {
+//          if( validProps.indexOf( name) >= 0)
+//            root[key] = name[key]
+//        }
+//      }
+//    } else {
+//      if( validProps.indexOf( name) >= 0)
+//        root[name] = value
+//    }
+//    return this
+//  }
+//
+//
+//
+//  // Focus
+//  Configuration.prototype.focus = function( name, value) {
+//    if( this.focus === undefined)
+//      this.focus = {
+//        distance: 14,
+//        axis:     null
+//      }
+//    return this.setGetProps( this.focus, allValidProps.focus, name, value, arguments.length)
+//  }
+//
+//
+//
+//
+//  trait.config = function(_config) {
+//    return new Configuration( _config);
+//  }
 
-  function axes( config) {
-    return {
-      x: config.xAxis || 'x1',
-      y: config.yAxis || 'y1'
-    }
-  }
 
-  function accessXDefault( d) { return d[0]}
-  function accessYDefault( d) { return d[1]}
-  function accessNull( d) { return d}
-  function accessIndex( d, i) { return i}
-
-  function accessorsXY( config, axes) {
-    return {
-      x: config[axes.x] || accessXDefault,
-      y: config[axes.y] || accessYDefault,
-      seriesData: config.seriesData || accessNull,
-      seriesName: config.seriesName || accessIndex
-    }
-  }
 
 
   function emptyIfNotObjectOrNull( target) {
@@ -125,7 +200,11 @@
   //
 
 
-  trait.config.axes = axes
-  trait.config.accessorsXY = accessorsXY
+//  trait.config.axes = makeAxes
+//  trait.config.accessorsXY = accessorsXY
+//  trait.config.Configuration = Configuration
+//  trait.config.utils = {
+//    makeConstantAccessors: makeConstantAccessors
+//  }
 
 }(d3, d3.trait));

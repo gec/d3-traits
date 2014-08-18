@@ -45,6 +45,195 @@
     return Object.prototype.toString.call(vArg) === "[object Array]";
   };
 
+
+
+
+
+  function configFloat(valueConfig, valueDefault) {
+    var vc = parseFloat(valueConfig)
+    return isNaN(vc) ? valueDefault : vc
+  }
+
+  function configMargin(marginConfig, marginDefault) {
+    if( !marginConfig )
+      return marginDefault
+
+    var margin = {}
+    margin.top = configFloat(marginConfig.top, marginDefault.top)
+    margin.right = configFloat(marginConfig.right, marginDefault.right)
+    margin.bottom = configFloat(marginConfig.bottom, marginDefault.bottom)
+    margin.left = configFloat(marginConfig.left, marginDefault.left)
+    return margin
+  }
+
+  function getValueOrArrayItem( valueOrArray, index, defaultValue) {
+    if( !valueOrArray)
+      return defaultValue
+    if( Array.isArray( valueOrArray)) {
+      var length = valueOrArray.length
+      if( length === 0)
+        return defaultValue
+      else {
+        // If we're off the end of the array, use the last index.
+        var i = Math.min( length-1, index)
+        var item = valueOrArray[i]
+        return item ? item : defaultValue
+      }
+    } else {
+      return valueOrArray
+    }
+
+  }
+
+  function getValueOrObjectProperty( valueOrObject, property, defaultValue) {
+    if( !valueOrObject)
+      return defaultValue
+    if( typeof valueOrObject === 'object') {
+      var item = valueOrObject[property]
+      return item ? item : defaultValue
+    } else {
+      return valueOrObject
+    }
+
+  }
+
+
+
+
+
+
+
+
+  function makeAxes( config) {
+    var __default = {
+      x: config.xAxis === undefined || config.xAxis === null,
+      y: config.yAxis === undefined || config.yAxis === null
+    }
+    return {
+      x: config.xAxis || 'x1',
+      y: config.yAxis || 'y1',
+      __default: __default
+    }
+  }
+
+  function accessXDefault( d) { return d[0]}
+  function accessYDefault( d) { return d[1]}
+  function accessNull( d) { return d}
+  function accessIndex( d, i) { return i}
+
+  function accessorsXY( config, axes) {
+    return {
+      x: config[axes.x] || accessXDefault,
+      y: config[axes.y] || accessYDefault,
+      seriesData: config.seriesData || accessNull,
+      seriesName: config.seriesName || accessIndex
+    }
+  }
+
+  function makeConstantAccessors( proto, keys) {
+    var i = keys.length
+    while( --i >= 0) {
+      var key = keys[i]
+      makeConfigAccessor( proto, key)
+    }
+  }
+  function makeConfigAccessor( proto, key) {
+    var variable = '_' + key
+    proto[key] = function (x) {
+      if (!arguments.length) {
+        return this[variable]
+      }
+      this[variable] = x
+      return this
+    }
+  }
+
+
+
+  var AXIS_REGEX = /(x|y)[1-9]/
+
+  function Configuration( _config) {
+    this.baseInitialized = false
+    this.initBase( _config)
+//    this.axes = makeAxes( _config)
+//    this.access = accessorsXY( _config, this.axes)
+//    this._stacked = _config.stacked || false
+
+  }
+  Configuration.prototype.initBase = function( config) {
+    console.log( 'ConfigurationInit')
+    if( !config)
+      return
+    for( var key in config) {
+      if( AXIS_REGEX.test( key))
+        this[key] = config[key]
+    }
+    this.seriesData = config.seriesData || accessNull
+    this.seriesName = config.seriesName || accessIndex
+    if( ! this.x1)
+      this.x1 = accessXDefault
+    if( ! this.y1)
+      this.y1 = accessYDefault
+    this.baseInitialized = true
+  }
+
+//  Configuration.prototype.stacked = function( x) {
+//    if (!arguments.length) return this._stacked;
+//    this._stacked = x
+//    return this
+//  }
+
+
+  var allValidProps = {
+    focus: ['distance', 'axis']
+  }
+  Configuration.prototype.setGetProps = function( root, validProps, name, value, argLength) {
+    if (argLength < 2) {
+      if( name === 'string') {
+        return root[name]
+//        return validProps.indexOf( name) >= 0 ? root[name] : undefined
+      }
+      else {
+        // name is an object with name-value pairs.
+        for( var key in name) {
+          if( validProps.indexOf( name) >= 0)
+            root[key] = name[key]
+        }
+      }
+    } else {
+      if( validProps.indexOf( name) >= 0)
+        root[name] = value
+    }
+    return this
+  }
+
+
+
+  // Focus
+  Configuration.prototype.focus = function( name, value) {
+    if( this.focus === undefined)
+      this.focus = {
+        distance: 14,
+        axis:     null
+      }
+    return this.setGetProps( this.focus, allValidProps.focus, name, value, arguments.length)
+  }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   /**
    * Copy all the properties for the super to the new trait.
    * @param superTrait
@@ -119,55 +308,6 @@
       ]
   }
 
-  function configFloat(valueConfig, valueDefault) {
-    var vc = parseFloat(valueConfig)
-    return isNaN(vc) ? valueDefault : vc
-  }
-
-  function configMargin(marginConfig, marginDefault) {
-    if( !marginConfig )
-      return marginDefault
-
-    var margin = {}
-    margin.top = configFloat(marginConfig.top, marginDefault.top)
-    margin.right = configFloat(marginConfig.right, marginDefault.right)
-    margin.bottom = configFloat(marginConfig.bottom, marginDefault.bottom)
-    margin.left = configFloat(marginConfig.left, marginDefault.left)
-    return margin
-  }
-
-  function getValueOrArrayItem( valueOrArray, index, defaultValue) {
-    if( !valueOrArray)
-      return defaultValue
-    if( Array.isArray( valueOrArray)) {
-      var length = valueOrArray.length
-      if( length === 0)
-        return defaultValue
-      else {
-        // If we're off the end of the array, use the last index.
-        var i = Math.min( length-1, index)
-        var item = valueOrArray[i]
-        return item ? item : defaultValue
-      }
-    } else {
-      return valueOrArray
-    }
-
-  }
-
-  function getValueOrObjectProperty( valueOrObject, property, defaultValue) {
-    if( !valueOrObject)
-      return defaultValue
-    if( typeof valueOrObject === 'object') {
-      var item = valueOrObject[property]
-      return item ? item : defaultValue
-    } else {
-      return valueOrObject
-    }
-
-  }
-
-
   function clone(obj) {
     if( null == obj || "object" !== typeof obj ) return obj;
     var copy = obj.constructor();
@@ -224,10 +364,15 @@
   }
 
   function extendTraitsConfig(config, defaultConfig) {
-    var obj = clone(config)
-    if( !obj )
-      obj = {}
-    return extendObjectNoOverwrite(obj, defaultConfig)
+    if( config && config instanceof Configuration) {
+      console.log( 'Found configuration ++++++++++++++++++++++++++++++++++++++++++++')
+
+    } else {
+      var obj = clone(config)
+      if( !obj )
+        obj = {}
+      return extendObjectNoOverwrite(obj, defaultConfig)
+    }
   }
 
   function TraitOld(trait, config, _super) {
@@ -564,6 +709,14 @@
   d3.trait.layout = {}
   d3.trait.legend = {}
   d3.trait.scale = {}
+
+  trait.config.axes = makeAxes
+  trait.config.accessorsXY = accessorsXY
+  trait.config.Configuration = Configuration
+  trait.config.utils = {
+    makeConstantAccessors: makeConstantAccessors
+  }
+
 
   d3.trait.utils = {
     clone:              clone,

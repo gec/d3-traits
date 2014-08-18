@@ -47,6 +47,64 @@
     return c
   }
 
+  function ChartConfig( _config, _base) {
+    trait.config.Configuration.call( this, _base)
+    this.init( _base)
+
+    // Decide that two axes that this chart will access
+    this.axes = {
+      x: _config.xAxis || 'x1',
+      y: _config.yAxis || 'y1'
+    }
+    this._stacked = _config.stacked || false
+  }
+  ChartConfig.prototype = Object.create( trait.config.Configuration.prototype)
+  ChartConfig.prototype.constructor = ChartConfig
+  ChartConfig.prototype._super = trait.config.Configuration.prototype
+  trait.chart.Configuration = ChartConfig
+
+  ChartConfig.prototype.init = function( _base) {
+    console.log( 'ChartConfig.prototype.init')
+    if( !_base)
+      return
+    this.initBase( _base)
+    this.access = {
+      x: _base[this.axes.x],
+      y: _base[this.axes.y]
+    }
+  }
+  ChartConfig.prototype.stacked = function( x) {
+    if (!arguments.length) return this._stacked;
+    this._stacked = x
+    return this
+  }
+
+
+
+  function BarConfig( _config, _base) {
+    trait.chart.Configuration.call( this, _config, _base)
+    this._width =          _config.width || 'auto'
+    this._gap =            d3.trait.utils.configFloat( _config.gap, 0.1)
+    this._outerGap =       d3.trait.utils.configFloat( _config.outerGap, this._gap)
+    this._justification =  _config.justification || 'center'
+    this._insets =         _config.insets || INSETS_INSET_RANGE
+  }
+  BarConfig.prototype = Object.create( trait.chart.Configuration.prototype)
+  BarConfig.prototype.constructor = BarConfig
+//  BarConfig.prototype._super = trait.chart.Configuration.prototype
+
+  var BarConfigKeys = ['width', 'gap', 'outerGap', 'justification', 'insets']
+  trait.config.utils.makeConstantAccessors( BarConfig.prototype, BarConfigKeys)
+
+  var hey = new BarConfig( {})
+  if( hey instanceof BarConfig)
+    console.log( 'Found BarConfig (((((((((((((((((((((((((((((')
+  else
+    console.log( 'Found BarConfig NOT (((((((((((((((((((((((((((((')
+  if( hey instanceof trait.chart.Configuration)
+    console.log( 'Found bar ChartConfig (((((((((((((((((((((((((((((')
+  else
+    console.log( 'Found bar ChartConfig NOT (((((((((((((((((((((((((((((')
 
   /**
    *
@@ -275,7 +333,6 @@
         access = trait.config.accessorsXY( _config, axes),
         x1 = _super[axes.x](),
         y = _super[axes.y](),
-        barCount = _config.barCount,
         dispatch = d3.dispatch('customHover'),
         c = barConfig(_config),
         focusConfig = d3.trait.focus.utils.makeConfig(_config),
@@ -298,7 +355,7 @@
           if( barDimensions.minRangeMargin ) {
             self.minRangeMargin('x1', barDimensions.minRangeMargin)
           } else if( barDimensions.domainExtent ) {
-            _super.x1Domain(barDimensions.domainExtent)
+            _super[axes.x +'Domain'](barDimensions.domainExtent)
           }
 
           barDimensions = getBarDimensions(filteredData, access.seriesData, access.x, c, x1, chartWidth)
@@ -411,6 +468,7 @@
   }
 
   trait.chart.bar = _chartBar
+  trait.chart.barConfig = function( c, base) {return new BarConfig( c, base)}
   trait.chart.barUtils = {
     barConfig:                                barConfig,
     barAttr:                                  barAttr,
