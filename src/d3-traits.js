@@ -153,23 +153,26 @@
   var AXIS_REGEX = /(x|y)[1-9]/
 
   function Configuration( _config) {
+    console.log( 'Configuration')
     this.baseInitialized = false
-    this.initBase( _config)
+    this.init( _config)
 //    this.axes = makeAxes( _config)
 //    this.access = accessorsXY( _config, this.axes)
 //    this._stacked = _config.stacked || false
 
   }
-  Configuration.prototype.initBase = function( config) {
-    console.log( 'ConfigurationInit')
+  Configuration.prototype.init = function( config) {
+    console.log( 'Configuration.init')
     if( !config)
       return
     for( var key in config) {
       if( AXIS_REGEX.test( key))
         this[key] = config[key]
     }
-    this.seriesData = config.seriesData || accessNull
-    this.seriesName = config.seriesName || accessIndex
+    this.access = {
+      seriesData: config.seriesData || accessNull,
+      seriesName: config.seriesName || accessIndex
+    }
     if( ! this.x1)
       this.x1 = accessXDefault
     if( ! this.y1)
@@ -366,7 +369,7 @@
   function extendTraitsConfig(config, defaultConfig) {
     if( config && config instanceof Configuration) {
       console.log( 'Found configuration ++++++++++++++++++++++++++++++++++++++++++++')
-
+      config.init( defaultConfig)
     } else {
       var obj = clone(config)
       if( !obj )
@@ -415,7 +418,7 @@
     var id, imp,
         self = this
 
-    self.config = _config
+    self.config = _config || {}
     self._super = _super
     self.index = -1
     self.__leafTrait = null
@@ -574,8 +577,15 @@
 
 //    config = extendTraitsConfig( config, self.__getRoot()._config)
       id = makeTraitId(_trait.name, self._traitIndex)
-    if( _super )
-      self.config = extendTraitsConfig(_config, self.__getRoot().config)
+    if( _super ) {
+      if( _trait.config) { console.log( 'trait ------------- _trait.config( config, root)')
+        if(  self.config instanceof Configuration)
+          self.config.init( self.__getRoot().config)
+        else
+          self.config = _trait.config(self._config, self.__getRoot().config)
+      } else
+        self.config = extendTraitsConfig(_config, self.__getRoot().config)
+    }
 
     imp = _trait(_super, self.config, id)
 
@@ -655,7 +665,9 @@
       if( traitCount > 0 )
         _super = this.traits[ traitCount - 1]
 
-      var _config = extendTraitsConfig(this._traitsConfig, config)
+      if( !config)
+        config = {}
+      var _config = trait.config ? trait.config( config, this._traitsConfig) : extendTraitsConfig(this._traitsConfig, config)
       var traitInstance = trait(_super, _config, this)
       stackTrait(_super, traitInstance)
 

@@ -48,29 +48,30 @@
   }
 
   function ChartConfig( _config, _base) {
-    trait.config.Configuration.call( this, _base)
-    this.init( _base)
+    console.log( 'ChartConfig')
+    this._config = _config || {}
+    trait.config.Configuration.call( this, _base) // Call super(), which calls this.init which calls _super.init
 
-    // Decide that two axes that this chart will access
-    this.axes = {
-      x: _config.xAxis || 'x1',
-      y: _config.yAxis || 'y1'
-    }
+    console.log( 'ChartConfig before this.init() this.axes=' + this.axes)
     this._stacked = _config.stacked || false
   }
   ChartConfig.prototype = Object.create( trait.config.Configuration.prototype)
   ChartConfig.prototype.constructor = ChartConfig
-  ChartConfig.prototype._super = trait.config.Configuration.prototype
   trait.chart.Configuration = ChartConfig
 
   ChartConfig.prototype.init = function( _base) {
-    console.log( 'ChartConfig.prototype.init')
-    if( !_base)
-      return
-    this.initBase( _base)
-    this.access = {
-      x: _base[this.axes.x],
-      y: _base[this.axes.y]
+    trait.config.Configuration.prototype.init.call( this, _base)  // super.init
+
+    // Decide the two axes that this chart will access
+    this.axes = {
+      x: this._config.xAxis || 'x1',
+      y: this._config.yAxis || 'y1'
+    }
+
+    if( _base) {
+      // Finally have _base so we can initialize access.x,y
+      this.access.x = _base[this.axes.x]
+      this.access.y = _base[this.axes.y]
     }
   }
   ChartConfig.prototype.stacked = function( x) {
@@ -82,7 +83,9 @@
 
 
   function BarConfig( _config, _base) {
-    trait.chart.Configuration.call( this, _config, _base)
+    trait.chart.Configuration.call( this, _config, _base) // call super()
+
+    // These properties don't depend on _base config.
     this._width =          _config.width || 'auto'
     this._gap =            d3.trait.utils.configFloat( _config.gap, 0.1)
     this._outerGap =       d3.trait.utils.configFloat( _config.outerGap, this._gap)
@@ -329,12 +332,19 @@
     // Store the group element here so we can have multiple bar charts in one chart.
     // A second "bar chart" might have a different y-axis, style or orientation.
     var group, series, filteredData, bars, barDimensions, lastDomainMax,
-        axes = trait.config.axes( _config),
-        access = trait.config.accessorsXY( _config, axes),
-        x1 = _super[axes.x](),
+        c = _config,
+        axes = c.axes,
+        access = c.access
+    console.log( '_chartBar axes = ' + axes)
+    console.log( '_chartBar axes.x = ' + axes.x)
+    console.log( '_chartBar acccess = ' + access)
+    console.log( '_chartBar acccess.seriesData = ' + access.seriesData)
+//        axes = trait.config.axes( _config),
+//        access = trait.config.accessorsXY( _config, axes),
+       var x1 = _super[axes.x](),
         y = _super[axes.y](),
         dispatch = d3.dispatch('customHover'),
-        c = barConfig(_config),
+//        c = barConfig(_config),
         focusConfig = d3.trait.focus.utils.makeConfig(_config),
         x1IsRangeBand = typeof x1.rangeBand === "function"
 
@@ -468,7 +478,7 @@
   }
 
   trait.chart.bar = _chartBar
-  trait.chart.barConfig = function( c, base) {return new BarConfig( c, base)}
+  trait.chart.bar.config = function( c, base) {return new BarConfig( c, base)}
   trait.chart.barUtils = {
     barConfig:                                barConfig,
     barAttr:                                  barAttr,

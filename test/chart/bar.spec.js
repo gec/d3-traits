@@ -111,7 +111,7 @@ describe('d3.trait.chart.bar', function() {
 
   it('should create BarConfig with defaults', function() {
 
-    var c = d3.trait.chart.barConfig({})
+    var c = d3.trait.chart.bar.config({})
     expect(c.width()).toEqual( 'auto')
     expect(c.gap()).toEqual( 0.1)
     expect(c.outerGap()).toEqual( 0.1)
@@ -127,8 +127,8 @@ describe('d3.trait.chart.bar', function() {
     expect(c.access).not.toBeDefined()
 
     c.init( config)
-    expect(c.access.x([5,6])).toEqual( 5)
-    expect(c.access.y([5,6])).toEqual( 6)
+    expect(c.access.x({x:5,y:6})).toEqual( 5)
+    expect(c.access.y({x:5,y:6})).toEqual( 6)
     expect(c.access.seriesData(2)).toEqual( 2)
     expect(c.access.seriesName( {}, 1)).toEqual( 1)
 
@@ -136,11 +136,11 @@ describe('d3.trait.chart.bar', function() {
 
   it('should update BarConfig', function() {
 
-    var c = d3.trait.chart.barConfig({})
+    var c = d3.trait.chart.bar.config({})
     expect(c.width(2)).toBe( c)
     expect(c.width()).toEqual( 2)
 
-    c = d3.trait.chart.barConfig( {width: 1, stacked: true})
+    c = d3.trait.chart.bar.config( {width: 1, stacked: true})
     expect(c.width()).toEqual( 1)
     expect(c.width(2)).toBe( c)
     expect(c.width()).toEqual( 2)
@@ -160,7 +160,7 @@ describe('d3.trait.chart.bar', function() {
       y1: accessY1
     }
 
-    var bc = d3.trait.chart.barConfig( {})
+    var bc = d3.trait.chart.bar.config( {})
     selection.datum(data)
     var chart = d3.trait(d3.trait.chart.base, config)
       .trait(d3.trait.scale.linear, {axis: 'x1'})
