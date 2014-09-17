@@ -1,4 +1,4 @@
-/*! d3-traits - v0.0.1 - 2014-08-06
+/*! d3-traits - v0.0.1 - 2014-09-17
 * https://github.com/gec/d3-traits
 * Copyright (c) 2014 d3-traits; Licensed ,  */
 (function(d3) {
@@ -23,6 +23,7 @@
 
   var DEBUG = false
 
+  // Usage: Array.isArray( myArray)
   Array.isArray = Array.isArray || function(vArg) {
     return Object.prototype.toString.call(vArg) === "[object Array]";
   };
@@ -117,6 +118,38 @@
     margin.left = configFloat(marginConfig.left, marginDefault.left)
     return margin
   }
+
+  function getValueOrArrayItem( valueOrArray, index, defaultValue) {
+    if( !valueOrArray)
+      return defaultValue
+    if( Array.isArray( valueOrArray)) {
+      var length = valueOrArray.length
+      if( length === 0)
+        return defaultValue
+      else {
+        // If we're off the end of the array, use the last index.
+        var i = Math.min( length-1, index)
+        var item = valueOrArray[i]
+        return item ? item : defaultValue
+      }
+    } else {
+      return valueOrArray
+    }
+
+  }
+
+  function getValueOrObjectProperty( valueOrObject, property, defaultValue) {
+    if( !valueOrObject)
+      return defaultValue
+    if( typeof valueOrObject === 'object') {
+      var item = valueOrObject[property]
+      return item ? item : defaultValue
+    } else {
+      return valueOrObject
+    }
+
+  }
+
 
   function clone(obj) {
     if( null == obj || "object" !== typeof obj ) return obj;
@@ -506,12 +539,14 @@
 
 // Export traits to d3
   d3.trait = trait
-  d3.trait.scale = {}
-  d3.trait.chart = { utils: {} }
+  d3.trait.config = {}
   d3.trait.axis = {}
+  d3.trait.chart = { utils: {} }
   d3.trait.control = {}
   d3.trait.focus = {}
+  d3.trait.layout = {}
   d3.trait.legend = {}
+  d3.trait.scale = {}
 
   d3.trait.utils = {
     clone:              clone,
@@ -526,20 +561,45 @@
     getScaleExtensions: getScaleExtensions,
     getTraitCache:      getTraitCache,
     configMargin:       configMargin,
-    configFloat:        configFloat
+    configFloat:        configFloat,
+    getValueOrArrayItem: getValueOrArrayItem,
+    getValueOrObjectProperty: getValueOrObjectProperty
   }
 
 }(d3));
 (function(d3, trait) {
 
   function Point(x, y) {
-    if( arguments.length <= 0 ) {
-      this.x = 0
-      this.y = 0
-    } else {
-      this.x = x
-      this.y = y
+    switch( arguments.length) {
+      case 0:
+        this.x = 0
+        this.y = 0
+        break;
+      case 1:
+        this.x = x.x
+        this.y = x.y
+        break;
+      default:
+        this.x = x
+        this.y = y
     }
+  }
+  Point.prototype.set = function( other) {
+    if( other && typeof other === 'object') {
+      this.x = other.x
+      this.y = other.y
+    }
+  }
+  Point.prototype.distanceX = function( other) {
+    return other.x > this.x ? other.x - this.x : this.x - other.x
+  }
+  Point.prototype.distanceY = function( other) {
+    return other.y > this.y ? other.y - this.y : this.y - other.y
+  }
+  Point.prototype.distance = function( other) {
+    var dx = this.distanceX( other),
+        dy = this.distanceY( other)
+    return Math.sqrt(dx * dx + dy * dy)
   }
 
   function Size(width, height) {
@@ -635,29 +695,418 @@
         break;
     }
 
-    this.minX = function() { return this.origin.x - this.size.width * this.anchor.x}
-    this.maxX = function() { return this.origin.x + this.size.width * (1 - this.anchor.x)}
-    this.minY = function() { return this.origin.y - this.size.height * this.anchor.y}
-    this.maxY = function() { return this.origin.y + this.size.height * (1 - this.anchor.y)}
+  }
+  Rect.prototype.minX = function() { return this.origin.x - this.size.width * this.anchor.x}
+  Rect.prototype.maxX = function() { return this.origin.x + this.size.width * (1 - this.anchor.x)}
+  Rect.prototype.midX = function() { return this.origin.x + (this.size.width * (1 - 2 * this.anchor.x)) / 2}
+  Rect.prototype.minY = function() { return this.origin.y - this.size.height * this.anchor.y}
+  Rect.prototype.maxY = function() { return this.origin.y + this.size.height * (1 - this.anchor.y)}
+  Rect.prototype.midY = function() { return this.origin.y + (this.size.height * (1 - 2 *this.anchor.y)) / 2}
 
-    this.spaceOnTop = function(rectAbove) { return this.minY() - rectAbove.maxY() }
-    this.spaceOnBottom = function(rectBelow) { return rectBelow.minY() - this.maxY() }
+  Rect.prototype.spaceOnTop = function(rectAbove) { return this.minY() - rectAbove.maxY() }
+  Rect.prototype.spaceOnBottom = function(rectBelow) { return rectBelow.minY() - this.maxY() }
 
-    this.roomOnRight = function(room) { return room.maxX() - this.maxX()}
-    this.roomOnBottom = function(room) { return room.maxY() - this.maxY()}
-    this.roomOnLeft = function(room) { return this.minX() - room.minX()}
-    this.roomOnTop = function(room) { return this.minY() - room.minY()}
+  Rect.prototype.roomOnRight = function(room) { return room.maxX() - this.maxX()}
+  Rect.prototype.roomOnBottom = function(room) { return room.maxY() - this.maxY()}
+  Rect.prototype.roomOnLeft = function(room) { return this.minX() - room.minX()}
+  Rect.prototype.roomOnTop = function(room) { return this.minY() - room.minY()}
 
-//        this.roomOnRight = function( roomWidth) { return roomWidth - this.maxX()}
-//        this.roomOnBottom = function( roomHeight) { return roomHeight - this.maxY()}
-//        this.roomOnLeft = function() { return this.minX()}
-//        this.roomOnTop = function() { return this.minY()}
+  Rect.prototype.translate = function(point) {
+    this.origin.x += point.x
+    this.origin.y += point.y
+  }
 
-    this.translate = function(point) {
-      this.origin.x += point.x
-      this.origin.y += point.y
+//  Rect.prototype.fitInColumn = function(x, colWidth) {
+//
+//    if( this.anchor.x === 0) {
+//      this.origin.x += x - this.minX()
+//    } else if( this.anchor.x === 1) {
+//      this.origin.x += (x + colWidth) - this.maxX()
+//    } else {
+//      // TODO:
+//    }
+//  }
+
+
+  ///////////////////////////////////
+  // Export to d3.trait
+  //
+
+
+  trait.Point = Point
+  trait.Size = Size
+  trait.Margin = Margin
+  trait.Rect = Rect
+
+}(d3, d3.trait));
+
+(function(d3, trait) {
+
+
+  function axes( config) {
+    return {
+      x: config.xAxis || 'x1',
+      y: config.yAxis || 'y1'
     }
   }
+
+  function accessXDefault( d) { return d[0]}
+  function accessYDefault( d) { return d[1]}
+  function accessNull( d) { return d}
+  function accessIndex( d, i) { return i}
+
+  function accessorsXY( config, axes) {
+    return {
+      x: config[axes.x] || accessXDefault,
+      y: config[axes.y] || accessYDefault,
+      seriesData: config.seriesData || accessNull,
+      seriesName: config.seriesName || accessIndex
+    }
+  }
+
+
+  function emptyIfNotObjectOrNull( target) {
+    return typeof(target) !== 'object' || target === null || target === 'undefined' ? {} : target
+  }
+
+
+  function updateDeep(target, o) {
+    // Inspired by: https://github.com/danvk/dygraphs/blob/master/dygraph-utils.js updateDeep
+    if (typeof(o) !== 'undefined' && o !== null) {
+      for (var k in o) {
+        if (o.hasOwnProperty(k)) {
+          var val = o[k]
+          target[k] = val === null || val === undefined ? val
+            : Array.isArray(val) ? val.slice(0)
+            : typeof(val) === 'object' ? updateDeep( emptyIfNotObjectOrNull(target[k]), val)
+            : val
+        }
+      }
+    }
+    return target;
+  }
+
+  // Code depends on certain object hierarchies in the config. We don't want the user
+  // to supply null to clip a whole object out of the config.
+  //
+  function wontOverwriteObjectWithNull( tVal, oVal) {
+    // if tVal is not an object, we're OK
+    // if tVal is an object then
+    //  tVal  oVal
+    // ----- -----
+    // !null !null true deepUpdate
+    //  null !null true assign with deep copy
+    // !null  null false
+    //  null  null // no op
+    //
+    if( typeof( tVal) !== 'object') {
+      return true
+    } else {
+      var tNull = tVal === null || tVal === undefined
+      var oNull = oVal === null || oVal === undefined
+      var bothNotNull = ! tNull && ! oNull
+      return bothNotNull || (tNull && ! oNull)
+    }
+  }
+
+  /**
+   * Nice idea to force the user config to match the default config. The problem is when
+   * a config parameter can be a number or array or function. We would need extra meta data
+   * to support this. Even with that, the Javascript type system isn't great at determining
+   * types.
+   *
+   * @param target
+   * @param o
+   * @returns {*}
+   */
+  function updateExistingKeysDeep(target, o) {
+    if( typeof(o) !== 'undefined' && o !== null) {
+      for( var k in target) {
+        if( target.hasOwnProperty(k) && o.hasOwnProperty(k)) {
+          var tVal = target[k],
+              oVal = o[k],
+              oTyp = typeof oVal
+          if( typeof(tVal) === oTyp && wontOverwriteObjectWithNull( tVal, oVal) )
+          target[k] = oVal === null ? target[k] = null
+            : Array.isArray(oVal) ? target[k] = oVal.slice(0)  // TODO: should we make array objects deep update?
+            : oTyp === 'object' ? updateExistingKeysDeep( tVal, oVal)
+            : oVal
+        }
+      }
+    }
+    return target
+  }
+
+  function makeConfig( defaultConfig, config) {
+    var deepCopy = JSON.parse(JSON.stringify(defaultConfig))
+    return updateDeep( deepCopy, config)
+  }
+
+  ///////////////////////////////////
+  // Export to d3.trait
+  //
+
+
+  trait.config.axes = axes
+  trait.config.accessorsXY = accessorsXY
+
+}(d3, d3.trait));
+
+(function(d3, trait) {
+
+  function rangeTranslate(lastDomainMax, domain, scale) {
+    if( !lastDomainMax )
+      return 0
+
+    //   |<-------- range ------->|
+    //      |<-- visible range -->|
+
+    var domainMax = d3.trait.utils.extentMax(domain)
+    var domainMin = d3.trait.utils.extentMin(domain)
+
+    var lastRangeMax = scale(lastDomainMax)
+    var rangeMin = scale(domainMin)
+    if( lastRangeMax < rangeMin )
+      return 0
+    else
+      return lastRangeMax - scale(domainMax)
+  }
+
+  function simplePathRedraw(series, attrD) {
+    series.selectAll("path")
+      .attr("d", attrD)
+      .attr("transform", null)
+  }
+
+  /**
+   * Update the paths with current data and scale. If trending, slide the new
+   * data onto the chart from the right.
+   *
+   * @param type Type of update: "domain", "trend"
+   * @param duration If available, the duration for the update in millisecods
+   * @param scale
+   * @param series The series list to update.
+   * @param lastDomainMax Domain max from last trend update. Can be undefined if chart starts with no data.
+   * @returns domainMax
+   */
+  function updatePathWithTrend(type, duration, scale, series, attrD, lastDomainMax) {
+
+    // TODO: The scale.range() needs to be wider, so we draw the new line off the right
+    // then translate it to the left with a transition animation.
+
+    var domain = scale.domain()
+    var domainMax = d3.trait.utils.extentMax(domain)
+
+    if( type === "trend" ) {
+
+      var translateX = rangeTranslate(lastDomainMax, domain, scale)
+
+      if( translateX !== 0 ) {
+
+        series.attr("transform", null)
+        series.selectAll("path")
+          .attr("d", attrD)
+
+        // slide the line left
+        if( duration === 0 || !duration ) {
+          series.attr("transform", "translate(" + translateX + ")")
+        } else {
+          series.transition()
+            .duration(duration)
+            .ease("linear")
+            .attr("transform", "translate(" + translateX + ")")
+          //.each("end", tick);
+        }
+      } else {
+        simplePathRedraw(series, attrD)
+      }
+
+    } else {
+      simplePathRedraw(series, attrD)
+    }
+
+    return domainMax
+  }
+
+  /**
+   * Return the minimum distance between each data point that is within
+   * the indicesExtent. The indicesExtent is typically the data indices
+   * that are currently visible on the chart. The distance used is the
+   * scale's range, not the domain space.
+   *
+   * @param data          Array of data.
+   * @param indicesExtent Extent of indices used to calculate minimum distance.
+   * @param accessor      Data accessor
+   * @param scale         Scale for data
+   * @returns Minimum distance as a number
+   */
+  function minDistanceBetween(data, indicesExtent, accessor, scale) {
+    var range = scale.range(), //Number.MAX_VALUE,
+        min = range[range.length - 1] - range[0],
+        length = data.length
+
+    if( length < 2 || indicesExtent.length < 2 )
+      return min
+
+    var i = indicesExtent[0],
+        lastIndex = Math.min(length - 1, indicesExtent[1])
+
+    if( i < 0 || i >= length )
+      return min
+
+    var current,
+        last = scale(accessor(data[i], i))
+
+    i++
+    for( ; i <= lastIndex; i++ ) {
+      current = scale(accessor(data[i], i))
+      min = Math.min(min, current - last)
+      last = current
+    }
+
+    return min
+  }
+
+  /**
+   * Return the extent of indices withing the domain extent. This is typicaly
+   * used to return the indices that are currently visible on the chart.
+   *
+   * @param data         Array of data
+   * @param accessor     Data accessor
+   * @param domainExtent Domain extent. Array with 0 being min and 1 being max.
+   * @returns Indices extent with array 0 being first and array 1 being last.
+   */
+  function dataIndicesExtentForDomainExtent(data, accessor, domainExtent) {
+    if( data.length <= 0 )
+      return null
+
+    var min = d3.trait.utils.extentMin(domainExtent),
+        max = d3.trait.utils.extentMax(domainExtent)
+
+    var bisector = d3.bisector(accessor),
+        biLeft = bisector.left,
+        biRight = bisector.right,
+        firstIndex = biLeft(data, min),
+        lastIndexPlusOne = biRight(data, max)
+
+    //return {first: firstIndex, lastPlusOne: lastIndexPlusOne}
+    return [firstIndex, lastIndexPlusOne - 1]
+  }
+
+
+  trait.chart.utils.updatePathWithTrend = updatePathWithTrend
+  trait.chart.utils.minDistanceBetween = minDistanceBetween
+  trait.chart.utils.dataIndicesExtentForDomainExtent = dataIndicesExtentForDomainExtent
+
+
+}(d3, d3.trait));
+
+(function(d3, trait) {
+
+  function makeConfig(config) {
+    var focus = {
+      distance: 14,
+      axis:     null
+    }
+    if( config.focus ) {
+      focus.distance = d3.trait.utils.configFloat(config.focus.distance, focus.distance)
+      focus.axis = config.focus.axis
+    }
+    return focus
+  }
+
+
+  function getRangePointNormal( item, access, x, y) {
+    return new d3.trait.Point(x(access.x(item)), y(access.y(item)))
+  }
+
+  function getRangePointStacked( item, access, x, y) {
+    return new d3.trait.Point(x(access.x(item)), y(item.y0 + access.y(item)))
+  }
+
+  function getFocusItem(series, data, index, access, x, y, getRangePoint, focusPoint) {
+    var dist, distX,
+        item = data[index],
+        rangePoint = getRangePoint( item, access, x, y)
+    dist = rangePoint.distance( focusPoint)
+    distX = rangePoint.distanceX( focusPoint)
+    return {
+      series: series,
+      index: index,
+      item: item,
+      point: rangePoint,
+      distance: dist,
+      distanceX: distX
+    }
+  }
+
+  function withinFocusDistance( found, focusConfig) {
+    var distance = focusConfig.axis === 'x' ? found.distanceX : found.distance
+    return distance <= focusConfig.distance
+  }
+  /**
+   *
+   * @param data Series data to search for focus points.
+   * @param focusPoint Find data closest to this point.
+   * @param focusConfig From trait.focus.utils.makeConfig
+   * @param access x, y, seriesData
+   * @param color  function( series) returns color for series.
+   * @param isDataStacked  T: This is an area plot with access.y(d) and d.y0. F: Use access.y(d)
+   * @returns Array of focus objects
+   */
+  function getFocusItems( data, focusPoint, focusConfig, access, x, y, color, isDataStacked) {
+    var foci = [],
+        targetDomain = new d3.trait.Point(x.invert(focusPoint.x), y.invert(focusPoint.y)),
+        bisectLeft = d3.bisector(access.x).left,
+        getRangePoint = isDataStacked ? getRangePointStacked : getRangePointNormal
+
+    data.forEach(function(series, seriesIndex, array) {
+      var found, alterIndex,
+          data = access.seriesData(series),
+          // search the domain for the closest point in x
+          index = bisectLeft(data, targetDomain.x)
+
+      if( index >= data.length )
+        index = data.length - 1
+      found = getFocusItem(series, data, index, access, x, y, getRangePoint, focusPoint)
+
+      alterIndex = found.index - 1
+      if( alterIndex >= 0 ) {
+        var alter = getFocusItem(series, data, alterIndex, access, x, y, getRangePoint, focusPoint)
+        // console.log( "found x=" + access.x( found.item) + " y=" + access.y( found.item) + " d=" + found.distance + "  " + targetDomain.x + " " + targetDomain.y)
+        // console.log( "alter x=" + access.x( alter.item) + " y=" + access.y( alter.item) + " d=" + alter.distance + "  " + targetDomain.x + " " + targetDomain.y)
+        if( focusConfig.axis === 'x' ) {
+          if( alter.distanceX < found.distanceX )
+            found = alter
+        } else {
+          if( alter.distance < found.distance )
+            found = alter
+        }
+      }
+
+      if( withinFocusDistance( found, focusConfig) ) {
+        found.color = color(series)
+        foci.push(found)
+      }
+    })
+
+    return foci
+  }
+
+
+  if( ! trait.focus)
+    trait.focus = {}
+
+  trait.focus.utils = {
+    makeConfig: makeConfig,
+    getFocusItems: getFocusItems
+  }
+
+
+}(d3, d3.trait));
+
+(function(d3, trait) {
+
 
   var LEFT = -1,
       RIGHT = 1
@@ -834,7 +1283,7 @@
     }
   }
 
-  function layoutVertical(itemsWithRect, inRect) {
+  function  layoutVertical(itemsWithRect, inRect) {
     if( itemsWithRect.length <= 0 )
       return;
 
@@ -950,26 +1399,153 @@
     }
   }
 
-
   ///////////////////////////////////
   // Export to d3.trait
   //
 
-  if( !trait.layout )
-    trait.layout = { utils: {} }
 
-  trait.Point = Point
-  trait.Size = Size
-  trait.Margin = Margin
-  trait.Rect = Rect
 
   trait.layout.adjustOrientationToFitWidth = adjustOrientationToFitWidth
   trait.layout.vertical = layoutVertical
   trait.layout.byOrientation = layoutByOrientation
   trait.layout.verticalAnchorLeftRight = layoutVerticalAnchorLeftRight
-  trait.layout.utils.listNudgeUpFromBottom = listNudgeUpFromBottom
-  trait.layout.utils.removeOverlapFromTop = removeOverlapFromTop
-  trait.layout.utils.listBalanceFromTop = listBalanceFromTop
+  trait.layout.utils = {
+    listNudgeUpFromBottom: listNudgeUpFromBottom,
+    removeOverlapFromTop: removeOverlapFromTop,
+    listBalanceFromTop: listBalanceFromTop
+  }
+
+}(d3, d3.trait));
+
+(function(d3, trait) {
+
+  function minFromData(data, access, defaultValue) {
+    return minFromDataDo( data, access.series, access.data, defaultValue)
+  }
+  function minFromAreaData(data, access, defaultValue) {
+    return minFromDataDo( data, access.series, function( d) { return d.y0}, defaultValue)
+  }
+  function minFromDataDo( data, accessSeries, accessData, defaultValue) {
+    var min = d3.min(data, function(s) { return d3.min(accessSeries(s), accessData); })
+    if( !min )
+      min = defaultValue ? defaultValue : 0
+    return min
+  }
+
+  function maxFromData(data, access, defaultValue) {
+    return maxFromDataDo( data, access.series, access.data, defaultValue)
+  }
+
+  function maxFromAreaData(data, access, defaultValue) {
+    return maxFromDataDo( data, access.series, function( d) { return d.y0 + access.data(d)}, defaultValue)
+  }
+  function maxFromDataDo(data, accessSeries, accessData, defaultValue) {
+    var max = d3.max(data, function(s) { return d3.max(accessSeries(s), accessData); })
+    if( !max )
+      max = defaultValue ? defaultValue : 0
+    return max
+  }
+
+
+  /**
+   * Return the extent for all data in all series, example: [min, max] .
+   * If the data in each series is empty, return the supplied default or [0,1]
+   * if min === max, return [min-1, max+1]
+   *
+   * @param data     Multiple series of data
+   * @param access   Accessors {series: function, data: function}
+   * @param defaultValue A default in case there is no data otherwise [0,1] is returned
+   * @returns  The extent of all data in an array of the form [min,max]
+   */
+  function extentFromData(data, access, defaultValue) {
+    var extents, min, max
+
+    // Get array of extents for each series.
+    extents = data.map(function(s) { return d3.extent( access.series(s), access.data) })
+    return extentFromData2( extents, defaultValue)
+  }
+
+  function extentFromAreaData(data, access, defaultValue) {
+    var extents, min, max
+
+    // Get array of extents for each series.
+    extents = data.map(function(s) {
+      var series = access.series(s)
+      var extent = [
+        d3.min( series, function( d) { return d.y0}),
+        d3.max( series, function( d) { return d.y0 + access.data(d)})
+      ]
+      return extent
+    })
+
+    return extentFromData2( extents, defaultValue)
+  }
+
+  /**
+   *
+   * @param extents Array of extents for each series.
+   * @param defaultValue if no extents, use default if available.
+   * @returns Extent array.
+   */
+  function extentFromData2( extents, defaultValue) {
+    var min, max
+
+    min = d3.min(extents, function(e) { return e[0] }) // the minimums of each extent
+    max = d3.max(extents, function(e) { return e[1] }) // the maximums of each extent
+
+    if( !min && !max )
+      return defaultValue ? defaultValue : [0, 1]
+
+    if( min === max ) {
+      min -= 1
+      max += 1
+    }
+    return [min, max]
+  }
+
+  /**
+   * Is new extend greater than current extent?
+   * @param currentExtent
+   * @param newExtent
+   * @returns {boolean}
+   */
+  function isExtentExtended( currentExtent, newExtent) {
+    if( ! currentExtent || currentExtent.length < 2) {
+      return true
+    } else {
+      return newExtent[0] < currentExtent[0] ||
+        trait.utils.extentMax( newExtent) > trait.utils.extentMax( currentExtent)
+    }
+  }
+
+  function extendExtent( currentExtent, newExtent) {
+    if( ! newExtent || newExtent.length < 2)
+      return currentExtent
+
+    if( ! currentExtent || currentExtent.length < 2)
+      return newExtent
+
+    if( newExtent[0] < currentExtent[0]) {
+      currentExtent[0] = newExtent[0]
+    }
+    if( trait.utils.extentMax( newExtent) > trait.utils.extentMax( currentExtent)) {
+      currentExtent[ currentExtent.length-1] = trait.utils.extentMax( newExtent)
+    }
+    return currentExtent
+  }
+
+
+  if( !trait.utils )
+    trait.utils = {}
+
+  trait.utils.minFromData = minFromData
+  trait.utils.maxFromData = maxFromData
+  trait.utils.minFromAreaData = minFromAreaData
+  trait.utils.maxFromAreaData = maxFromAreaData
+  trait.utils.extentFromData = extentFromData
+  trait.utils.extentFromAreaData = extentFromAreaData
+  trait.utils.isExtentExtended = isExtentExtended
+  trait.utils.extendExtent = extendExtent
 
 }(d3, d3.trait));
 
@@ -1002,7 +1578,8 @@
           tickPadding: config.tickPadding,
           tickFormat:  config.tickFormat,
           nice:        config.nice,
-          label:       config.label
+          label:       config.label,
+          lines:       config.lines
         }
 
     c.labelLineHeight = c.label ? (config.labelLineHeight || 14) : 0
@@ -1110,6 +1687,13 @@
       axis.tickFormat(c.tickFormat)
   }
 
+  var AxisLineClass = 'axis-line'
+
+  function makeLineClass( d) {
+    return typeof(d) === 'object' && d.hasOwnProperty( 'class') ? AxisLineClass + ' ' + d['class'] : AxisLineClass
+  }
+
+
   /**
    *
    * config.ticks
@@ -1126,6 +1710,16 @@
     var group, groupAxis, label, axis,
         c = axisConfig(_config),
         scale = _super[c.name]()  // ex: x1()
+
+    function makeLinePath( d) {
+      var v = isNaN( d) ? d.value : d,
+          sv = scale(v)
+      if( c.axisChar === 'x')
+        return 'M' + sv + ','+'0L' + sv + ',' + _super.chartHeight()
+      else
+        return 'M0,' + sv + 'L' + _super.chartWidth() + ',' + sv
+    }
+
 
     // TODO: No don't call this. We're using self.layoutAxis now!
     //adjustChartMarginForAxis( _super, c)
@@ -1179,6 +1773,18 @@
             .attr("d", function(d) {
               return "M" + d[0] + ",0L" + d[1] + ",0";
             })
+        }
+
+        if(c.lines && Array.isArray(c.lines)) {
+          var line = groupAxis.selectAll('path.' + AxisLineClass)
+            .data(c.lines)
+          line.enter()
+            .append("path")
+            .attr("class", makeLineClass)
+            .attr("d", makeLinePath)
+
+          line.attr("class", "axis-line")
+            .attr("d", makeLinePath)
         }
 
 
@@ -1372,24 +1978,24 @@
   function _chartArea(_super, _config) {
     // Store the group element here so we can have multiple area charts in one chart.
     // A second "area chart" might have a different y-axis, style or orientation.
-    var group, series, lastDomainMax, stackLayout,
-        yAxis = _config.yAxis || 'y1',
-        x1 = _super.x1(),
-        y = _super[yAxis](),
-        yMinDomainFromData = _super[yAxis + 'MinDomainFromData'],
-        access = { x: _config.x1, y: _config[yAxis]},
+    var group, series, filteredData, lastDomainMax, stackLayout,
+        axes = trait.config.axes( _config),
+        access = trait.config.accessorsXY( _config, axes),
+        x1 = _super[axes.x](),
+        y = _super[axes.y](),
+        yMinDomainExtentFromData = _super[axes.y + 'MinDomainExtentFromData'],
+        focusConfig = d3.trait.focus.utils.makeConfig(_config),
         interpolate = _config.interpolate || "linear",
         stacked = _config.stacked ? true : false,
         area = makeArea( stacked, access, x1, y, interpolate, _super.chartHeight())
 
     if( stacked ) {
       stackLayout = d3.layout.stack()
-        .values(function(d) { return _config.seriesData(d) })
+        .values(function(d) { return access.seriesData(d) })
         .y( access.y);
     }
 
     var dispatch = d3.dispatch('customHover');
-    var filtered
 
     function chartArea(_selection) {
       var self = chartArea
@@ -1402,28 +2008,28 @@
           group = this._chartGroup.append('g').classed(classes, true);
         }
 
-        filtered = _config.seriesFilter ? _data.filter(_config.seriesFilter) : _data
+        filteredData = _config.seriesFilter ? _data.filter(_config.seriesFilter) : _data
 
         if( stacked) {
-          if( filtered.length > 0)
-            stackLayout( filtered)
-          access.series = _config.seriesData
+          if( filteredData.length > 0)
+            stackLayout( filteredData)
+          access.series = access.seriesData
           access.data = access.y
-          var extent = trait.utils.extentFromAreaData( filtered, access)
-          yMinDomainFromData( extent)
+          var extent = trait.utils.extentFromAreaData( filteredData, access)
+          yMinDomainExtentFromData( extent)
         } else {
           area.y0(self.chartHeight())
         }
 
         // DATA JOIN
         series = group.selectAll(".series")
-          .data(filtered)
+          .data(filteredData)
 
         // UPDATE
         series.selectAll("path")
           .transition()
           .duration(500)
-          .attr("d", function(d) { return area(_config.seriesData(d)); })
+          .attr("d", function(d) { return area(access.seriesData(d)); })
 
         // ENTER
         series.enter()
@@ -1431,7 +2037,7 @@
           .attr("class", "series")
           .append("path")
           .attr("class", "area")
-          .attr("d", function(d) { return area(_config.seriesData(d)); })
+          .attr("d", function(d) { return area(access.seriesData(d)); })
           .style("fill", self.color);
 
         lastDomainMax = d3.trait.utils.extentMax(x1.domain())
@@ -1442,19 +2048,28 @@
       this._super(type, duration)
 
       var dur = duration || _super.duration()
-      var attrD = function(d) { return area(_config.seriesData(d)); }
+      var attrD = function(d) { return area(access.seriesData(d)); }
       if( stacked) {
-        stackLayout( filtered);
-        access.series = _config.seriesData
+        stackLayout( filteredData);
+        access.series = access.seriesData
         access.data = access.y
-        var extent = trait.utils.extentFromAreaData( filtered, access)
-        yMinDomainFromData( extent)
+        var extent = trait.utils.extentFromAreaData( filteredData, access)
+        yMinDomainExtentFromData( extent)
       }
 
       lastDomainMax = trait.chart.utils.updatePathWithTrend(type, dur, x1, series, attrD, lastDomainMax)
 
       return this;
-    };
+    }
+
+    chartArea.getFocusItems = function(focusPoint) {
+      var foci = this._super(focusPoint),
+          myFoci = trait.focus.utils.getFocusItems( filteredData, focusPoint, focusConfig, access, x1, y, chartArea.color, stacked) // t: isStacked
+
+      foci = foci.concat( myFoci)
+      return foci
+    }
+
 
     d3.rebind(chartArea, dispatch, 'on');
 
@@ -1496,13 +2111,45 @@
   }
 
 
-  function barAttr(config, barDimensions, chartHeight, x1, y1) {
-    // NOTE: for transition from enter, use  y1(0) for y: and height:
+  /**
+   *
+   *  Domain                 Range
+   *   5     +-----------    0
+   *   4                     1
+   *   3   y  ___            2
+   *   2     |***|           3
+   *   1     |***|           4
+   *   0  y0 +-----------+   5 chartHeight
+   *  -1           |***| y0  6
+   *  -2           |***|     7
+   *  -3            ---  y   8 chartHeight
+   *
+   *  y = y < 0 ? y0 : y same as Math.max( y, y0)
+   *  h = y(0) - y( abs(y-y0))
+   *
+   * @param access
+   * @param barDimensions
+   * @param chartHeight
+   * @param x1
+   * @param y
+   * @returns {{x: x, y: y, width: *, height: height}}
+   */
+  function barAttr(access, barDimensions, chartHeight, x1, y) {
+    // NOTE: for transition from enter, use  y(0) for y: and height:
+    // x is middle of bar.
+    // y is top of bar. Remember, the scale range is flipped for y.
+    // height - chartHeight - y OR y0 - y for stacked.
+
+    // For pos/neg bars:
+    // x - same
+    // y - pos: same. neg:
+    //
     return {
-      x:      function(d, i) { return x1(config.x1(d)) + barDimensions.offset; },
-      y:      function(d, i) { return y1(config.y1(d)); },
+      x:      function(d) { return x1(access.x(d)) + barDimensions.offset; },
+      y:      function(d) { return y(  Math.max(access.y(d),0) ); },
       width:  barDimensions.width,
-      height: function(d, i) { return chartHeight - y1(config.y1(d)); }
+      height: function(d) { return y(0) - y( Math.abs( access.y(d))); }
+//      height: function(d) { return chartHeight - y( Math.abs( access.y(d))); }
     }
   }
 
@@ -1541,9 +2188,9 @@
     return [Math.floor(minValue), Math.ceil(maxValue)]
   }
 
-  function rangeExtentOfBarsAndOuterGap(filteredSeries, indicesExtents, seriesData, accessor, scale, barWidth, gap, outerGap, justification) {
+  function rangeExtentOfBarsAndOuterGap(filteredData, indicesExtents, seriesData, accessor, scale, barWidth, gap, outerGap, justification) {
 
-    var rangeExtents = filteredSeries.map(function(s, i) { return rangeExtentOfBarsAndOuterGapForOneSeries(seriesData(s), indicesExtents[i], accessor, scale, barWidth, gap, outerGap, justification) })
+    var rangeExtents = filteredData.map(function(s, i) { return rangeExtentOfBarsAndOuterGapForOneSeries(seriesData(s), indicesExtents[i], accessor, scale, barWidth, gap, outerGap, justification) })
     var min = d3.min(rangeExtents, function(extent, i) { return extent[0]})
     var max = d3.min(rangeExtents, function(extent, i) { return extent[1]})
 
@@ -1564,7 +2211,7 @@
    *   Calculate the first and last bar outer edges plus a nice "inset" and scale that down
    *   to fit in the pixels available (current range).
    */
-  function getBarDimensions(filteredSeries, seriesData, accessor, c, scale, chartWidth) {
+  function getBarDimensions(filteredData, seriesData, accessor, c, scale, chartWidth) {
 
     // minimum scale distance between any two adjacent bars visible within the current domain.
     var width,
@@ -1580,16 +2227,16 @@
     } else {
       var scaleDomain = scale.domain(),
           // Find the data indices (across all series) for what's visible with current domain.
-          indicesExtents = filteredSeries.map(function(s) { return trait.chart.utils.dataIndicesExtentForDomainExtent(seriesData(s), accessor, scaleDomain) }),
+          indicesExtents = filteredData.map(function(s) { return trait.chart.utils.dataIndicesExtentForDomainExtent(seriesData(s), accessor, scaleDomain) }),
           // Get the minimum distance between bar centers across all data in all series
-          minDistanceX = d3.min(filteredSeries, function(s, i) { return trait.chart.utils.minDistanceBetween(seriesData(s), indicesExtents[i], accessor, scale) })
+          minDistanceX = d3.min(filteredData, function(s, i) { return trait.chart.utils.minDistanceBetween(seriesData(s), indicesExtents[i], accessor, scale) })
 
       width = c.width === 'auto' ? Math.max(1, Math.floor(minDistanceX * (1 - c.gap))) : c.width
       gap = Math.round(width * c.gap)
       outerGap = Math.floor(width * c.outerGap)
 
       // Get the minimun distance between bar centers across all data in all series
-      var rangeExtent = rangeExtentOfBarsAndOuterGap(filteredSeries, indicesExtents, seriesData, accessor, scale, width, gap, outerGap, c.justification),
+      var rangeExtent = rangeExtentOfBarsAndOuterGap(filteredData, indicesExtents, seriesData, accessor, scale, width, gap, outerGap, c.justification),
           min = rangeExtent[0],
           max = rangeExtent[1]
       //console.log( "minDistanceX: " + minDistanceX + " width: " + width + " rangeExtent: " + rangeExtent)
@@ -1608,7 +2255,7 @@
           }
 
           if( c.insets === INSETS_INSET_RANGE ) {
-            rangeExtent = rangeExtentOfBarsAndOuterGap(filteredSeries, indicesExtents, seriesData, accessor, scale, width, gap, outerGap, c.justification)
+            rangeExtent = rangeExtentOfBarsAndOuterGap(filteredData, indicesExtents, seriesData, accessor, scale, width, gap, outerGap, c.justification)
             min = rangeExtent[0]
             max = rangeExtent[1]
 
@@ -1659,8 +2306,8 @@
    * |      _  |    |      _  |    |      _  |    |      _  |    |     _   _     |
    * |  _  |*| |    |  _  |*| |    |  _  |*| |    |  _  |*| |    |  _ |~| |*| _  |
    * | |*| |*| |    | |*| |*| |    | |*| |*| |    | |*| |*| |    | |*||~| |*||~| |
-   * +--+---+--+     --+---+--      --+---+--      +---+---+      +------+------+
-   * 0  1   2  3       1   2          A   B          A   B         A      B
+   * +--+---+--+     --+---+--      --+---+--      -+---+---      -+------+------+
+   * 0  1   2  3       1   2          A   B          A   B          A      B
    *
    *    ONE
    *    Linear axis with scala extents outside of data min/max.
@@ -1686,12 +2333,15 @@
   function _chartBar(_super, _config) {
     // Store the group element here so we can have multiple bar charts in one chart.
     // A second "bar chart" might have a different y-axis, style or orientation.
-    var group, series, bars, barDimensions, lastDomainMax,
-        x1 = _super.x1(),
-        y1 = _super.y1(),
+    var group, series, filteredData, bars, barDimensions, lastDomainMax,
+        axes = trait.config.axes( _config),
+        access = trait.config.accessorsXY( _config, axes),
+        x1 = _super[axes.x](),
+        y = _super[axes.y](),
         barCount = _config.barCount,
         dispatch = d3.dispatch('customHover'),
         c = barConfig(_config),
+        focusConfig = d3.trait.focus.utils.makeConfig(_config),
         x1IsRangeBand = typeof x1.rangeBand === "function"
 
 
@@ -1700,10 +2350,11 @@
 
       _selection.each(function(_data) {
         var element = this,
-            chartWidth = _super.chartWidth(),
-            filteredSeries = _config.seriesFilter ? _data.filter(_config.seriesFilter) : _data
+            chartWidth = _super.chartWidth()
 
-        barDimensions = getBarDimensions(filteredSeries, _config.seriesData, _config.x1, c, x1, chartWidth)
+        filteredData = _config.seriesFilter ? _data.filter(_config.seriesFilter) : _data
+
+        barDimensions = getBarDimensions(filteredData, access.seriesData, access.x, c, x1, chartWidth)
 
         if( barDimensions.minRangeMargin || barDimensions.domainExtent ) {
 
@@ -1713,7 +2364,7 @@
             _super.x1Domain(barDimensions.domainExtent)
           }
 
-          barDimensions = getBarDimensions(filteredSeries, _config.seriesData, _config.x1, c, x1, chartWidth)
+          barDimensions = getBarDimensions(filteredData, access.seriesData, access.x, c, x1, chartWidth)
         }
 
         if( !group ) {
@@ -1723,7 +2374,7 @@
 
         // DATA JOIN
         series = group.selectAll(".series")
-          .data(filteredSeries)
+          .data(filteredData)
         {
           // UPDATE
 
@@ -1736,18 +2387,18 @@
 
         // DATA JOIN
         bars = series.selectAll("rect")
-          .data(_config.seriesData)
+          .data(access.seriesData)
 
         // ENTER
         bars.enter().append('rect')
           .classed('bar', true)
-          .attr(barAttr(_config, barDimensions, self.chartHeight(), x1, y1))
+          .attr(barAttr(access, barDimensions, self.chartHeight(), x1, y))
           .on('mouseover', dispatch.customHover);
 
         // UPDATE
         bars.transition()
           .duration(0).delay(0).ease(self.ease())
-          .attr(barAttr(_config, barDimensions, self.chartHeight(), x1, y1));
+          .attr(barAttr(access, barDimensions, self.chartHeight(), x1, y));
 
         // EXIT
         bars.exit()
@@ -1771,15 +2422,15 @@
 
       // redraw the line and no transform
       series.attr("transform", null)
-      bars.attr(barAttr(_config, barDimensions, _super.chartHeight(), x1, y1));
+      bars.attr(barAttr(access, barDimensions, _super.chartHeight(), x1, y));
 
       bars = series.selectAll("rect")
-        .data(_config.seriesData)
+        .data(access.seriesData)
 
       // ENTER
       bars.enter().append('rect')
         .classed('bar', true)
-        .attr(barAttr(_config, barDimensions, _super.chartHeight(), x1, y1))
+        .attr(barAttr(access, barDimensions, _super.chartHeight(), x1, y))
 
       bars.exit()
         .transition()
@@ -1805,6 +2456,15 @@
 
       return this;
     };
+
+    chartBar.getFocusItems = function(focusPoint) {
+      var foci = this._super(focusPoint),
+          myFoci = trait.focus.utils.getFocusItems( filteredData, focusPoint, focusConfig, access, x1, y, chartBar.color, false) // t: isStacked
+
+      foci = foci.concat( myFoci)
+      return foci
+    }
+
 
     d3.rebind(chartBar, dispatch, 'on');
 //    _super.onRangeMarginChanged( 'chartBar', chartBar)
@@ -1942,7 +2602,8 @@
         chartHeight = height - margin.top - margin.bottom,
         colorIndexNext = 0,
         colors = d3.scale.category10(),
-        colorsUsed = []
+        colorsUsed = [],
+        externalListeners = {}  // subscribption listeners here or on each element.
 
 
     var select, duration = 0
@@ -1964,11 +2625,34 @@
       return pathId
     }
 
-    function mouseOnChart(mousePoint, chartWidth, chartHeight) {
-      return  mousePoint[0] >= 0 && mousePoint[0] <= chartWidth &&
-        mousePoint[1] >= 0 && mousePoint[1] <= chartHeight
+    function mouseOnChart(focusPoint, chartWidth, chartHeight) {
+      return  focusPoint.x >= 0 && focusPoint.x <= chartWidth &&
+        focusPoint.y >= 0 && focusPoint.y <= chartHeight
 
     }
+
+    function onMouseMoveListener( element, focusPoint, onChart, sourceInternal, marginLeft, marginTop) {
+      var foci
+      if( onChart)
+        onChartMouseMoveDispatch(element, [focusPoint], sourceInternal)
+
+
+      foci = onChart ? chartBase.getFocusItems.call(element, focusPoint) : []
+      foci.forEach(function(item) {
+        item.point.x += margin.left
+        item.point.y += margin.top
+      })
+
+      if( fociDifferentFromLast(element, foci) )
+        onFocusDispatch(element, [foci, focusPoint], sourceInternal)
+      element.__onFocusChangeLastFoci = foci
+
+    }
+
+    function onMouseOutListener( element, sourceInternal) {
+      onChartMouseOutDispatch(element, sourceInternal)
+    }
+
 
     function getDimension(sizeFromElement, dimension, elementOffsetDimension) {
       if( !sizeFromElement )
@@ -2052,24 +2736,17 @@
           this._svg.on("mousemove", function() {
             var foci,
                 mousePoint = d3.mouse(element._chartGroup.node()),
-                onChart = mouseOnChart(mousePoint, chartWidth, chartHeight),
-                focusPoint = new d3.trait.Point(mousePoint[0], mousePoint[1])
-
-            foci = onChart ? self.getFocusItems.call(element, focusPoint) : []
-            foci.forEach(function(item, index, array) {
-              item.point.x += margin.left
-              item.point.y += margin.top
-            })
-
-            if( fociDifferentFromLast(element, foci) )
-              onFocusDispatch(element, foci, focusPoint)
-            element.__onFocusChangeLastFoci = foci
+                focusPoint = new d3.trait.Point(mousePoint[0], mousePoint[1]),
+                onChart = mouseOnChart(focusPoint, chartWidth, chartHeight)
+            onMouseMoveListener( element, focusPoint, onChart, true, margin.left, margin.top)
           })
+
           this._svg.on("mouseout", function() {
             var mousePoint = d3.mouse(element._chartGroup.node()),
-                onChart = mouseOnChart(mousePoint, chartWidth, chartHeight)
+                focusPoint = new d3.trait.Point(mousePoint[0], mousePoint[1]),
+                onChart = mouseOnChart(focusPoint, chartWidth, chartHeight)
             if( !onChart )
-              onChartMouseOutDispatch(element)
+              onMouseOutListener( element, true) // t: sourceInternal
           })
 
           colorsUsed = []
@@ -2118,12 +2795,21 @@
       return false
     }
 
-    function onFocusDispatch(element, foci, focusPoint) {
-      elementDispatch(element, '__onFocusChangeListeners', [foci, focusPoint])
+    function onFocusDispatch(element, args, sourceInternal) {
+      elementDispatch(element, '__onFocusChangeListeners', args)
+      if( sourceInternal)
+        elementDispatch(externalListeners, '__onFocusChangeListeners', args)
     }
 
-    function onChartMouseOutDispatch(element) {
+    function onChartMouseMoveDispatch(element, args, sourceInternal) {
+      elementDispatch(element, '__onChartMouseMoveListeners', args)
+      if( sourceInternal)
+        elementDispatch(externalListeners, '__onChartMouseMoveListeners', args)
+    }
+    function onChartMouseOutDispatch(element, sourceInternal) {
       elementDispatch(element, '__onChartMouseOutListeners', [])
+      if( sourceInternal)
+        elementDispatch(externalListeners, '__onChartMouseOutListeners', [])
     }
 
     // __onFocusChangeListeners
@@ -2140,17 +2826,120 @@
       }
     }
 
-    chartBase.onFocusChange = function(element, fn) {
-      if( !element.__onFocusChangeListeners )
-        element.__onFocusChangeListeners = []
-      if( fn )
-        element.__onFocusChangeListeners.push(fn)
+    /**
+     *
+     * Subscribe:
+     *    subscribe( function(){}, element)
+     *    subscribe( function(){})
+     *
+     * Unsubscribe:
+     *    subscribe( function(){}, element, false)
+     *    subscribe( function(){}, false)
+     * @param name
+     * @param fn
+     * @param element
+     * @param isSubscribe
+     * @returns {boolean}
+     */
+    function subscribe( name, fn, element, isSubscribe) {
+      var unsub = element === false || isSubscribe === false
+
+      if( ! fn)
+        return false
+
+      var listenerMap = element === undefined || element === false ? externalListeners : element
+      if( !listenerMap[name] ) {
+        if( unsub)
+          return false
+        else
+          listenerMap[name] = []
+      }
+      if( unsub) {
+        var listeners = listenerMap[name]
+        if( listeners ) {
+          var index = listeners.indexOf(fn)
+          if( index >= 0) {
+            listeners.splice( index, 1)
+          }
+        }
+        return false
+      } else {
+        listenerMap[name].push(fn)
+      }
+      return true // successful subscribe or unsubscribe
     }
-    chartBase.onChartMouseOut = function(element, fn) {
-      if( !element.__onChartMouseOutListeners )
-        element.__onChartMouseOutListeners = []
-      if( fn )
-        element.__onChartMouseOutListeners.push(fn)
+
+    /**
+     * Subscribe to events from another chart and treat them as our own.
+     * This is useful when we want the crosshair from another chart to
+     * show up in our chart (along with our tooltips).
+     *
+     * @param source The source chart that we're subscribing to.
+     * @param events List of events to subscribe to.
+     * @returns {chartBase}
+     */
+    chartBase.subscribeToEvents = function( source, events) {
+      if( ! source)
+        return this
+
+      events.forEach( function( event) {
+        var eventHandler
+        if( event === 'onChartMouseMove') {
+          eventHandler = function() {
+            var args = arguments // 0 or more arguments
+            if( selection )
+              selection.each(function(_data) {
+                var element = this, // the div element
+                    focusPoint = args[0]
+                focusPoint.x = Math.min(focusPoint.x, chartWidth)
+                focusPoint.y = Math.min(focusPoint.y, chartHeight)
+                onMouseMoveListener(element, focusPoint, true, false, margin.left, margin.top)
+              })
+          }
+        } else if( event === 'onChartMouseOut') {
+          eventHandler =  function() {
+            var args = arguments // 0 or more arguments
+            if( selection)
+              selection.each(function(_data) {
+                var element = this // the div element
+                onMouseOutListener(element, false)
+              })
+            }
+        }
+
+        // subscribe to source
+        if( eventHandler)
+          source[event]( eventHandler)
+      })
+      return this
+    }
+
+    /**
+     * Subscribe or unsubscribe to focus change events.
+     *
+     * Subscribe:
+     *    onFocusChange( function(){}, element)
+     *    onFocusChange( function(){})
+     *
+     * Unsubscribe:
+     *    onFocusChange( function(){}, element, false)
+     *    onFocusChange( function(){}, false)
+     *
+     *
+     * @param fn Function to call. Ex: function( foci, focusPoint)
+     * @param element Current element to hang listeners on or isSubscribe=false
+     * @param isSubscribe If isSubscribe === false, unsubscribe
+     * @return True on success
+     */
+    chartBase.onFocusChange = function(fn, element, isSubscribe) {
+      return subscribe( '__onFocusChangeListeners', fn, element, isSubscribe)
+    }
+    chartBase.onChartMouseMove = function(fn, element, isSubscribe) {
+      return subscribe( '__onChartMouseMoveListeners', fn, element, isSubscribe)
+    }
+
+    chartBase.onChartMouseOut = function(fn, element, isSubscribe) {
+      return subscribe( '__onChartMouseOutListeners', fn, element, isSubscribe)
     }
 
     function updateChartSize() {
@@ -2627,15 +3416,15 @@
     // Store the group element here so we can have multiple line charts in one chart.
     // A second "line chart" might have a different y-axis, style or orientation.
     var group, series, filteredData, lastDomainMax,
-      yAxis = _config.yAxis || 'y1',
-      x1 = _super.x1(),
-      y = _super[yAxis](),
-      access = { x: _config.x1, y: _config[yAxis]},
-      focus = d3.trait.chart.utils.configFocus(_config),
-      line = d3.svg.line()
-        .interpolate(_config.interpolate || "linear")
-        .x(function(d) { return x1(access.x(d)); })
-        .y(function(d) { return y(access.y(d)); });
+        axes = trait.config.axes( _config),
+        access = trait.config.accessorsXY( _config, axes),
+        x1 = _super[axes.x](),
+        y = _super[axes.y](),
+        focusConfig = d3.trait.focus.utils.makeConfig(_config),
+        line = d3.svg.line()
+          .interpolate(_config.interpolate || "linear")
+          .x(function(d) { return x1(access.x(d)); })
+          .y(function(d) { return y(access.y(d)); });
 
     function chartLine(_selection) {
       var self = chartLine
@@ -2744,75 +3533,12 @@
 
       return this;
     }
-    function distanceX(p1, p2) {
-      return p2.x > p1.x ? p2.x - p1.x : p1.x - p2.x
-    }
-
-    function distanceY(p1, p2) {
-      return p2.y > p1.y ? p2.y - p1.y : p1.y - p2.y
-    }
-
-    function distance(p1, p2) {
-      var dx = distanceX(p1, p2),
-        dy = distanceY(p1, p2)
-      return Math.sqrt(dx * dx + dy * dy)
-    }
-
-    function getFocusItem(series, data, index, focusPoint) {
-      var item, domainPoint, rangePoint, dist, distX
-      item = data[index]
-      //domainPoint = { x: _config.x1(item), y: access.y(item)}
-      rangePoint = new d3.trait.Point(x1(_config.x1(item)), y(access.y(item)))
-      dist = distance(rangePoint, focusPoint)
-      distX = distanceX(rangePoint, focusPoint)
-      return {
-        series: series,
-        index: index,
-        item: item,
-        point: rangePoint,
-        distance: dist,
-        distanceX: distX
-      }
-    }
 
     chartLine.getFocusItems = function(focusPoint) {
-      var self = chartLine,
-        foci = this._super(focusPoint)
+      var foci = this._super(focusPoint),
+          myFoci = trait.focus.utils.getFocusItems( filteredData, focusPoint, focusConfig, access, x1, y, chartLine.color)
 
-      // Search the domain for the closest point in x
-      var targetDomain = new d3.trait.Point(x1.invert(focusPoint.x), y.invert(focusPoint.y))
-      var bisectLeft = d3.bisector(_config.x1).left
-
-      filteredData.forEach(function(series, seriesIndex, array) {
-        var found, alterIndex,
-          data = _config.seriesData(series),
-        // search the domain for the closest point in x
-          index = bisectLeft(data, targetDomain.x)
-
-        if( index >= data.length )
-          index = data.length - 1
-        found = getFocusItem(series, data, index, focusPoint)
-
-        alterIndex = found.index - 1
-        if( alterIndex >= 0 ) {
-          var alter = getFocusItem(series, data, alterIndex, focusPoint)
-//                console.log( "found x=" + _config.x1( found.item) + " y=" + access.y( found.item) + " d=" + found.distance + "  " + targetDomain.x + " " + targetDomain.y)
-//                console.log( "alter x=" + _config.x1( alter.item) + " y=" + access.y( alter.item) + " d=" + alter.distance + "  " + targetDomain.x + " " + targetDomain.y)
-          if( focus.axis === 'x' ) {
-            if( alter.distanceX < found.distanceX )
-              found = alter
-          } else {
-            if( alter.distance < found.distance )
-              found = alter
-          }
-        }
-
-        if( found.distance <= focus.distance ) {
-          found.color = self.color(series)
-          foci.push(found)
-        }
-      })
-
+      foci = foci.concat( myFoci)
       return foci
     }
 
@@ -2826,20 +3552,20 @@ trait.chart.line = _chartLine
 
 (function(d3, trait) {
 
-  function barAttr(_config, barOffsetX, barW, chartHeight, x1, y1) {
-    // NOTE: for transition from enter, use  y1(0) for y: and height:
+  function barAttr(access, barOffsetX, barW, chartHeight, x1, y) {
+    // NOTE: for transition from enter, use  y(0) for y: and height:
     return {
-      x:      function(d, i) { return x1(_config.x1(d)) + barOffsetX; },
-      y:      function(d, i) { return y1(_config.y1(d)); },
+      x:      function(d) { return x1(access.x(d)) + barOffsetX; },
+      y:      function(d) { return y(access.y(d)); },
       width:  barW,
-      height: function(d, i) { return chartHeight - y1(_config.y1(d)); }
+      height: function(d) { return chartHeight - y(access.y(d)); }
     }
   }
 
-  function circleAttr(_config, x1, y1) {
+  function circleAttr(access, x1, y) {
     return {
-      cx: function(d, i) { return x1(_config.x1(d)) },
-      cy: function(d, i) { return y1(_config.y1(d)) },
+      cx: function(d) { return x1(access.x(d)) },
+      cy: function(d) { return y(access.y(d)) },
       r:  8
     }
   }
@@ -2848,8 +3574,10 @@ trait.chart.line = _chartLine
     // Store the group element here so we can have multiple bar charts in one chart.
     // A second "bar chart" might have a different y-axis, style or orientation.
     var group, series, points, barW, barOffsetX, lastDomainMax,
-        x1 = _super.x1(),
-        y1 = _super.y1(),
+        axes = trait.config.axes( _config),
+        access = trait.config.accessorsXY( _config, axes),
+        x1 = _super[axes.x](),
+        y = _super[axes.y](),
         shape = "circle" // rect
 
     var dispatch = d3.dispatch('customHover');
@@ -2882,23 +3610,23 @@ trait.chart.line = _chartLine
 
         // DATA JOIN
         points = series.selectAll(shape)
-          .data(_config.seriesData)
+          .data(access.seriesData)
         {
           // UPDATE
           points.transition()
             .duration(500).delay(500).ease(self.ease())
-            .attr(circleAttr(_config, x1, y1));
+            .attr(circleAttr(access, x1, y));
 
           // ENTER
           points.enter().append(shape)
             .classed('scatter-point', true)
-            .attr(circleAttr(_config, x1, y1))
+            .attr(circleAttr(access, x1, y))
             //.on('mouseover', dispatch.customHover);
             .on("mouseover", function(d, i) {
-              return element._svg.append("text").text("data: " + _config.y1(d).toFixed(1))
+              return element._svg.append("text").text("data: " + access.y(d).toFixed(1))
                 .attr("id", "tooltip")
-                .attr("x", x1(_config.x1(d)) + 10)
-                .attr("y", y1(_config.y1(d)))
+                .attr("x", x1(access.x(d)) + 10)
+                .attr("y", y(access.y(d)))
                 .attr("fill", "black")
                 .attr("opacity", 0)
                 .style("font-family", "sans-serif")
@@ -2938,15 +3666,15 @@ trait.chart.line = _chartLine
 
       // redraw the line and no transform
       series.attr("transform", null)
-      points.attr(barAttr(_config, barOffsetX, barW, _super.chartHeight(), x1, y1));
+      points.attr(barAttr(access, barOffsetX, barW, _super.chartHeight(), x1, y));
 
       points = series.selectAll("rect")
-        .data(_config.seriesData)
+        .data(access.seriesData)
 
       // ENTER
       points.enter().append('rect')
         .classed('bar', true)
-        .attr(barAttr(_config, barOffsetX, barW, _super.chartHeight(), x1, y1))
+        .attr(barAttr(access, barOffsetX, barW, _super.chartHeight(), x1, y))
 
       points.exit()
         .transition()
@@ -2981,168 +3709,6 @@ trait.chart.line = _chartLine
   }
 
   trait.chart.scatter = _chartScatter
-
-}(d3, d3.trait));
-
-(function(d3, trait) {
-
-  function rangeTranslate(lastDomainMax, domain, scale) {
-    if( !lastDomainMax )
-      return 0
-
-    //   |<-------- range ------->|
-    //      |<-- visible range -->|
-
-    var domainMax = d3.trait.utils.extentMax(domain)
-    var domainMin = d3.trait.utils.extentMin(domain)
-
-    var lastRangeMax = scale(lastDomainMax)
-    var rangeMin = scale(domainMin)
-    if( lastRangeMax < rangeMin )
-      return 0
-    else
-      return lastRangeMax - scale(domainMax)
-  }
-
-  function simplePathRedraw(series, attrD) {
-    series.selectAll("path")
-      .attr("d", attrD)
-      .attr("transform", null)
-  }
-
-  /**
-   * Update the paths with current data and scale. If trending, slide the new
-   * data onto the chart from the right.
-   *
-   * @param type Type of update: "domain", "trend"
-   * @param duration If available, the duration for the update in millisecods
-   * @param scale
-   * @param series The series list to update.
-   * @param lastDomainMax Domain max from last trend update. Can be undefined if chart starts with no data.
-   * @returns domainMax
-   */
-  function updatePathWithTrend(type, duration, scale, series, attrD, lastDomainMax) {
-
-    // TODO: The scale.range() needs to be wider, so we draw the new line off the right
-    // then translate it to the left with a transition animation.
-
-    var domain = scale.domain()
-    var domainMax = d3.trait.utils.extentMax(domain)
-
-    if( type === "trend" ) {
-
-      var translateX = rangeTranslate(lastDomainMax, domain, scale)
-
-      if( translateX !== 0 ) {
-
-        series.attr("transform", null)
-        series.selectAll("path")
-          .attr("d", attrD)
-
-        // slide the line left
-        if( duration === 0 || !duration ) {
-          series.attr("transform", "translate(" + translateX + ")")
-        } else {
-          series.transition()
-            .duration(duration)
-            .ease("linear")
-            .attr("transform", "translate(" + translateX + ")")
-          //.each("end", tick);
-        }
-      } else {
-        simplePathRedraw(series, attrD)
-      }
-
-    } else {
-      simplePathRedraw(series, attrD)
-    }
-
-    return domainMax
-  }
-
-  function configFocus(config) {
-    var focus = {
-      distance: 14,
-      axis:     null
-    }
-    if( config.focus ) {
-      focus.distance = d3.trait.utils.configFloat(config.focus.distance, focus.distance)
-      focus.axis = config.focus.axis
-    }
-    return focus
-  }
-
-  /**
-   * Return the minimum distance between each data point that is within
-   * the indicesExtent. The indicesExtent is typically the data indices
-   * that are currently visible on the chart. The distance used is the
-   * scale's range, not the domain space.
-   *
-   * @param data          Array of data.
-   * @param indicesExtent Extent of indices used to calculate minimum distance.
-   * @param accessor      Data accessor
-   * @param scale         Scale for data
-   * @returns Minimum distance as a number
-   */
-  function minDistanceBetween(data, indicesExtent, accessor, scale) {
-    var range = scale.range(), //Number.MAX_VALUE,
-        min = range[range.length - 1] - range[0],
-        length = data.length
-
-    if( length < 2 || indicesExtent.length < 2 )
-      return min
-
-    var i = indicesExtent[0],
-        lastIndex = Math.min(length - 1, indicesExtent[1])
-
-    if( i < 0 || i >= length )
-      return min
-
-    var current,
-        last = scale(accessor(data[i], i))
-
-    i++
-    for( ; i <= lastIndex; i++ ) {
-      current = scale(accessor(data[i], i))
-      min = Math.min(min, current - last)
-      last = current
-    }
-
-    return min
-  }
-
-  /**
-   * Return the extent of indices withing the domain extent. This is typicaly
-   * used to return the indices that are currently visible on the chart.
-   *
-   * @param data         Array of data
-   * @param accessor     Data accessor
-   * @param domainExtent Domain extent. Array with 0 being min and 1 being max.
-   * @returns Indices extent with array 0 being first and array 1 being last.
-   */
-  function dataIndicesExtentForDomainExtent(data, accessor, domainExtent) {
-    if( data.length <= 0 )
-      return null
-
-    var min = d3.trait.utils.extentMin(domainExtent),
-        max = d3.trait.utils.extentMax(domainExtent)
-
-    var bisector = d3.bisector(accessor),
-        biLeft = bisector.left,
-        biRight = bisector.right,
-        firstIndex = biLeft(data, min),
-        lastIndexPlusOne = biRight(data, max)
-
-    //return {first: firstIndex, lastPlusOne: lastIndexPlusOne}
-    return [firstIndex, lastIndexPlusOne - 1]
-  }
-
-
-  trait.chart.utils.updatePathWithTrend = updatePathWithTrend
-  trait.chart.utils.configFocus = configFocus
-  trait.chart.utils.minDistanceBetween = minDistanceBetween
-  trait.chart.utils.dataIndicesExtentForDomainExtent = dataIndicesExtentForDomainExtent
-
 
 }(d3, d3.trait));
 
@@ -3226,6 +3792,112 @@ trait.chart.line = _chartLine
 
 (function(d3, trait) {
 
+  /**
+   * Tooltip will call focus super. Any charts traits can return a list of items that need crosshairs.
+   * For example a line chart with two series can return two times.
+   *
+   * Configure
+   *  axis: 'x1', 'y1', ['x1', 'y1']
+   */
+  function _crosshair(_super, _config, _id) {
+
+    var group, series, lastX,
+        line = d3.svg.line(),
+        crosshairs = [],
+        axis = _config.axis || 'x1'
+
+    function removeCrosshair() {
+      if( group ) {
+        group.remove()
+        group = undefined
+      }
+    }
+
+    // If focusPoint, then mouse move, else mouse out.
+    //
+    function chartMouseMove( focusPoint) {
+      var chartHeight = _super.chartHeight(),
+          marginLeft = _super.marginLeft(),
+          marginTop = _super.marginTop()
+
+      if( focusPoint && focusPoint.x === lastX)
+        return
+
+      if( focusPoint) {
+
+        if( crosshairs.length === 0)
+          crosshairs[0] = []
+        var crosshairX = crosshairs[0]
+
+        crosshairX[0] = [focusPoint.x + marginLeft, marginTop]
+        crosshairX[1] = [focusPoint.x + marginLeft, chartHeight + marginTop]
+
+        lastX = focusPoint.x
+
+      } else {
+
+        if( crosshairs.length > 0)
+          crosshairs.splice(0, 1)
+        lastX =  undefined
+      }
+
+      // DATA JOIN
+      series = group.selectAll(".crosshair")
+        .data(crosshairs)
+
+      // ENTER
+      series.enter()
+        .append("g")
+        .attr("class", "crosshair")
+        .append("path")
+        .attr({
+          'class': "line",
+          'd': function(d) { return line(d); }
+        })
+
+      // UPDATE
+      series.selectAll("path")
+        .attr('d', function(d) {
+          return line(d);
+        })
+
+      // EXIT
+      series.exit()
+        .style({opacity: 0})
+        .remove();
+
+    }
+
+
+
+    function crosshair(_selection) {
+      var self = crosshair
+
+      _selection.each(function(_data) {
+        var element = this
+
+        if( ! group) {
+          group = element._container.append('g')
+            .attr({
+              'class':      'crosshair-group'
+            });
+
+          self.onChartMouseMove( chartMouseMove, element)
+          self.onChartMouseOut( chartMouseMove, element)
+        }
+      })
+    }
+
+    return crosshair;
+
+  }
+
+  trait.focus.crosshair = _crosshair
+
+}(d3, d3.trait));
+
+(function(d3, trait) {
+
   function l(x, y) { return 'l' + x + ',' + y }
 
   function q(x1, y1, x, y) { return 'q' + x1 + ',' + y1 + ' ' + x + ',' + y }
@@ -3304,63 +3976,49 @@ trait.chart.line = _chartLine
     })
   }
 
-  function fociAreTheSame(last, current) {
-    if( !last || last.length !== current.length )
-      return false
-
-    var l, c,
-        index = last.length - 1
-
-    for( ; index >= 0; index-- ) {
-      l = last[index]
-      c = current[index]
-      if( l.index !== c.index || l.point.x !== c.point.x || l.point.y !== c.point.y )
-        return false
-    }
-    return true
-  }
-
-  function mouseNotOnChart(mousePoint, chartWidth, chartHeight) {
-    return  mousePoint[0] < 0 ||
-      mousePoint[0] > chartWidth ||
-      mousePoint[1] < 0 ||
-      mousePoint[1] > chartHeight
-
-  }
-
   /**
    * Tooltip will call focus super. Any charts traits can return a list of items that need tooltips.
    * For example a line chart with two series can return two times.
    *
    * Configure
    *  formatY -- d3.format function.
+   *  transitionDuration — In milliseconds
+   *
+
    */
-  function _tooltip(_super, _config, _id) {
+  function _tooltipDiscrete(_super, _config, _id) {
 
-    var distance = d3.trait.utils.configFloat(_config.distance, 14)
-    var axis = _config.axis
-    var radius = 4
-    var margin = 3
+    var axis = _config.axis,
+        transitionDuration = trait.utils.configFloat( _config.transitionDuration, 100),
+        radius = 6,
+        margin = 3,
+        formatX = _config.formatX || formatDate
 
-    function tooltip(_selection) {
-      var self = tooltip
+    function tooltipDiscrete(_selection) {
+      var self = tooltipDiscrete
 
       _selection.each(function(_data) {
+        if( _data.length === 0)
+          return
+
         var element = this
-        var cache = d3.trait.utils.getTraitCache(element, _id)
+        var cache = trait.utils.getTraitCache(element, _id)
 
         cache.tooltips = _data.map(function(d) { return null})
 
-        self.onChartMouseOut(element, function() { removeAllTooltips(cache) })
-
-        self.onFocusChange(element, function(foci, focusPoint) {
+        function focusChange(foci, focusPoint) {
 
           if( foci.length <= 0 ) {
             removeAllTooltips(cache)
             return
           }
 
-          var anchorMidY = new d3.trait.Point(0, 0.5)
+          if( _data.length <= 0) {
+            console.error( 'tooltipDiscrete.focusChange foci.length=' + foci.length + ' but _data.length=' + _data.length)
+            return
+          }
+
+          var anchorMidY = new trait.Point(0, 0.5)
 
           markTooltipsForRemoval(cache.tooltips)
 
@@ -3370,9 +4028,14 @@ trait.chart.line = _chartLine
 
             var formattedText,
                 seriesIndex = _data.indexOf(item.series),
-                ttip = cache.tooltips[ seriesIndex],
-                xValue = formatDate(_config.x1(item.item)),
+                ttip = seriesIndex >= 0 ? cache.tooltips[ seriesIndex] : null,
+                xValue = formatX(_config.x1(item.item)),
                 yValue = _config.y1(item.item)
+
+            if( seriesIndex < 0) {
+              console.error( 'tooltipDiscrete.focusChange forci.forEach seriesIndex=' + seriesIndex + ' but should have found a series.')
+              return
+            }
 
             if( _config.formatY )
               yValue = _config.formatY(yValue)
@@ -3407,10 +4070,10 @@ trait.chart.line = _chartLine
             var bbox = ttip.text.node().getBBox()
             bbox.height = bbox.height * 2 + margin * 2
             bbox.width += margin * 2 + getCalloutPointerHalfHeight(bbox.height)
-            item.rect = new d3.trait.Rect(item.point, bbox, anchorMidY)
+            item.rect = new trait.Rect(item.point, bbox, anchorMidY)
           })
 
-          d3.trait.layout.verticalAnchorLeftRight(foci, self.chartRect())
+          trait.layout.verticalAnchorLeftRight(foci, self.chartRect())
 
           foci.forEach(function(item, index, array) {
             var seriesIndex = _data.indexOf(item.series),
@@ -3439,7 +4102,7 @@ trait.chart.line = _chartLine
               })
             }
 
-            ttip.path.transition()
+            ttip.path.transition().duration(transitionDuration)
               .attr({
                 'opacity': 0.72,
                 'fill':    item.color,
@@ -3452,16 +4115,1128 @@ trait.chart.line = _chartLine
           removeUnusedTooltips(cache.tooltips)
           cache.lastFoci = foci
 
+        }
+
+        self.onChartMouseOut( function() { removeAllTooltips(cache) }, element)
+
+        self.onFocusChange( focusChange, element)
+
+      })
+
+    }
+
+    return tooltipDiscrete;
+
+  }
+
+  // TODO: The seriesFilter can't used series index because we don't have it. It can filter on a series attribute.
+  function getFilteredFoci( foci, seriesFilter) {
+    if( ! seriesFilter)
+      return foci
+
+    var filtered = foci.filter( function( focus, index, array) {
+      return seriesFilter( focus.series)
+    })
+    return filtered
+  }
+
+
+  var ColY = 0,
+      ColLabel = 1
+  var AnchorBottomLeft = new trait.Point(0, 1),
+      AnchorBottomRight = new trait.Point(1, 1),
+      AnchorBottomCenter = new trait.Point(0.5, 1),
+      AnchorTopLeft = new trait.Point(0,0),
+      AnchorMiddleLeft = new trait.Point(0,0.5),
+      AnchorMiddle = new trait.Point(0.5,0.5)
+
+
+  /**
+   *
+   *
+   * row = {
+   *    elements: [
+   *    ],
+   *    group:
+   *
+   *      y: {
+   *        value,
+   *        text,
+   *        bbox,
+   *        element
+   *      },
+   *      label: {
+   *        text,
+   *        bbox,
+   *        element,
+   *      },
+   *      group  -- group element for line
+   *    },
+   * }
+   *
+   * o 134.00 Grid  seriesMarker, seriesValue, seriesLabel
+   * o   1.00 ESS
+   *
+   * @param element
+   * @param focus
+   * @param config
+   */
+
+  function textAlignLRL( node, depth, row, col) {
+    return col === 0 ? 'left'
+      : col === 1 ? 'right'
+      : 'left'
+  }
+  function textAlignRLL( node, depth, row, col) {
+    return row === 0 ? 'left'
+      : col === 0 ? 'right'
+      : col === 1 ? 'left'
+      : 'left'
+  }
+
+  function FocusTable( config, group) {
+    this.config = config
+    this.group = group
+    this.rect = new trait.Rect( 0, 0, 0, 0, 0, 0.5) // y anchor in middle
+    this.children = []
+    this.dirtyRows = []
+    this.radius = 2
+
+    this.element = group.append('rect')   // for background
+      .attr({
+        x:  0,
+        y:  0,
+        rx: this.radius,
+        ry: this.radius
+      })
+//      .style({
+//        fill: 'white',
+//        stroke: 'gray',
+//        'stroke-width': 1,
+//        opacity: 0.9
+//      })
+  }
+
+  FocusTable.prototype.addRow   = function( focus) {
+
+    var cols = [
+      {
+        anchor: AnchorBottomRight,
+        accessValue: function( f, config) {return config.y1( f.item)},
+        format: this.config.formatY
+      },
+      {
+        anchor: AnchorBottomLeft,
+        accessValue: function( f, config) { return config.seriesLabel( f.series)}
+      }
+    ]
+
+    var row = new FocusTableRow( this, focus, cols)
+    this.children.push( row)
+    // the new FocusTableRow will call table.rowDirty.
+
+    return row
+  }
+
+  FocusTable.prototype.getRow = function( index) { return this.children[ index]}
+  FocusTable.prototype.rowCount = function() { return this.children.length }
+  FocusTable.prototype.rowDirty = function( row) { this.dirtyRows.push( row) }
+  FocusTable.prototype.truncateRows = function( rowCount) {
+    // TODO: We have less focus items. Remove excess rows.
+  }
+
+  // TODO: How about
+  //   var row = table.addRow( cols)
+  //   row.setValue( focus) or row.update( focus)
+  //
+  FocusTable.prototype.setHeaderRow = function( focus) {
+
+    if( ! this.header) {
+
+      var cols = [
+        {
+          colspan: 2,
+          anchor: AnchorBottomLeft,
+          accessValue: function( f, config) {return config.x1( f.item)},
+          format: this.config.formatHeader
+        }
+      ]
+
+      this.header = new FocusTableRow( this, focus, cols)
+      this.children.unshift( this.header)
+      // the new FocusTableRow will call table.rowDirty.
+    } else {
+      this.header.setFocus( focus)
+    }
+
+    return this.header
+  }
+
+  FocusTable.prototype.render = function( layout, focusPoint, chartRect) {
+
+    // TODO: use dirtyRows.
+    if( this.dirtyRows.length === 0)
+      return
+
+    // TODO: what can we do to optimize dirtyRows?
+    layout( this)
+    this.setOrigin( focusPoint, chartRect)
+
+    this.group.attr('transform', 'translate(' + this.rect.minX() + ',' + this.rect.minY() + ')')
+
+    this.renderTableBox()
+    this.children.forEach( function( row, rowIndex) {
+      row.render()
+    })
+
+    this.dirtyRows = []
+  }
+
+  FocusTable.prototype.setOrigin = function( focusPoint, chartRect) {
+    var  offsetX = 8,
+         x = focusPoint.x + chartRect.origin.x,
+         y = focusPoint.y + chartRect.origin.y
+    this.rect.origin.x = x
+    this.rect.origin.y = y
+
+    // Fit the tooltip to the left or right of the vertical line.
+    // Use an offset so the box is sitting a little away from the
+    // vertical crosshair.
+    //
+    this.rect.size.width += offsetX
+    trait.layout.verticalAnchorLeftRight( [this], chartRect)
+    this.rect.size.width -= offsetX
+    if( this.rect.anchor.x < 0.5)
+      this.rect.origin.x += offsetX
+    else
+      this.rect.origin.x -= offsetX
+
+  }
+
+  FocusTable.prototype.renderTableBox = function() {
+    this.element.attr({
+      width:  this.rect.size.width,
+      height: this.rect.size.height + 2
+    })
+    this.group.transition().style('opacity', 1)
+  }
+
+
+  function FocusTableRow( focusTable, focus, cols) {
+    this.focusTable = focusTable
+    this.focus = focus
+    this.rect = new trait.Rect()
+//    this.children = [{}, {}]
+    this.children = cols
+    this.config = focusTable.config
+
+    this.item = focus.item
+//    this.value = this.config.y1( this.item)
+//    this.label = this.config.seriesLabel( focus.series)
+
+    this.group = this.focusTable.group.append('g')
+      .attr({
+        'class':      'd3-trait-tooltip-row'
+      })
+
+    this.setFocus( focus)
+
+//    this.children.forEach( function( col) {
+//      col.element = this.group.append('text')
+//
+//      if( col.anchor == AnchorRight)
+//        col.element.style('text-anchor', 'end')
+//
+//      var value = col.accessValue( focus, this.config)
+//      this.setCol( col, value, col.anchor, col.format)
+//    })
+
+
+//    var colY = this.children[ColY],
+//        colLabel = this.children[ColLabel]
+//
+//    colY.element = this.group.append('text')
+//      .style({
+//        'text-anchor': 'end'  // right justified.
+//      })
+//    colLabel.element = this.group.append('text')
+//
+//    this.setCol( ColY, this.value, AnchorRight, this.config.formatY)
+//    this.setCol( ColLabel, this.label, AnchorLeft)
+  }
+
+  FocusTableRow.prototype.setFocus = function( focus) {
+    var self = this,
+        rectChanged = false
+
+    self.focus = focus
+    self.item = focus.item
+//    this.value = this.config.y1( this.item)
+//    this.label = this.config.seriesLabel( focus.series)
+
+    self.children.forEach( function( col) {
+      if( ! col.element) {
+        col.element = self.group.append('text')
+
+        if( col.anchor === AnchorBottomRight)
+          col.element.style('text-anchor', 'end')
+      }
+
+      rectChanged = rectChanged || self.setCol( col, col.accessValue, col.anchor, col.format)
+    })
+
+//    rectChanged = rectChanged || this.setCol( ColY, this.value, AnchorRight, this.config.formatY)
+//    rectChanged = rectChanged || this.setCol( ColLabel, this.label, AnchorLeft)
+
+    if( rectChanged)
+      self.focusTable.rowDirty( self)
+    return rectChanged
+  }
+
+  FocusTableRow.prototype.setCol = function( col, accessValue, anchor, format) {
+    var value = col.accessValue( this.focus, this.config)
+
+    if( col.value && col.value === value && !col.rect)
+      console.error( 'how did we get here!')
+    if( col.value && col.value === value)
+      return false // no change
+
+    col.value = value
+    col.text = format ? format(value) : value
+
+    col.element.text(col.text)
+    col.bbox = col.element.node().getBBox()
+    col.rect = new trait.Rect( 0, 0, col.bbox.width, col.bbox.height, anchor.x, anchor.y)
+
+    return true // rect changed
+  }
+
+  FocusTableRow.prototype.render = function() {
+    var origin = this.rect.origin
+    this.group.attr('transform', 'translate(' + this.rect.minX() + ',' + this.rect.minY() + ')')
+
+    this.children.forEach( function( col, colIndex) {
+      origin = col.rect.origin
+      col.element.attr('transform', 'translate(' + origin.x + ',' + origin.y + ')')
+    })
+  }
+
+  function formatNull( d) { return d}
+
+  var defaultConfig = {
+    transition: {
+      duration: 100
+    },
+    radius: 3,
+    paddingEm: new trait.Margin( 0, 0.6, 0.25),  // top, left/right bottom
+    offsetX: 8,
+    em: undefined,
+    formatHeader: formatNull,
+    targets: undefined // object or array of objects
+  }
+  /**
+   * Tooltip will call focus super. Any charts traits can return a list of items that need tooltips.
+   * For example a line chart with two series can return two times.
+   *
+   * o Value Label
+   *
+   * Configure
+   *  formatY -- d3.format function.
+   *  transitionDuration — In milliseconds
+   *
+   */
+  function _tooltipUnified(_super, _config, _id) {
+
+    var group, table,
+        axis = _config.axis,
+        transitionDuration = trait.utils.configFloat( _config.transitionDuration, 100),
+        radius = trait.utils.configFloat( _config.radius, 3),
+        paddingEm = _config.padding || new trait.Margin( 0, 0.6, 0.25),  // top, left/right bottom
+//        paddingEm = _config.padding || new trait.Margin( 0, 0, 0),  // top, left/right bottom
+        offsetX = 8,
+        emDefault= 10,  // size of em space
+        formatHeader = _config.formatHeader || formatNull,
+        targets = _config.target
+
+    if( targets && ! Array.isArray( targets))
+      targets = [targets]
+
+    var layout = trait.layout.tilestack()
+      .paddingEm( paddingEm)
+      .translate( function( node, x, y) { node.group.attr('transform', 'translate(' + x + ',' + y + ')' )})
+
+    var box,
+        klass = { main: _config['class'] || 'd3-trait-tooltip'}
+    klass.box = klass.main + '-box'
+
+
+
+    function valueY( f) {
+      var v = _config.y1( f.item)
+      if( _config.formatY)
+        v = _config.formatY( v)
+      return v
+    }
+
+    // [ Header         ]
+    // circle value label
+    // circle value label
+    // circle value label
+    //
+
+    table = {
+      group: undefined,
+      klass: klass.main + '-table',
+      layoutChildren: 'TopToBottom',
+      em: emDefault, // TODO: update em at all depths to max em of children.
+      children: [
+        { // Header
+          group: undefined,
+          klass: klass.main + '-header',
+          limit: 1,  // one header for all foci.
+          anchor: AnchorTopLeft,
+          layoutChildren: 'LeftToRight',
+          em: emDefault,
+          children: [  // columns
+            {
+              type: 'text',
+              group: undefined,
+              klass: klass.main + '-header-td',
+              anchor: AnchorBottomLeft,
+              textAnchor: 'start',
+              accessValue: function( f) { return formatHeader( _config.x1( f.item)) },
+              em: emDefault
+            }
+          ]
+        },
+        { // Body
+          group: undefined,
+          klass: klass.main + '-body',
+          anchor: AnchorTopLeft,
+          layoutChildren: 'LeftToRight',
+          em: emDefault,
+          children: [  // columns
+            {
+              type: 'mark',
+              group: undefined,
+              klass: klass.main + '-mark',
+              anchor: AnchorBottomRight,
+              textAnchor: 'end',
+              accessValue: valueY,
+              em: emDefault
+            },
+            {
+              type: 'text',
+              group: undefined,
+              klass: klass.main + '-value',
+              anchor: AnchorBottomRight,
+              textAnchor: 'end',
+              accessValue: valueY,
+              em: emDefault
+            },
+            {
+              type: 'text',
+              group: undefined,
+              klass: klass.main + '-label',
+              anchor: AnchorBottomLeft,
+              textAnchor: 'start',
+              accessValue: function( f) { return _config.seriesLabel( f.series)},
+              em: emDefault
+            }
+          ]
+        }
+      ]
+    }
+
+    function setOrigin( obj, focusPoint, chartRect) {
+      var  offsetX = 8,
+           x = focusPoint.x + chartRect.origin.x,
+           y = focusPoint.y + chartRect.origin.y
+      obj.rect.origin.x = x
+      obj.rect.origin.y = y
+
+      // Fit the tooltip to the left or right of the vertical line.
+      // Use an offset so the box is sitting a little away from the
+      // vertical crosshair.
+      //
+      obj.rect.size.width += offsetX
+      trait.layout.verticalAnchorLeftRight( [obj], chartRect)
+      obj.rect.size.width -= offsetX
+      if( obj.rect.anchor.x < 0.5)
+        obj.rect.origin.x += offsetX
+      else
+        obj.rect.origin.x -= offsetX
+
+    }
+
+    function getSelectionRect( selection, anchor) {
+      var bbox = selection[0][0].getBBox()
+      var x = anchor ? anchor.x * bbox.width : 0,
+          y = 0 // anchor ? anchor.y * bbox.height : 0
+      return new trait.Rect(
+        x, y,
+        bbox.width, bbox.height,
+        anchor ? anchor.x : 0,
+        0 //anchor ? anchor.y : 0
+      )
+    }
+
+
+    function yEmWithPadding( d, i) {
+      // The first line is y = 1em because character y is the baseline.
+      var p = i === 0 ? paddingEm.top + 1 : paddingEm.top + (paddingEm.top + paddingEm.bottom + 1) * i + 1
+      return p + 'em'
+    }
+    function yEmWithPaddingCircle( d, i) {
+      // The first line is y = 1em because character y is the baseline.
+      var p = i === 0 ? paddingEm.top + 0.64 : paddingEm.top + (paddingEm.top + paddingEm.bottom + 1) * i + 0.64
+      return p + 'em'
+    }
+
+    function calculateEm( col, fociLength) {
+      var heightEm = 0,
+          padBottom = 0,
+          size = col.rect.size
+
+      if( fociLength > 0) {
+        if( fociLength === 1)
+          // h = (1+.t)*em
+          heightEm = size.height / ( 1+ paddingEm.top)
+        else
+          // h = (1+.t)*em + (1+.t+.b)*em * (length-1)
+          // h = {(1+.t) + (1+.t+.b) * (length-1)} * em
+          // em = h / {(1+.t) + (1+.t+.b) * (length-1)}
+          heightEm = size.height / (paddingEm.top + 1 + (paddingEm.top + paddingEm.bottom + 1) * (fociLength-1))
+        padBottom = heightEm * paddingEm.bottom
+        size.height += padBottom
+      }
+      return heightEm
+    }
+
+    function textColumnEnter( col, foci) {
+      var li
+
+      li = col.group.selectAll('text')
+        .data(foci)
+
+      li.enter()
+        .append('text')
+        .attr('y', yEmWithPadding)
+        .attr('x',0)
+        .style('text-anchor', col.textAnchor)
+        .text( col.accessValue )
+
+      // UPDATE
+      li.text( col.accessValue )
+
+      li.exit()
+        .remove()
+
+      col.rect = getSelectionRect( col.group, col.anchor)
+      col.em = calculateEm( col, foci.length)
+
+//      return foci.length === 0 ? 0 : size.height / foci.length
+      return col.em
+    }
+    function markColumnEnter( col, foci, color) {
+      var li
+
+      li = col.group.selectAll('circle')
+        .data(foci)
+
+      li.enter()
+        .append('circle')
+        .attr('cy', yEmWithPaddingCircle)
+        .attr('cx', '0.5em')
+        .attr('r','0.4em')
+        .style('fill', function( f) { return color(f.series)})
+
+      // UPDATE
+      li.style('fill', function( f) { return color(f.series)})
+
+      li.exit()
+        .remove()
+
+      col.rect = getSelectionRect( col.group, col.anchor)
+      col.em = calculateEm( col, foci.length)
+
+      return col.em
+    }
+
+    function sectionEnter( section, foci, color) {
+      var markCol,
+          em = 10
+
+      if( section.limit)
+        foci = foci.slice( 0, section.limit)
+
+      section.children.forEach( function( col) {
+        if( col.type === 'text')
+          em = textColumnEnter( col, foci)
+        else
+          markCol = col
+      })
+
+      if( markCol)
+        markColumnEnter( markCol, foci, color)
+
+    }
+
+//    function layoutColsHorizontal( section) {
+//
+//      var x = 0
+//      section.children.forEach( function( col) {
+//        x += padding.left * col.em
+//        if( col.rect.anchor.x < 0.5) {
+//          col.rect.origin.x = x
+//          col.group.attr('transform', 'translate(' + col.rect.minX() + ',' + col.rect.maxY() + ')')
+//          x += col.rect.size.width
+//        } else {
+//          x += col.rect.size.width
+//          col.rect.origin.x = x
+//          col.group.attr('transform', 'translate(' + col.rect.maxX() + ',' + col.rect.maxY() + ')')
+//        }
+//        x += padding.right * col.em
+//      })
+//    }
+
+    function focusChange( foci, focusPoint, color) {
+
+      var filteredFoci,
+          headerFoci,
+          headerHeight
+
+      // Reverse so stack area charts have the series in the correct visual order.
+      foci = foci.reverse()
+      filteredFoci = getFilteredFoci( foci, _config.seriesFilter)
+      table.children.forEach( function( child) {
+        sectionEnter( child, filteredFoci, color)
+      })
+
+      layout( table)
+
+      setOrigin( table, focusPoint, _super.chartRect())
+      group.attr('transform', 'translate(' + table.rect.minX() + ',' + table.rect.minY() + ')')
+
+      box.attr({
+        x: 0.5,
+        y: Math.round( table.em * -0.25) + 0.5,
+        rx: radius,
+        ry: radius,
+        width:  Math.round( table.rect.size.width + table.em * 0.1),
+        height: Math.round( table.rect.size.height + table.em * 0.25)
+      })
+
+      group.style('opacity', 1)
+
+
+//      if( filteredFoci.length <= 0 ) {
+//        // TODO: Don't truncate here. Hide the whole tooltip. When we come back we'll reuse the rows.
+//        table.truncateRows(0)
+//        return
+//      }
+//
+//      // TODO: change to addRow and take col args. Same for addRow below.
+//      table.setHeaderRow( filteredFoci[0])
+//
+//      // rowCount            1 2 1 2
+//      // table.rowCount      1 2 3 3
+//      // table.rowCount - 1  0 1 2 2
+//      // t.rC - 1 < rowCount T T F F
+//      //                     + + s s
+//      var rowCount = 1
+//      filteredFoci.forEach(function( focus, index, array) {
+//        if( table.rowCount() - 1 < rowCount)
+//          table.addRow( focus)
+//        else
+//          table.getRow( rowCount).setFocus( focus)
+//        rowCount ++
+//      })
+//      table.truncateRows( rowCount)
+//
+//
+//      // o 134.00 Grid
+//      // o   1.00 ESS
+//      if( ! layout) {
+//        layout = d3.trait.layout.table()
+//          .padding( padding)
+//          .textAlign( textAlignRLL)
+//      }
+//      table.render( layout, focusPoint, _super.chartRect())
+    }
+
+
+    function makeChildGroups( parent) {
+
+      parent.children.forEach( function( child) {
+
+        child.group = group.append('g')
+          .classed(child.klass,true)
+        child.children.forEach( function( col) {
+          col.group = child.group.append('g')
+            .classed(col.klass,true)
+            .attr('transform', 'translate(0,0)')
         })
+      })
+
+    }
+
+    function updateTargets( foci, focusPoint) {
+      if( ! targets)
+        return
+
+      targets.forEach( function(target) {
+        target.update( 'focus', foci, focusPoint)
+      })
+    }
+
+    function tooltipUnified(_selection) {
+      var self = tooltipUnified
+
+      function focusChangeListener( foci, focusPoint){
+        focusChange( foci, focusPoint, self.color)
+//            updateTargets( foci, focusPoint)
+      }
+      function chartMouseOutListener() {
+        if( group)
+          group.transition().duration(100).style('opacity', 0)
+//            updateTargets( [])
+      }
+
+      _selection.each(function(_data) {
+        var element = this
+
+        if( ! group) {
+          group = element._container.append('g')
+            .attr({
+              'class':      'd3-trait-tooltip'
+            });
+          box = group.append('rect')
+            .classed(klass.box,true)
+
+          makeChildGroups( table)
+//          table = new FocusTable( _config, group)
+
+          self.onFocusChange( focusChangeListener, element)
+          self.onChartMouseOut( chartMouseOutListener, element)
+        }
 
       })
     }
 
-    return tooltip;
+    return tooltipUnified;
 
   }
 
-  trait.focus.tooltip = _tooltip
+  if( ! trait.focus.tooltip)
+    trait.focus.tooltip = {}
+
+  trait.focus.tooltip.discrete = _tooltipDiscrete
+  trait.focus.tooltip.unified = _tooltipUnified
+
+}(d3, d3.trait));
+
+(function (d3, trait) {
+
+  var PADDING_NULL = new trait.Margin()
+
+  trait.layout.table = function () {
+
+    var children = d3_trait_tableChildren,
+//        value = d3_trait_tableValue;
+        nodes = null,
+        padding = {
+          arg: null,  // value get/set via table.padding
+          getNull: function() { return PADDING_NULL},
+          expandConstantType: 'number',
+          expandConstant: function( p) {return new trait.Margin(p)}
+        },
+        textAlign = {
+          arg: 'left',  // value get/set via table.padding
+          getNull: function() {return 'left'}
+        },
+        verticalAlign = {
+          arg: null,  // value get/set via table.padding
+          getNull:  function() {return 'bottom'}
+        }
+    padding.get = padding.getNull
+    textAlign.get = textAlign.getNull
+    verticalAlign.get = verticalAlign.getNull
+
+
+    function fillArray(array, length, defaultValue) {
+      if (!array || length < 0 || length > 100)
+        return
+      while (array.length < length)
+        array.push(defaultValue)
+    }
+
+    // Include padding.
+    function calculateColWidths( rows) {
+      var widths = [],
+          colspans = []
+
+      rows.forEach(function (row, rowIndex) {
+        var colspan = 0,
+            cols = children.call(table, row, row.depth)
+        fillArray(widths, cols.length, 0)
+        var spanOffset = 0
+        cols.forEach(function (node, colIndex) {
+          var actual = colIndex + spanOffset
+          if( node.colspan) {
+            colspans.push( { node: node, row: rowIndex, col: actual})
+            spanOffset += node.colspan
+          } else {
+            var w = colWidthIncludingPadding( node, rowIndex, actual)
+            widths[actual] = widths[actual] ? Math.max(widths[actual], w) : w
+          }
+        })
+      })
+
+      // Adjust columns that have colspans
+      //
+      colspans.sort( function( a, b) { return a.node.colspan - b.node.colspan})
+      colspans.forEach( function( spanner) {
+        var node = spanner.node,
+            maxColWidth = getColspanWidth( spanner.col, node.colspan, widths),
+            requestedWidth = colWidthIncludingPadding( node, node.row, node.col)
+        if( maxColWidth < requestedWidth)
+          stretchColumnWidthsForColspan( requestedWidth, maxColWidth, spanner.col, node.colspan, widths);
+      })
+      return widths
+    }
+
+    function colWidthIncludingPadding( node, rowIndex, colIndex) {
+      var pad = padding.get( node, rowIndex, colIndex),
+          w = pad.left + node.rect.size.width + pad.right
+      return w
+    }
+    function getColspanWidth( start, span, widths) {
+      var total = 0
+      for( span--; span >= 0; span--)
+        total += widths[start+span]
+      return total
+    }
+    function stretchColumnWidthsForColspan( requestedWidth, currentWidth, start, span, widths) {
+      var stretch = requestedWidth - currentWidth,
+          each = stretch / span,
+          total = 0
+
+      for( span--; span >= 0; span--) {
+        var index = start+span
+        widths[index] = Math.round(widths[index] + each)
+        total += widths[index]
+      }
+      // if we lost one in the division, add 1 to the first column.
+      if( total < requestedWidth)
+        widths[start] ++
+    }
+
+    // Include padding.
+    function setDepthOnNodes( node, depth) {
+      node.depth = depth
+      var childs = children.call(table, node, depth)
+      if( childs && childs.length > 0) {
+        depth ++
+        childs.forEach(function (child) {
+          setDepthOnNodes( child, depth)
+        })
+      }
+    }
+
+    function calculateRowHeight(row, rowIndex) {
+      var height = 0,
+          cols = children.call(table, row, row.depth)
+
+      cols.forEach(function (node, colIndex) {
+        var pad = padding.get( node, rowIndex, colIndex),
+            h = pad.top + node.rect.size.height + pad.bottom
+        height = Math.max(height, h)
+      })
+      return height
+    }
+
+    /**
+     * For now, we assume that the rect anchor matches the alignment, so textAlign='right' goes
+     * with Rect anchor 1.0 and we set the x origin on the right side of the box.
+     * @param node
+     * @param rowIndex
+     * @param colIndex
+     * @param cellRect The bounding box for the table cell.
+     * @returns {d3.trait.Point}
+     */
+    function nodeOriginInCellRect( node, rowIndex, colIndex, cellRect) {
+      var pad = padding.get( node, rowIndex, colIndex),
+          tAlign = textAlign.get( node, rowIndex, colIndex),
+          vAlign = verticalAlign.get( node, rowIndex, colIndex),
+          origin = new trait.Point()
+
+      origin.x = tAlign === 'right' ? cellRect.maxX() - pad.right
+        : tAlign === 'center' ? Math.round(cellRect.midX() + (pad.left - pad.right) / 2)
+        : cellRect.minX() + pad.left // 'left'
+
+      origin.y = vAlign === 'top' ? cellRect.minY() + pad.top
+        : vAlign === 'middle' ? Math.round(cellRect.midY() + (pad.top - pad.bottom) / 2)
+        : cellRect.maxY() - pad.bottom  // 'bottom'
+
+      return origin
+    }
+
+    function layoutRow(row, rowIndex, colWidths) {
+      // row origin and size are already set. Need to set width.
+
+      var cols = children.call(table, row, row.depth),
+          lineHeight = row.rect.size.height,
+          x = 0,
+          y = 0
+      cols.forEach(function (node, colIndex) {
+        var cellRect = new trait.Rect( x, y, colWidths[colIndex], lineHeight)
+        node.rect.origin = nodeOriginInCellRect( node, rowIndex, colIndex, cellRect)
+        x += cellRect.size.width
+      })
+      row.rect.size.width = x
+    }
+
+
+
+    /**
+     * set parameter value or function.
+     * @param param Parameters are padding, textAlign, verticalAlign, etc.
+     * @param x The value or function to use
+     */
+    function setParameter( param, x) {
+
+      function paramFunction(node, row, col) {
+        var p = x.call(table, node, node.depth, row, col);
+        return p == null ? param.getNull(node)
+          : param.expandConstantType && typeof p === param.expandConstantType ? param.expandConstant(p)
+          : p;
+      }
+
+      function paramConstant(node) {
+        return x;
+      }
+
+      var type;
+      param.get = (param.arg = x) == null ? param.getNull
+        : (type = typeof x) === "function" ? paramFunction
+        : param.expandConstantType && type === param.expandConstantType ? (x = param.expandConstant(x), paramConstant)
+        : paramConstant;
+    }
+
+    /**
+     *
+     * table: {
+     *    rect:,  // rect for whole table
+     *    group:,
+     *    children: [
+     *      {
+     *        rect:,  // rect for tr.
+     *        group:,
+     *        children: [
+     *          {
+     *            rect:,  // rect for td
+     *            element:,
+     *            value:,
+     *            text:,  // format( value)
+     *            bbox:,  // width, height
+     *          },
+     *          ...
+     *        ]
+     *      },
+     *      ...
+     * }
+     *
+     * @param rows Rows of columns of items with Rect.
+     *
+     * @returns {Size}
+     */
+    function table(d) {
+      var nodes = d
+      setDepthOnNodes( nodes, 0)
+
+      var r = 0, c = 0,
+          rect = nodes.rect,
+          rows = children.call(table, nodes, nodes.depth),
+          colWidths = calculateColWidths(rows)
+
+
+      var y = 0
+      rows.forEach(function (row, rowIndex) {
+        var rowHeight = calculateRowHeight(row, rowIndex)
+        row.rect.origin.x = 0  // TODO: row padding?
+        row.rect.origin.y = y
+        row.rect.size.height = rowHeight
+        layoutRow(row, rowIndex, colWidths)
+        y += rowHeight
+      })
+
+      rect.size.width = d3.sum( colWidths)
+      rect.size.height = y - 0
+
+      return nodes
+    }
+
+    table.padding = function(x) {
+      if (!arguments.length) return padding.arg;
+      setParameter( padding, x)
+      return table
+    };
+
+    table.textAlign = function(x) {
+      if (!arguments.length) return textAlign.arg;
+      setParameter( textAlign, x)
+      return table
+    };
+
+    table.verticalAlign = function(x) {
+      if (!arguments.length) return verticalAlign.arg;
+      setParameter( verticalAlign, x)
+      return table
+    };
+
+    table.children = function(x) {
+      if (!arguments.length) return children;
+      children = x;
+      return table;
+    };
+
+//    table.value = function(x) {
+//      if (!arguments.length) return value;
+//      value = x;
+//      return table;
+//    };
+
+    table.utils = {
+      setDepthOnNodes: setDepthOnNodes,
+      calculateColWidths: calculateColWidths,
+      calculateRowHeight: calculateRowHeight,
+      nodeOriginInCellRect: nodeOriginInCellRect,
+      layoutRow: layoutRow
+    }
+
+    return table
+  } // end trait.layout.table
+
+  function d3_trait_tableChildren(d) {
+    return d.children;
+  }
+
+//  function d3_trait_tableValue(d) {
+//    return d.value;
+//  }
+
+
+
+}(d3, d3.trait));
+
+(function (d3, trait) {
+
+  var paddingEm = new trait.Margin(),
+      translate = function( node, x, y){}
+
+  trait.layout.tilestack = function () {
+
+    var layouts = {
+
+      /**
+       * translate X, but don't touch Y
+       */
+      LeftToRight: function( node, offset) {
+        var r = node.rect
+
+        offset.x += paddingEm.left * node.em
+
+        if( r.anchor.x < 0.5) {
+          r.origin.x = offset.x
+          translate( node, r.minX(), r.origin.y)
+          offset.x += r.size.width
+        } else {
+          offset.x += r.size.width
+          r.origin.x = offset.x
+          translate( node, r.maxX(), r.origin.y)
+        }
+
+        offset.x += paddingEm.right * node.em
+        offset.y = Math.max( offset.y, r.maxY())
+        return offset
+      },
+
+      /**
+       * translate Y, but don't touch X
+       */
+      TopToBottom: function( node, offset) {
+        var r = node.rect
+
+        offset.y += paddingEm.top * node.em
+
+        if( r.anchor.y < 0.5) {
+          r.origin.y = offset.y
+          translate( node, r.origin.x, r.minY())
+          offset.y += r.size.height
+        } else {
+          offset.y += r.size.height
+          r.origin.y = offset.y
+          translate( node, r.origin.x, r.maxY())
+        }
+
+        offset.x = Math.max( offset.x, r.maxX())
+        offset.y += paddingEm.bottom * node.em
+        return offset
+      }
+
+    }
+
+
+    function pack( node) {
+      var emSum = 0,
+          offset = new trait.Point()
+
+      node.children.forEach( function( child) {
+        if( child.children)
+          pack( child)
+        offset = layouts[ node.layoutChildren]( child, offset, paddingEm)
+        emSum += child.em
+      })
+
+      //var nodeYMax = (paddingEm.top + paddingEm.bottom) * node.em  + r.maxY()
+
+      node.rect = new trait.Rect( 0, 0, offset.x, offset.y)
+
+      var length = node.children.length
+      node.em = length === 0 ? 0 : emSum / length
+
+      // TODO: resize children so vertical layout has the same widths, etc.
+    }
+
+    function tilestack( node) {
+      pack( node)
+      return node
+    }
+
+    tilestack.paddingEm = function(x) {
+      if (!arguments.length) return paddingEm;
+      paddingEm = x
+      return tilestack
+    };
+    tilestack.translate = function(x) {
+      if (!arguments.length) return translate;
+      translate = x
+      return tilestack
+    };
+
+
+    tilestack.utils = {
+      pack: pack
+
+    }
+    tilestack.layouts = layouts
+
+
+    return tilestack
+
+  } // end trait.layout.tilestack
+
 
 }(d3, d3.trait));
 
@@ -3576,128 +5351,96 @@ trait.chart.line = _chartLine
 
 (function(d3, trait) {
 
-  function minFromData(data, access, defaultValue) {
-    return minFromDataDo( data, access.series, access.data, defaultValue)
-  }
-  function minFromAreaData(data, access, defaultValue) {
-    return minFromDataDo( data, access.series, function( d) { return d.y0}, defaultValue)
-  }
-  function minFromDataDo( data, accessSeries, accessData, defaultValue) {
-    var min = d3.min(data, function(s) { return d3.min(accessSeries(s), accessData); })
-    if( !min )
-      min = defaultValue ? defaultValue : 0
-    return min
-  }
-
-  function maxFromData(data, access, defaultValue) {
-    return maxFromDataDo( data, access.series, access.data, defaultValue)
-  }
-
-  function maxFromAreaData(data, access, defaultValue) {
-    return maxFromDataDo( data, access.series, function( d) { return d.y0 + access.data(d)}, defaultValue)
-  }
-  function maxFromDataDo(data, accessSeries, accessData, defaultValue) {
-    var max = d3.max(data, function(s) { return d3.max(accessSeries(s), accessData); })
-    if( !max )
-      max = defaultValue ? defaultValue : 0
-    return max
-  }
-
 
   /**
-   * Return the extent for all data in all series, example: [min, max] .
-   * If the data in each series is empty, return the supplied default or [0,1]
-   * if min === max, return [min-1, max+1]
+   * Implementation inspired by: http://bl.ocks.org/ZJONSSON/3918369
    *
-   * @param data     Multiple series of data
-   * @param access   Accessors {series: function, data: function}
-   * @param defaultValue A default in case there is no data otherwise [0,1] is returned
-   * @returns  The extent of all data in an array of the form [min,max]
+   * @param _super
+   * @param _config
+   * @param _id
+   * @returns {legendStandard}
+   * @private
    */
-  function extentFromData(data, access, defaultValue) {
-    var extents, min, max
+  function _legendStandard(_super, _config, _id) {
 
-    // Get array of extents for each series.
-    extents = data.map(function(s) { return d3.extent( access.series(s), access.data) })
-    return extentFromData2( extents, defaultValue)
-  }
+    var group, ul, box,
+        legendPadding = 5
 
-  function extentFromAreaData(data, access, defaultValue) {
-    var extents, min, max
+    var klass = { main: _config['class'] || 'd3-trait-legend'}
+    klass.box = klass.main + '-box'
+    klass.items = klass.main + '-items'
+    klass.item = klass.main + '-item'
 
-    // Get array of extents for each series.
-    extents = data.map(function(s) {
-      var series = access.series(s)
-      var extent = [
-        d3.min( series, function( d) { return d.y0}),
-        d3.max( series, function( d) { return d.y0 + access.data(d)})
-      ]
-      return extent
-    })
 
-    return extentFromData2( extents, defaultValue)
-  }
+    function legendStandard(_selection) {
+      var self = legendStandard
 
-  /**
-   *
-   * @param extents Array of extents for each series.
-   * @param defaultValue if no extents, use default if available.
-   * @returns Extent array.
-   */
-  function extentFromData2( extents, defaultValue) {
-    var min, max
+      _selection.each(function(_data) {
+        var element = this
 
-    min = d3.min(extents, function(e) { return e[0] }) // the minimums of each extent
-    max = d3.max(extents, function(e) { return e[1] }) // the maximums of each extent
+        var li, liEnter
 
-    if( !min && !max )
-      return defaultValue ? defaultValue : [0, 1]
+        var marginLeft = _super.marginLeft() + 20
+        var marginTop = _super.marginTop() + 20
+        if( ! group) {
 
-    if( min === max ) {
-      min -= 1
-      max += 1
+          group = element._container.append('g')
+            .attr({
+              'class':      klass.main
+            });
+          box = group.append('rect')
+            .classed(klass.box,true)
+          ul = group.append('g')
+            .classed(klass.items,true)
+            .attr('transform', 'translate('+marginLeft+','+marginTop+')')
+        }
+
+
+        var filtered = _config.legendFilter ? _data.filter(_config.legendFilter) : _data
+
+//        li = ul.selectAll('.' + klass.item)
+        li = ul.selectAll('.' + klass.item)
+          .data(filtered)
+
+        liEnter = li.enter()
+//          .append('g')
+//            .classed(klass.items,true)
+//            .attr('transform', function(d,i) { return 'translate(0,'+i+'em)'})
+
+
+        liEnter.append('text')
+          .classed(klass.item,true)
+//          .attr('y',0)
+          .attr('y',function(d,i) { return i+'em'})
+          .attr('x','1em')
+          .text(_config.seriesLabel)
+
+        liEnter.append('circle')
+//          .attr('cy', '' + (-0.25) +'em')
+          .attr('cy',function(d,i) { return i-0.3+'em'})
+          .attr('cx',0)
+          .attr('r','0.4em')
+          .style('fill', self.color)
+
+
+        li.exit()
+          .remove()
+
+        // Reposition and resize the box
+        // BBox is bbox for ul group
+        var lbbox = ul[0][0].getBBox()
+        box.attr('x', Math.floor(marginLeft + lbbox.x-legendPadding) + 0.5)// add 0.5 so line is crisp!
+          .attr('y', Math.floor(marginTop + lbbox.y-legendPadding) + 0.5)
+          .attr('height', Math.ceil(lbbox.height+2*legendPadding))
+          .attr('width', Math.ceil(lbbox.width+2*legendPadding))
+      })
     }
-    return [min, max]
+
+    return legendStandard;
+
   }
 
-
-  function isExtentExtended( currentExtent, newExtent) {
-    if( ! currentExtent || currentExtent.length < 2) {
-      return true
-    } else {
-      return newExtent[0] < currentExtent[0] ||
-        trait.utils.extentMax( newExtent) > trait.utils.extentMax( currentExtent)
-    }
-  }
-
-  function extendExtent( currentExtent, newExtent) {
-    if( ! newExtent || newExtent.length < 2)
-      return currentExtent
-
-    if( ! currentExtent || currentExtent.length < 2)
-      return newExtent
-
-    if( newExtent[0] < currentExtent[0]) {
-      currentExtent[0] = newExtent[0]
-    }
-    if( trait.utils.extentMax( newExtent) > trait.utils.extentMax( currentExtent)) {
-      currentExtent[ currentExtent.length-1] = trait.utils.extentMax( newExtent)
-    }
-    return currentExtent
-  }
-
-
-  if( !trait.utils )
-    trait.utils = {}
-
-  trait.utils.minFromData = minFromData
-  trait.utils.maxFromData = maxFromData
-  trait.utils.minFromAreaData = minFromAreaData
-  trait.utils.maxFromAreaData = maxFromAreaData
-  trait.utils.extentFromData = extentFromData
-  trait.utils.extentFromAreaData = extentFromAreaData
-  trait.utils.isExtentExtended = isExtentExtended
-  trait.utils.extendExtent = extendExtent
+  trait.legend.standard = _legendStandard
 
 }(d3, d3.trait));
 
@@ -3847,7 +5590,7 @@ trait.chart.line = _chartLine
     if( domainConfig.domain )
       return domainConfig.domain
 
-    // TODO: This overrides trend. The two shold work together.
+    // TODO: This overrides trend. The two should work together.
     if( domainConfig.minDomainFromData) {
       if( trait.utils.isExtentExtended( domain, domainConfig.minDomainFromData))
         domain = trait.utils.extendExtent( domain, domainConfig.minDomainFromData)
@@ -4076,7 +5819,7 @@ trait.chart.line = _chartLine
       scale.domain(newDomain)
       // TODO: domain updated event?
     }
-    scaleLinear[scaleName + 'MinDomain'] = function(minDomain) {
+    scaleLinear[scaleName + 'MinDomainExtent'] = function(minDomain) {
       if( !arguments.length ) return domainConfig.minDomain
 
       if( trait.utils.isExtentExtended( domainConfig.minDomain, minDomain)) {
@@ -4090,9 +5833,18 @@ trait.chart.line = _chartLine
         }
       }
     }
-    scaleLinear[scaleName + 'MinDomainFromData'] = function(minDomain) {
+
+    /**
+     * Each chart can specify the minimum required for domain extent (ex: min height or width).
+     * If a chart is stacked it needs more height from the scale's domain.
+     *
+     * @param minDomain
+     * @returns {*|minDomainFromData}
+     */
+    scaleLinear[scaleName + 'MinDomainExtentFromData'] = function(minDomain) {
       if( !arguments.length ) return domainConfig.minDomainFromData
 
+      // Is new extend greater than current extent?
       if( trait.utils.isExtentExtended( domainConfig.minDomainFromData, minDomain)) {
         domainConfig.minDomainFromData = trait.utils.extendExtent( domainConfig.minDomainFromData, minDomain)
 
