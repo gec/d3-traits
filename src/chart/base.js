@@ -20,7 +20,11 @@
  */
 (function(d3, trait) {
 
-  var chartGroupClipPathNextId = 1
+  var chartGroupClipPathNextId = 1,
+      debug = {
+        layoutAxes: false,
+        resize: false
+      }
 
 
   function _chartBase(_super, _config) {
@@ -55,7 +59,7 @@
      orientation (Left, Right, Bottom, Top}. As axes are added (via traits), the
      chart margins are adjusted to accommodate each axis.
      Each array element contains the following:
-     axisGroup: The SVG g element for the axis and axis label
+     group: The SVG g element for the axis and axis label
      orient: left, right, top, bottom
      rect: d3.trait.Rect
      */
@@ -480,9 +484,10 @@
         chartWidth:  chartWidth,
         chartHeight: chartHeight
       }
-      chartWidth = width - margin.left - margin.right
-      chartHeight = height - margin.top - margin.bottom
-      //console.log( "baseChart.updateChartSize chartWidth=" + chartWidth + ", chartHeight=" + chartHeight)
+      chartWidth = Math.max( 0, width - margin.left - margin.right)
+      chartHeight = Math.max( 0, height - margin.top - margin.bottom)
+      if( debug.resize)
+        console.log( 'chartBase.updateChartSize() chartWidth ' + prev.chartWidth + '->' + chartWidth + ', chartHeight ' + prev.chartHeight + '->' + chartHeight + ' selection:' + (!!selection))
       if( prev.chartWidth !== chartWidth || prev.chartHeight !== chartHeight ) {
         if( selection )
           chartBase.callTraits(selection)
@@ -523,13 +528,13 @@
 
     };
 
-    function findAxisWithLayoutInfo(axisGroup) {
+    function findAxisWithLayoutInfo(group) {
       var i, axisWithLayoutInfo,
           length = allAxesWithLayoutInfo.length
 
       for( i = 0; i < length; i++ ) {
         axisWithLayoutInfo = allAxesWithLayoutInfo[i]
-        if( axisWithLayoutInfo.axisGroup === axisGroup )
+        if( axisWithLayoutInfo.group === group )
           return axisWithLayoutInfo
       }
       return null
@@ -707,12 +712,18 @@
         updateChartSize()
     }
 
-    chartBase.layoutAxis = function(axisGroup, orient, widthOrHeight) {
-      var axisWithLayoutInfo = findAxisWithLayoutInfo(axisGroup),
+    chartBase.layoutAxis = function( name, group, orient, widthOrHeight) {
+      var axisWithLayoutInfo = findAxisWithLayoutInfo(group),
           rect = makeAxisRectWithProperAnchor(orient, widthOrHeight)
 
+      if( debug.layoutAxes) {
+        console.log( 'layoutAxis( '+name+', ' + orient + ', ' + widthOrHeight + ') BEGIN width:' + width + ' height:' + height + ' margin l:' + margin.left + ' r:' + margin.right + ' t:' + margin.top + ' b:' + margin.bottom)
+        allAxesWithLayoutInfo.forEach( function(a){
+          console.log( '   ' + a.name + ', ' + a.orient + ' origin:'+ a.rect.origin.x + ',' + a.rect.origin.y +' size:' + a.rect.size.width + ',' + a.rect.size.height + ' anchor:' + a.rect.anchor.x + ',' + a.rect.anchor.y)
+        })
+      }
       if( !axisWithLayoutInfo ) {
-        axisWithLayoutInfo = {axisGroup: axisGroup, orient: orient, rect: rect}
+        axisWithLayoutInfo = { name: name, group: group, orient: orient, rect: rect}
         allAxesWithLayoutInfo.push(axisWithLayoutInfo)
         relayoutAxes()
       } else if( axisWithLayoutInfo.orient !== orient || axisWithLayoutInfo.rect.size !== rect.size ) {
@@ -720,7 +731,13 @@
         axisWithLayoutInfo.rect = rect
         relayoutAxes()
       }
-      axisWithLayoutInfo.axisGroup.attr('transform', 'translate(' + axisWithLayoutInfo.rect.origin.x + ',' + axisWithLayoutInfo.rect.origin.y + ')');
+      if( debug.layoutAxes) {
+        console.log( 'layoutAxis( '+name+', ' + orient + ', ' + widthOrHeight + ') END   width:' + width + ' height:' + height + ' margin l:' + margin.left + ' r:' + margin.right + ' t:' + margin.top + ' b:' + margin.bottom)
+        allAxesWithLayoutInfo.forEach( function(a){
+          console.log( '   ' + a.name + ', ' + a.orient + ' origin:'+ a.rect.origin.x + ',' + a.rect.origin.y +' size:' + a.rect.size.width + ',' + a.rect.size.height + ' anchor:' + a.rect.anchor.x + ',' + a.rect.anchor.y)
+        })
+      }
+      axisWithLayoutInfo.group.attr('transform', 'translate(' + axisWithLayoutInfo.rect.origin.x + ',' + axisWithLayoutInfo.rect.origin.y + ')');
     }
 
     // Return a list of points in focus.
@@ -773,10 +790,22 @@
       }
     };
 
+    chartBase.size = function(_s) {
+      if( !arguments.length ) return width;
+      sizeFromElement = false
+      width = parseInt(_s.width, 10);
+      height = parseInt(_s.height, 10);
+      if( debug.resize)
+        console.log( 'chartBase.size( weight=' + width + ', height=' + height + ')')
+      updateChartSize()
+      return this;
+    };
     chartBase.width = function(_x) {
       if( !arguments.length ) return width;
       sizeFromElement = false
       width = parseInt(_x, 10);
+      if( debug.resize)
+        console.log( 'chartBase.width( ' + width + ')')
       updateChartSize()
       return this;
     };
@@ -784,6 +813,8 @@
       if( !arguments.length ) return height;
       sizeFromElement = false
       height = parseInt(_x, 10);
+      if( debug.resize)
+        console.log( 'chartBase.height( ' + height + ')')
       updateChartSize()
       duration = 0;
       return this;

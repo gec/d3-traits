@@ -88,7 +88,7 @@ describe('d3.trait.axis', function() {
     var axis = d3.trait.axis.linear(_super, { axis: 'y1'})
     d3.trait.utils.extend(axis, _super)
     selection.call(axis)
-    expect(_super.layoutAxis).toHaveBeenCalledWith(jasmine.any(Object), 'left', 40)
+    expect(_super.layoutAxis).toHaveBeenCalledWith( 'y1', jasmine.any(Object), 'left', 40)
     expect(_super.onRangeMarginChanged).toHaveBeenCalledWith('axisLinear-y1', axis)
   })
 
@@ -103,10 +103,8 @@ describe('d3.trait.axis', function() {
     var div = s[0][0]
     var container = div._container[0][0]
 
-    var $axisGroup = $(container).children(".axis")
+    var $axisGroup = $(container).children(".axis.axis-y1")
     expect($axisGroup.size()).toBe(1)
-    var $axisGroupAxis = $axisGroup.children(".axis-y1")
-    expect($axisGroupAxis.size()).toBe(1)
   })
 
   function makeLinearAxisWithMarginAndOrient(axis, margin, orient) {
@@ -195,7 +193,7 @@ describe('d3.trait.axis', function() {
     d3.trait.utils.extend(axis, _super)
     selection.datum(data)
       .call(axis)
-    expect(_super.layoutAxis).toHaveBeenCalledWith(jasmine.any(Object), 'bottom', 40)
+    expect(_super.layoutAxis).toHaveBeenCalledWith( 'x1', jasmine.any(Object), 'bottom', 40)
     expect(_super.onChartResized).toHaveBeenCalledWith('axisMonth-x1', axis)
     expect(_super.onRangeMarginChanged).toHaveBeenCalledWith('axisMonth-x1', axis)
   })

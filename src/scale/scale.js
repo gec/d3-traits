@@ -20,6 +20,8 @@
  */
 (function(d3, trait) {
 
+  var debug = false
+
   var TRACKING_NONE = "none"
 
 // Force domain to follow current wall-time (i.e. domain max = current time).
@@ -380,8 +382,10 @@
         filteredData = _config.seriesFilter ? _data.filter(_config.seriesFilter) : _data
         var domain = getDomain( scale.domain(), domainConfig, filteredData, access)
         scale.domain( domain)
-        scale.range(d3.trait.utils.getScaleRange(self, scaleName))
-
+        var range = d3.trait.utils.getScaleRange(self, scaleName)
+        scale.range(range)
+        if( debug)
+          console.log( 'scaleLinear.each ' + scaleName + ' range:' + range + ' domain:' + domain)
       })
     }
 
@@ -432,11 +436,15 @@
     }
     scaleLinear.update = function(type, duration) {
       this._super(type, duration)
-      var range = d3.trait.utils.getScaleRange(_super, scaleName);
+      var range = d3.trait.utils.getScaleRange(_super, scaleName)
+      if( debug)
+        console.log( 'scaleLinear.update1 ' + scaleName + ' range:' + range + ' domain:' + scale.domain());
 
       // reset the minimum domain from visible data, so later traits can grow the min domain as needed.
       delete domainConfig.minDomainFromData;
       updateScale(scale, range, domainConfig, filteredData, access)
+      if( debug)
+        console.log( 'scaleLinear.update2 ' + scaleName + ' range:' + range + ' domain:' + scale.domain())
 
       return this;
     };

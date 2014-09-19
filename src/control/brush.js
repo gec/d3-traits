@@ -67,8 +67,9 @@
           var classes = _config.chartClass ? brushClasses + _config.chartClass : brushClasses
           //brushChart = this._chartGroup.lastChild
           group = this._chartGroup.append('g').classed(classes, true)
-            .call(brush)
         }
+
+        group.call( brush)
 
         group.selectAll("rect")
           .attr("y", -6)
@@ -80,8 +81,7 @@
 
     controlBrush.update = function(type, duration) {
       this._super(type, duration)
-
-
+      group.call( brush)
       lastDomainMax = d3.trait.utils.extentMax(scale.domain())
       return this;
     };

@@ -19,6 +19,7 @@
  * Author: Flint O'Brien
  */
 (function(d3, trait) {
+  var debug = false
 
   function orientFromConfig(axisChar, orient) {
     if( orient )
@@ -48,7 +49,8 @@
           tickFormat:  config.tickFormat,
           nice:        config.nice,
           label:       config.label,
-          lines:       config.lines
+          lines:       config.lines,
+          gridLines:   config.gridLines
         }
 
     c.labelLineHeight = c.label ? (config.labelLineHeight || 14) : 0
@@ -141,19 +143,39 @@
     }
   }
 
-  function applyTickConfig(axis, scale, c) {
+  function applyTickConfig( group, axis, scale, c, self) {
     if( c.extentTicks )
       axis.tickValues(scale.domain())
     else if( c.ticks )
       axis.ticks(c.ticks)
 
-    if( c.tickSize )
+    if( c.gridLines)
+      applyGridlines(group, axis, c, self)
+    else if( c.tickSize )
       axis.tickSize(c.tickSize)
+
     if( c.tickPadding )
       axis.tickPadding(c.tickPadding)
 
     if( c.tickFormat )
       axis.tickFormat(c.tickFormat)
+
+
+  }
+
+  function applyGridlines( group, axis, c, self) {
+
+    group.classed( 'grid', c.gridLines)
+
+    switch( c.axisChar ) {
+      case 'x':
+        axis.tickSize( - self.chartHeight())
+        break
+      case 'y':
+        axis.tickSize( - self.chartWidth())
+        break
+      default:
+    }
   }
 
   var AxisLineClass = 'axis-line'
@@ -176,7 +198,7 @@
    * @private
    */
   function _axisLinear(_super, _config) {
-    var group, groupAxis, label, axis,
+    var group, label, axis,
         c = axisConfig(_config),
         scale = _super[c.name]()  // ex: x1()
 
@@ -200,34 +222,37 @@
         var element = this
 
         if( !group ) {
-          group = this._container.append('g').classed('axis', true)
-          groupAxis = group.append('g').classed('axis-' + c.name, true)
+          group = this._container.append('g')
+            .classed('axis', true)
+            .classed('axis-' + c.name, true)
           if( c.label )
             label = group.append('text').classed('axis-label axis-label-' + c.name, true)
-          axis = d3.svg.axis()
+          axis = d3.svg.axis().scale( scale)
         }
 
-        axis.scale(scale)
-          .orient(c.orient)
-        applyTickConfig(axis, scale, c)
+        if( debug)
+          console.log( 'axisLinear.each ' + c.name)
+
+        axis.orient(c.orient)
+        applyTickConfig( group, axis, scale, c, self)
 
         // c.axisMargin is the width or height of the axis.
-        self.layoutAxis(group, c.orient, c.axisMargin)
+        self.layoutAxis( c.name, group, c.orient, c.axisMargin)
 
         //group.attr( {transform: containerTransform( self, c)})
         if( c.label ) {
-          //groupAxis.attr( {transform: axisTransform( self, c)})
+          //group.attr( {transform: axisTransform( self, c)})
           label.text(c.label)
           label.attr({ transform: labelTransform(self, c, label) })
         }
-        groupAxis.call(axis);
+        group.call(axis);
 
         // Do we have to provide a line to extend each end of the axis?
         if( _super.isMinRangeMargin(c.name) ) {
 
           var extData = d3.trait.utils.getScaleExtensions(_super, c.name, scale)
 
-          var extension = groupAxis.selectAll("path.axis-extension")
+          var extension = group.selectAll("path.axis-extension")
             .data(extData)
 
           extension.enter()
@@ -245,7 +270,7 @@
         }
 
         if(c.lines && Array.isArray(c.lines)) {
-          var line = groupAxis.selectAll('path.' + AxisLineClass)
+          var line = group.selectAll('path.' + AxisLineClass)
             .data(c.lines)
           line.enter()
             .append("path")
@@ -262,15 +287,17 @@
 
     axisLinear.update = function(type, duration) {
       this._super(type, duration)
+      if( debug)
+        console.log( 'axisLinear.update ' + c.name)
 
       // Need this for extentTicks, maybe others
       //
-      applyTickConfig(axis, scale, c)
+      applyTickConfig( group, axis, scale, c, this)
 
       if( duration === 0 ) {
-        groupAxis.call(axis);
+        group.call(axis);
       } else {
-        groupAxis.transition()
+        group.transition()
           .duration(duration || _super.duration())
           .ease("linear")
           .call(axis);
@@ -297,7 +324,7 @@
   }
 
   function _axisMonth(_super, _config) {
-    var group, groupAxis, label, lastDomainMax,
+    var group, label, lastDomainMax,
         axis = d3.svg.axis(),
         scaleForUpdate = d3.time.scale(),
         c = axisConfig(_config),
@@ -313,8 +340,9 @@
         var element = this
 
         if( !group ) {
-          group = this._container.append('g').classed('axis', true)
-          groupAxis = group.append('g').classed('axis-' + c.name, true)
+          group = this._container.append('g')
+            .classed('axis', true)
+            .classed('axis-' + c.name, true)
           if( c.label )
             label = group.append('text').classed('axis-label axis-label-' + c.name, true)
           axis = d3.svg.axis()
@@ -329,14 +357,14 @@
 
         axis.scale(scaleForUpdate)
           .orient(c.orient)
-        applyTickConfig(axis, scaleForUpdate, c)
+        applyTickConfig( group, axis, scaleForUpdate, c, self)
 
         //.tickFormat(d3.time.format('%e')) // %d is 01, 02. %e is \b1, \b2
         //.ticks( 15)
         //.tickValues( tickValuesForMonthDays( scaleForUpdate))
         //.tickSubdivide(4)
 
-        self.layoutAxis(group, c.orient, c.axisMargin)
+        self.layoutAxis( c.name, group, c.orient, c.axisMargin)
         if( c.label ) {
           label.text(c.label)
           label.attr({ transform: labelTransform(self, c, label) })
