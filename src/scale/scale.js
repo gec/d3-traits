@@ -56,14 +56,17 @@
   /**
    * domainMin or domainMax overrides domain.
    *
+   * padding 0.1 is 10%
+   *
    * @param config
-   * @returns domain config { trend, domain, domainMin, domainMax }
+   * @returns domain config { trend, domain, domainMin, domainMax, padding }
    */
   function makeDomainConfig(config) {
     var dMin = d3.trait.utils.configFloat(config.domainMin, null),
         dMax = d3.trait.utils.configFloat(config.domainMax, null),
         dc = {
-          trend: config.trend
+          trend: config.trend,
+          padding: d3.trait.utils.configFloat(config.domainPadding, 0)
         }
 
     if( dMin !== null && dMax !== null ) {
@@ -120,7 +123,7 @@
    * @param access
    * @returns {*}
    */
-  function getDomainTrend(trend, data, access) {
+  function getDomainTrend(trend, data, access, domainPadding) {
     var min, max, domain
 
     if( trend.track === TRACKING_CURRENT_TIME ) {
@@ -144,7 +147,7 @@
 
       } else {
 
-        domain = trait.utils.extentFromData(data, access)
+        domain = trait.utils.extentFromData(data, access, domainPadding)
       }
     }
     return domain
@@ -175,13 +178,13 @@
 
 
     if( domainConfig.trend )
-      domain = getDomainTrend(domainConfig, data, access)
+      domain = getDomainTrend(domainConfig, data, access, domainConfig.padding)
     else if( domainConfig.domainMin != null )
       domain = [domainConfig.domainMin, trait.utils.maxFromData(data, access)]
     else if( domainConfig.domainMax != null )
       domain = [trait.utils.minFromData(data, access), domainConfig.domainMax]
     else
-      domain = trait.utils.extentFromData(data, access)
+      domain = trait.utils.extentFromData(data, access, domainConfig.padding)
 
     return domain
   }
@@ -251,13 +254,13 @@
           scale.range([range[0], newRangeMax])
 
         } else {
-          dataDomain = trait.utils.extentFromData(data, access)
+          dataDomain = trait.utils.extentFromData(data, access, domainConfig.padding)
           scale.domain(dataDomain)
         }
       }
 
     } else {
-      dataDomain = trait.utils.extentFromData(data, access)
+      dataDomain = trait.utils.extentFromData(data, access, domainConfig.padding)
       scale.domain(dataDomain)
     }
 

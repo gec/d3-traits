@@ -78,52 +78,59 @@ describe('d3.trait.utils', function() {
 
   it('extentFromData should return default extents when data is empty', function() {
 
-    var extent
+    var extent,
+        padding = 0
 
-    extent = d3.trait.utils.extentFromData([ [] ], access)
+    extent = d3.trait.utils.extentFromData([ [] ], access, padding)
     expect(extent).toEqual([0, 1])
 
-    extent = d3.trait.utils.extentFromData([ [] ], access, [1, 2])
+    extent = d3.trait.utils.extentFromData([ [] ], access, padding, [1, 2])
     expect(extent).toEqual([1, 2])
 
   });
 
   it('extentFromData should return [min-1 , max+1] if min == max', function() {
 
-    var extent
+    var extent,
+        padding = 0
 
-    extent = d3.trait.utils.extentFromData([ [1] ], access)
+    extent = d3.trait.utils.extentFromData([ [1] ], access, padding)
     expect(extent).toEqual([0, 2])
 
-    extent = d3.trait.utils.extentFromData([ [1], [1] ], access)
+    extent = d3.trait.utils.extentFromData([ [1], [1] ], access, padding)
     expect(extent).toEqual([0, 2])
 
   });
 
   it('extentFromData should return extents', function() {
 
-    var extent
+    var extent,
+        padding = 0
 
-    extent = d3.trait.utils.extentFromData([ [0, 1, 2] ], access)
+    extent = d3.trait.utils.extentFromData([ [0, 1, 2] ], access, padding)
     expect(extent).toEqual([0, 2])
 
-    extent = d3.trait.utils.extentFromData([ [0, 1], [2, 3] ], access)
+    extent = d3.trait.utils.extentFromData([ [0, 1], [2, 3] ], access, padding)
     expect(extent).toEqual([0, 3])
 
-    extent = d3.trait.utils.extentFromData([ [5, 6], [2, 3] ], access)
+    extent = d3.trait.utils.extentFromData([ [5, 6], [2, 3] ], access, padding)
     expect(extent).toEqual([2, 6])
+
+    extent = d3.trait.utils.extentFromData([ [1, 2] ], access, 1)
+    expect(extent).toEqual([0, 3])
 
   });
 
   it('extentFromAreaData should return area extents', function() {
 
     var extent,
+        padding = 0,
         access2 = {
           series: function(d) { return d.series; },
           data:   function(d) { return d.y; }
         }
 
-    extent = d3.trait.utils.extentFromAreaData([ {series: [ {y0: 1, y: 1}, {y0: 1, y:2}, {y0: 1, y: 3}]} ], access2)
+    extent = d3.trait.utils.extentFromAreaData([ {series: [ {y0: 1, y: 1}, {y0: 1, y:2}, {y0: 1, y: 3}]} ], access2, padding)
     expect(extent).toEqual([1, 4])
 
   });

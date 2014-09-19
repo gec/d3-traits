@@ -47,6 +47,7 @@
         access = trait.config.accessorsXY( _config, axes),
         x1 = _super[axes.x](),
         y = _super[axes.y](),
+        domainPadding = d3.trait.utils.configFloat(_config.domainPadding, 0),
         yMinDomainExtentFromData = _super[axes.y + 'MinDomainExtentFromData'],
         focusConfig = d3.trait.focus.utils.makeConfig(_config),
         interpolate = _config.interpolate || "linear",
@@ -79,7 +80,7 @@
             stackLayout( filteredData)
           access.series = access.seriesData
           access.data = access.y
-          var extent = trait.utils.extentFromAreaData( filteredData, access)
+          var extent = trait.utils.extentFromAreaData( filteredData, access, domainPadding)
           yMinDomainExtentFromData( extent)
         } else {
           area.y0(self.chartHeight())
@@ -117,7 +118,7 @@
         stackLayout( filteredData);
         access.series = access.seriesData
         access.data = access.y
-        var extent = trait.utils.extentFromAreaData( filteredData, access)
+        var extent = trait.utils.extentFromAreaData( filteredData, access, domainPadding)
         yMinDomainExtentFromData( extent)
       }
 

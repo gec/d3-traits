@@ -58,15 +58,15 @@
    * @param defaultValue A default in case there is no data otherwise [0,1] is returned
    * @returns  The extent of all data in an array of the form [min,max]
    */
-  function extentFromData(data, access, defaultValue) {
+  function extentFromData(data, access, padding, defaultValue) {
     var extents, min, max
 
     // Get array of extents for each series.
     extents = data.map(function(s) { return d3.extent( access.series(s), access.data) })
-    return extentFromData2( extents, defaultValue)
+    return extentFromData2( extents, padding, defaultValue)
   }
 
-  function extentFromAreaData(data, access, defaultValue) {
+  function extentFromAreaData(data, access, padding, defaultValue) {
     var extents, min, max
 
     // Get array of extents for each series.
@@ -79,7 +79,7 @@
       return extent
     })
 
-    return extentFromData2( extents, defaultValue)
+    return extentFromData2( extents, padding, defaultValue)
   }
 
   /**
@@ -88,7 +88,7 @@
    * @param defaultValue if no extents, use default if available.
    * @returns Extent array.
    */
-  function extentFromData2( extents, defaultValue) {
+  function extentFromData2( extents, padding, defaultValue) {
     var min, max
 
     min = d3.min(extents, function(e) { return e[0] }) // the minimums of each extent
@@ -97,9 +97,15 @@
     if( !min && !max )
       return defaultValue ? defaultValue : [0, 1]
 
-    if( min === max ) {
-      min -= 1
-      max += 1
+    if( !(min instanceof Date) && !(max instanceof Date) && ! isNaN( min) && ! isNaN( max)) {
+      if( min === max ) {
+        min -= 1
+        max += 1
+      } else {
+        var p = (max - min) * padding
+        min -= p
+        max += p
+      }
     }
     return [min, max]
   }
