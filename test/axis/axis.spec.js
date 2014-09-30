@@ -82,8 +82,8 @@ describe('d3.trait.axis', function() {
       plusMarginTop:        function() {},
       plusMarginLeft:       function() {}
     }
-    spyOn(_super, 'layoutAxis').andCallThrough()
-    spyOn(_super, 'onRangeMarginChanged').andCallThrough()
+    spyOn(_super, 'layoutAxis').and.callThrough()
+    spyOn(_super, 'onRangeMarginChanged').and.callThrough()
 
     var axis = d3.trait.axis.linear(_super, { axis: 'y1'})
     d3.trait.utils.extend(axis, _super)
@@ -180,9 +180,9 @@ describe('d3.trait.axis', function() {
       onRangeMarginChanged: function() {},
       layoutAxis:           function() {}
     }
-    spyOn(_super, 'layoutAxis').andCallThrough()
-    spyOn(_super, 'onChartResized').andCallThrough()
-    spyOn(_super, 'onRangeMarginChanged').andCallThrough()
+    spyOn(_super, 'layoutAxis').and.callThrough()
+    spyOn(_super, 'onChartResized').and.callThrough()
+    spyOn(_super, 'onRangeMarginChanged').and.callThrough()
 
     var smallConfig = {
       seriesData: accessSeriesData,

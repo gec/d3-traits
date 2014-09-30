@@ -19,31 +19,64 @@
  * Author: Flint O'Brien
  */
 
-function isString( obj) {
-    return Object.prototype.toString.call(obj) == '[object String]'
+function isString(obj) {
+  return Object.prototype.toString.call(obj) == '[object String]'
 }
 
 beforeEach(function() {
 
-    function toHaveClass( expected) {
-        var className = this.actual.className
-        if( ! isString( className))
-            className = className.baseVal
-        var classes = className.trim().split( " ")
-        return -1 !== classes.indexOf( expected);
-    }
-    this.addMatchers({
-        toHaveClass: toHaveClass,
+  function toHaveClass( actual, expected) {
+    var className = actual.className
+    if( !isString(className) )
+      className = className.baseVal
+    var classes = className.trim().split(" ")
+    return -1 !== classes.indexOf(expected);
+  }
 
-        // toBeElement( 'g')
-        // toBeElement( 'g.className')
-        toBeElement: function( expected) {
-            var types = expected.split( ".")
-            var isElement = this.actual.tagName.toUpperCase() === types[0].toUpperCase()
-            if( types.length > 1)
-                return isElement && toHaveClass.call( this, types[1]);
-            else
-                return isElement
+  jasmine.Expectation.addMatchers({
+    toHaveClass:    function() {
+      return {
+        compare: function(actual, expected) {
+          var pass = toHaveClass(actual, expected),
+              message = 'Expected ' + actual.className + ' to be ' + expected
+          return {
+            pass:    pass,
+            message: message
+          }
         }
-    });
+      }
+    },
+
+    // toBeElement( 'g')
+    // toBeElement( 'g.className')
+    toBeElement: function () {
+      return {
+        compare: function( actual, expected) {
+          var pass, message
+          var types = expected.split(".")
+          var isElement = actual.tagName.toUpperCase() === types[0].toUpperCase()
+
+          if( isElement) {
+            if( types.length > 1 ) {
+              pass = toHaveClass.call(this, actual, types[1]);
+              message = pass ? 'Element ' + actual.tagName + ' with unexpected class ' + types[1]
+                : 'Element ' + actual.tagName + ' with expected class ' + types[1]
+            } else {
+              pass = true
+              message = 'Expected element ' + expected + ' found'
+            }
+          } else {
+            pass = false
+            message = 'Expected ' + actual.tagName + ' to be an element'
+          }
+
+          return {
+            pass:    pass,
+            message: message
+          }
+        }
+      }
+    }
+
+  });
 })

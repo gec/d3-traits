@@ -129,6 +129,15 @@
       }
     }
 
+    function getColorsFunction() {
+      if( !_config.colors)
+        return d3.scale.category10()
+      else if( Array.isArray( _config.colors) )
+        return function( i) { return _config.colors[i]}
+      else
+        return _config.colors
+    }
+
     var ease = 'cubic-in-out'
     var sizeFromElement = true
     var size = new d3.trait.Size(),
@@ -138,7 +147,7 @@
     var chartWidth = width - margin.left - margin.right,
         chartHeight = height - margin.top - margin.bottom,
         colorIndexNext = 0,
-        colors = d3.scale.category10(),
+        colors = getColorsFunction(),
         colorsUsed = [],
         externalListeners = {}  // subscribption listeners here or on each element.
 

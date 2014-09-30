@@ -109,7 +109,7 @@ describe('d3-traits', function() {
       .trait(_t1)
     expect(t1.a('someArg')).toBe('t0.a(someArg) t1.a')
 
-    spyOn(t1, 'a').andCallThrough()
+    spyOn(t1, 'a').and.callThrough()
     t1.call(selection)
     expect(t1.a).toHaveBeenCalledWith('t1')
 
