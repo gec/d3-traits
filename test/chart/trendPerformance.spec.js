@@ -7,7 +7,7 @@ describe('trend performance', function() {
   }
   FrameRateTimer.prototype.rate = function() {
     var elapsed = this.elapsed() / 1000.0
-    return elapsed > 0 ? (this.frames / elapsed).toFixed(1)
+    return elapsed > 0 ? Math.round(this.frames / elapsed)
       : 0
   }
   FrameRateTimer.prototype.frame = function( now) {
@@ -23,8 +23,8 @@ describe('trend performance', function() {
     this.end = now
   }
 
-  var chartDiv
-  var selection
+  var chartDiv, brushDiv
+  var selection, brushSelection
   function getData( count) {
     var i = 0,
         time = 0, //new Date().getTime()
@@ -36,7 +36,7 @@ describe('trend performance', function() {
     }
     return data
   }
-  var dataCount = 4000,
+  var dataCount = 5000,
       data = [ getData( dataCount) ]
 
   var accessX1 = function(d) { return d.date; }
@@ -48,28 +48,44 @@ describe('trend performance', function() {
     seriesData: accessSeriesData
   }
 
+  function makeBrushTraits( target) {
+    return d3.trait( d3.trait.chart.base, config )
+      .trait( d3.trait.scale.time, { axis: "x1"})
+      .trait( d3.trait.scale.linear, { axis: "y1" })
+      .trait( d3.trait.chart.line, { interpolate: "monotone" })  // "linear"
+      .trait( d3.trait.control.brush, { axis: 'x1', target: target, targetAxis: 'x1'})
+      .trait( d3.trait.axis.time.month, { axis: "x1", ticks: 3})
+      .trait( d3.trait.axis.linear, { axis: "y1", extentTicks: true})
+  }
+
 
   beforeEach(function() {
-    chartDiv = affix('.chart-div[style="width: 600px; height: 400px"]')
+    chartDiv = affix('.chart-div[style="width: 600px; height: 400px; fill: none"]')
+    brushDiv = affix('.brush-div[style="width: 600px; height: 100px; fill: none"]')
     selection = d3.select(".chart-div")
+    brushSelection = d3.select(".brush-div")
   })
 
   describe("Chart update", function() {
     var originalTimeout;
     beforeEach(function() {
       originalTimeout = jasmine.DEFAULT_TIMEOUT_INTERVAL;
-      jasmine.DEFAULT_TIMEOUT_INTERVAL = 30000;
+      jasmine.DEFAULT_TIMEOUT_INTERVAL = 5 * 60 * 1000;
     });
 
     it("should handle chart updates with reasonable frame rate", function(done) {
       selection.datum(data)
+      brushSelection.datum(data)
       var chart = d3.trait(d3.trait.chart.base, config)
         .trait(d3.trait.scale.time, {axis: 'x1'})
         .trait(d3.trait.scale.linear, {axis: 'y1'})
-//        .trait(d3.trait.axis.time.month, {axis: 'x1'})
-//        .trait(d3.trait.axis.linear, {axis: 'y1'})
+        .trait(d3.trait.axis.time.month, {axis: 'x1', gridLines: true})
+        .trait(d3.trait.axis.linear, {axis: 'y1', gridLines: true})
         .trait(d3.trait.chart.line)
         .call(selection)
+
+      var brush = makeBrushTraits( chart)
+      brush.call( brushSelection)
 
       var div = selection[0][0]
       var chartGroup = div._chartGroup[0][0]
@@ -116,9 +132,10 @@ describe('trend performance', function() {
               rate = timings.length > 0 ? timings[timings.length-1] : '-'
 
           console.log( 'interval ' + last.y + ', timerOneSecond.rate: ' + rate )
-          if( length < dataCount + 21) {
+          if( length < dataCount + 201) {
             series.push( {date: last.date+500, y: last.y+1+Math.random()})
-            chart.update( "trend")
+//            chart.update( "trend")
+            brush.update( "trend")
           } else {
             clearInterval( intervalId)
             frameRateDone = true
