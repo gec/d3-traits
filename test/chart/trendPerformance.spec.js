@@ -70,7 +70,7 @@ describe('trend performance', function() {
     var originalTimeout;
     beforeEach(function() {
       originalTimeout = jasmine.DEFAULT_TIMEOUT_INTERVAL;
-      jasmine.DEFAULT_TIMEOUT_INTERVAL = 5 * 60 * 1000;
+      jasmine.DEFAULT_TIMEOUT_INTERVAL = 50 * 60 * 1000;
     });
 
     it("should handle chart updates with reasonable frame rate", function(done) {
@@ -132,7 +132,7 @@ describe('trend performance', function() {
               rate = timings.length > 0 ? timings[timings.length-1] : '-'
 
           console.log( 'interval ' + last.y + ', timerOneSecond.rate: ' + rate )
-          if( length < dataCount + 201) {
+          if( length < dataCount + 2001) {
             series.push( {date: last.date+500, y: last.y+1+Math.random()})
 //            chart.update( "trend")
             brush.update( "trend")
