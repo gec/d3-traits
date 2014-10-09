@@ -46,7 +46,7 @@
         '15s': 15 * seconds,
          '5s':  5 * seconds,
          '1s':  1 * seconds,
-        SOURCE: 1 * seconds
+        'source': 1 * seconds
       }
 
 
@@ -54,39 +54,40 @@
 
     if( step === undefined || step === null)
       return undefined
-    if( step === 0)
+    if( step <= 0)
       return SOURCE
+
+    var res = SOURCE
 
     if( step < hours) {
       if( step < minutes) {
-        return step <= 3 * seconds ? '1s'
+        res =  step <= 3 * seconds ? '1s'
           : step <= 12 * seconds ? '5s'
           : step <= 24 * seconds ? '15s'
           : '30s'
       } else { // 1m to 30m
-        return step <= 3 * minutes ? '1m'
+        res =  step <= 3 * minutes ? '1m'
           : step <= 12 * minutes ? '5m'
           : step <= 24 * minutes ? '15m'
           : '30m'
       }
     } else {
       if( step < days) {
-        return step <= 4 * hours ? '1h'
+        res =  step <= 4 * hours ? '1h'
           : step <= 9 * hours ? '6h'
           : '12h'
       } else if( step < 6 * days) {
-        return '1d'
+        res = '1d'
       } else if( step <= 3 * weeks) {
-        return '1w'
+        res = '1w'
       } else if( step < 10 * months) {
-        return '1m'
+        res = '1m'
       } else {
-        return '1y'
+        res = '1y'
       }
     }
 
-    if( step <= 1000)
-      return '1s'
+    return res
   }
 
 
@@ -99,7 +100,7 @@
    *   .extent( [from, to]) [from, to] or from
    */
   function _murtsRequest() {
-    var step = 1000,
+    var step = undefined,
         size = 100,
         resolution = '1s',
         extent = undefined
@@ -111,16 +112,15 @@
     }
 
     function calculateResolution() {
-      // Ether do size/extent or step
+      // Use either step or extent/size
       var resolution = mapResolution( step)
       if( resolution === undefined) {
+
         if( extent === undefined) {
           resolution = '1s'
         } else {
 
-          var from, to, step,
-              extent = request.extent(),
-              size = request.size() || 500
+          var from, to
           if( Array.isArray( extent) ) {
             from = extent[0]
             to = extent[extent.length-1]
@@ -128,7 +128,7 @@
             from = extent
             to = Date.now()
           }
-          step = (to - from) / size
+          step = Math.max( 0, (to - from) / size)
           resolution = mapResolution( step)
         }
 
@@ -143,7 +143,7 @@
      */
     murtsRequest.step = function ( _step) {
       if( !arguments.length ) return step
-      step = _step
+      step = Math.max( 0, _step)
       resolution = calculateResolution()
       return this
     }
@@ -154,6 +154,7 @@
      */
     murtsRequest.size = function ( _size) {
       if( !arguments.length ) return size
+      size = Math.max( 1, _size)
       resolution = calculateResolution()
       return this
     }
@@ -181,10 +182,15 @@
 
 
 
+
+
+
   function _murtsDataStore() {
     var source,
-        x = function( d) { return d[0] },
-        y = function( d) { return d[1] },
+        access = {
+          x: function( d) { return d[0] },
+          y: function( d) { return d[1] }
+        },
         caches = {}
 
     function makeCache( res, data) {
@@ -220,16 +226,18 @@
      * @param _accessor
      */
     murtsDataStore.x = function ( _accessor) {
-      if( !arguments.length ) return x
-      x = _accessor
+      if( !arguments.length ) return access.x
+      access.x = _accessor
       return this
     }
     murtsDataStore.y = function ( _accessor) {
-      if( !arguments.length ) return y
-      y = _accessor
+      if( !arguments.length ) return access.y
+      access.y = _accessor
       return this
     }
 
+
+    // TODO: remove cache
 
     function getCache( resolution) {
       var r = resolution || SOURCE
@@ -241,6 +249,18 @@
       return c
     }
 
+    /**
+     *
+     * Push source and samples. Resample when?
+     *
+     * Push source. Each sample has a resample timer that executes at each step.
+     * It knows the last index of the source data that it sampled.
+     * Problem when data falls off left.
+     *
+     * @param _data
+     * @param resolution
+     * @returns {murtsDataStore}
+     */
     murtsDataStore.push = function( _data, resolution) {
       var c = getCache( resolution)
 
@@ -251,17 +271,19 @@
         c.unsampledCount += _data.length
         c.data = c.data.concat( _data)
         c.extent = [
-          acessor( c.data[0]),
-          acessor( c.data[data.length-1])
+          access.x( c.data[0]),
+          access.x( c.data[data.length-1])
         ]
       } else {
         c.data[c.data.length] = _data
         c.unsampledCount ++
-        var newEnd = x( _data)
+        var newEnd = access.x( _data)
         if( !c.extent)
           c.extent = [newEnd]  // first data point pushed
         c.extent[1] = newEnd
       }
+
+      // TODO: what about updating sampled resolutions?
 
       // TODO: resample some time
 
@@ -269,15 +291,17 @@
     }
 
     murtsDataStore.get = function( request, callback) {
-      var c,
-          resolution = request.resolution(),
-          extent = request.extent()
+      var resolution = request.resolution(),
+          target = getCache( resolution)
 
-      c = getCache( resolution)
-      if( c.data === undefined)
-        sample( c)
+      if( target.data === undefined) {
+        // TODO: What if there is no source?
+        var source = findSourceCache( caches, target.resolution),
+            step = resolutionMillis[ target.resolution]
+        sample( source.data, step, access)
+      }
 
-      return c;
+      return target;
     }
 
 
@@ -297,29 +321,31 @@
   }
 
 
-  function stepStats( data, sourceIndex, timeStop, last, x, y) {
+  function collectStepStats( data, sourceIndex, timeStop, sourceIndexLast, access) {
     var d = data[ sourceIndex],
-        t = x( d),
-        v = y( d),
-        min = { v: v, d: d },
-        max = { v: v, d: d },
-        sum = { v: 0, d: 0, count: 0}
+        x = access.x( d),
+        y = access.y( d),
+        min = { x: x, y: y, d: d },
+        max = { x: x, y: y, d: d },
+        sum = { x: x, y: y, count: 1}
 
-    for( sourceIndex ++; t < timeStop && sourceIndex < last; sourceIndex ++) {
+    for( sourceIndex ++; x < timeStop && sourceIndex < sourceIndexLast; sourceIndex ++) {
 
       d = data[ sourceIndex]
-      t = x( d)
-      v = y(d)
+      x = access.x(d)
+      y = access.y(d)
 
-      sum.t += t
-      sum.v += v
+      sum.x += x
+      sum.y += y
       sum.count ++
 
-      if( min.v < v) {
-        min.v = v
+      if( y < min.y) {
+        min.x = x
+        min.y = y
         min.d = d
-      } else if( max.v > v) {
-        max.v = v
+      } else if( y > max.y) {
+        max.x = x
+        max.y = y
         max.d = d
       }
     }
@@ -327,9 +353,10 @@
     return {
       min: min,
       max: max,
-      ava: {
-         t: sum.t / sum.count,
-         v: sum.v / sum.count
+      ave: {
+         x: sum.x / sum.count,
+         y: sum.y / sum.count,
+         count: sum.count  // for debug or performance stats
       },
       sourceIndex: sourceIndex
     }
@@ -337,59 +364,91 @@
 
   /**
    * For now, lets sample everything at once. No tiling.
-   * @param caches
-   * @param target
+   *
+   * For Largest Triangle Three Buckets algorithm see:
+   * Sveinn Steinarsson - Downsampling Time Series for Visual Representation
+   * http://skemman.is/stream/get/1946/15343/37285/3/SS_MSthesis.pdf
+   * https://github.com/sveinn-steinarsson/flot-downsample/blob/master/jquery.flot.downsample.js
+   *
+   * @param source Source data used for sampling
+   * @param step Millisecond step used for sampling
+   * @param access Access functions for x and y
    */
-  function sample( caches, target, x, y) {
-    var a, b, c, timeStop,
+  function sample( source, step, access) {
+    var a, b, c, stepEnd,
         sourceIndex = 0,
         sampled = [],
-        source = findSourceCache( caches, target.resolution),
-        data = source.data,
-        last = data.length - 1,
-        step = resolutionMillis[ target.resolution]
+        sourceIndexLast = source.length - 1
 
+    var startTimer = Date.now()
+    console.log( 'murts.sample source.length: ' + source.length + ' start ')
+
+    if( source.length === 0)
+      return sampled
 
     // TODO: Find first data point within extent
     //
 
-
-    a = data[sourceIndex]
+    // Always use first point
+    a = source[sourceIndex++]
     sampled[0] = a
-    if( data.length <= 1)
+    if( source.length === 1)
       return sampled
+    if( source.length === 2) {
+      sampled[1] = source[sourceIndex++]
+      return sampled
+    }
 
-    timeStop = x( a) + step
+    stepEnd = access.x( a) + step
 
-    // Find the first b. After this, b will be the previous c.
-    b = stepStats( data, sourceIndex, timeStop, last, x, y)
+    // Find the first b. At the end of the following for loop, c becomes the next b.
+    b = collectStepStats( source, sourceIndex, stepEnd, sourceIndexLast, access)
     sourceIndex = b.sourceIndex
-    timeStop = timeStop + step
+    stepEnd = stepEnd + step
 
 
-    for( ; sourceIndex < last; sourceIndex++) {
-      var d = data[ sourceIndex],
-          t = x( d),
-          v = y( d),
-          min = { v: v, d: d },
-          max = { v: v, d: d }
+    for( ; sourceIndex < sourceIndexLast; sourceIndex++) {
+      var areaUsingBMin, areaUsingBMax, aX, aY, maxAreaPoint
 
-      c = stepStats( data, sourceIndex, timeStop, last, x, y)
+      c = collectStepStats( source, sourceIndex, stepEnd, sourceIndexLast, access)
+      sourceIndex = c.sourceIndex
 
       // Now we have a, b, c
+      aX = access.x(a)
+      aY = access.y(a)
+      areaUsingBMin = Math.abs(
+        (aX - c.ave.x) * (b.min.y - aY) -
+        (aX - b.min.x) * (c.ave.y - aY)
+      ) * 0.5
+      areaUsingBMax = Math.abs(
+        (aX - c.ave.x) * (b.max.y - aY) -
+        (aX - b.max.x) * (c.ave.y - aY)
+      ) * 0.5
 
+      maxAreaPoint = areaUsingBMin < areaUsingBMax ? b.min.d : b.max.d
+      sampled[ sampled.length] = maxAreaPoint
 
-      sourceIndex = b.sourceIndex
-      timeStop = timeStop + step
-
-      // Make next b out of c
+      a = maxAreaPoint
+      b = c
+      stepEnd = stepEnd + step
     }
+
+    // Always use last point
+    sampled[sampled.length] = source[sourceIndex]
+
+    console.log( 'murts.sample source.length: ' + source.length + ' end  ' + (Date.now()-startTimer) + ' ms')
+
+    return sampled
   }
 
 
   trait.murts = {
     request: _murtsRequest(),
-    dataStore: _murtsDataStore
+    dataStore: _murtsDataStore,
+    utils: {
+           sample: sample,
+           mapResolution: mapResolution
+    }
   }
 
 }(d3, d3.trait));
