@@ -36,7 +36,7 @@ describe('trend performance', function() {
     }
     return data
   }
-  var dataCount = 5000,
+  var dataCount = 100,
       data = [ getData( dataCount) ]
 
   var accessX1 = function(d) { return d.date; }
@@ -132,7 +132,7 @@ describe('trend performance', function() {
               rate = timings.length > 0 ? timings[timings.length-1] : '-'
 
           console.log( 'interval ' + last.y + ', timerOneSecond.rate: ' + rate )
-          if( length < dataCount + 2001) {
+          if( length < dataCount + 2) {
             series.push( {date: last.date+500, y: last.y+1+Math.random()})
 //            chart.update( "trend")
             brush.update( "trend")
