@@ -410,6 +410,8 @@
         max = { x: x, y: y, d: d },
         sum = { x: x, y: y, count: 1}
 
+    // TODO: What if there is no point within this step? Shouldn't we go to the next step.
+
     for( sourceIndex ++; x < timeStop && sourceIndex < sourceIndexLast; sourceIndex ++) {
 
       d = data[ sourceIndex]
@@ -487,6 +489,8 @@
     sourceIndex = b.sourceIndex
     stepEnd = stepEnd + step
 
+    // TODO: For three points, b (aka. source[1]) is never used!
+    // TODO: What if there is no point within the last step?
 
     for( ; sourceIndex < sourceIndexLast; sourceIndex++) {
       var areaUsingBMin, areaUsingBMax, aX, aY, maxAreaPoint
