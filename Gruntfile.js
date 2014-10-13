@@ -53,6 +53,8 @@ module.exports = function(grunt) {
           // source files, that you wanna generate coverage for
           // do not include tests or libraries
           // (these files will be instrumented by Istanbul)
+          //
+          // For debug, comment this out!
           'src/**/*.js': ['coverage']
         },
         coverageReporter: {
@@ -80,6 +82,8 @@ module.exports = function(grunt) {
           // source files, that you wanna generate coverage for
           // do not include tests or libraries
           // (these files will be instrumented by Istanbul)
+          //
+          // For debug, comment this out!
           'src/**/*.js': ['coverage']
         },
         coverageReporter: {
@@ -105,11 +109,7 @@ module.exports = function(grunt) {
       css: {
         src: ['src/<%= pkg.name %>.css'],
         dest: 'dist/<%= pkg.name %>.css'
-      }//,
-//      test: {
-//        src: ['test/spec.prefix', 'test/**/*.spec.js' ,'test/spec.suffix'],
-//        dest: 'dist/<%= pkg.name %>.spec.js'
-//      }
+      }
     },
 
     uglify: {
@@ -132,12 +132,14 @@ module.exports = function(grunt) {
       test: {
         src: ['src/**/*.js']
       }
-    }
+    },
+
+    clean: ["dist"]
   });
 
   // Default task.
   grunt.registerTask('default', ['jshint', 'concat', 'uglify', 'karma:unit']);
-  grunt.registerTask('test', ['jshint', 'concat', 'uglify', 'karma:continuous']);
+  grunt.registerTask('test', ['jshint', 'karma:continuous']);
 
   grunt.registerTask('fast-build', ['concat', 'uglify']);
   grunt.registerTask('coverage', ['concat', 'karma:unit']);
