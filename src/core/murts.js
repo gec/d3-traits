@@ -450,7 +450,8 @@
 
 
   function findMaxAreaPointB( a, b, c, access) {
-    var aX = access.x(a),
+    var areaUsingBMin, areaUsingBMax,
+        aX = access.x(a),
         aY = access.y(a)
     areaUsingBMin = Math.abs(
         (aX - c.ave.x) * (b.min.y - aY) -

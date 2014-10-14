@@ -144,6 +144,10 @@ describe('d3-traits.murts', function() {
     expect(s.length).toBe( 4)
     expect(s).toEqual( data)
 
+    data = makeData( 1, 100000)
+    s = sample( data, 1000, access)
+    expect(s.length).toBe( 102)
+
   })
 
 });
