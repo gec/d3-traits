@@ -114,29 +114,35 @@ describe('d3-traits.murts', function() {
   })
 
   it('sample should work', function() {
-    var s,
+    var s, data,
         ResCache = d3.trait.murts.utils.ResCache,
         sample = d3.trait.murts.utils.sample,
-        r = d3.trait.murts.request().size(2).extent([0, 2 * seconds]),
-        data0 = [],
-        data1 = makeData( 1000, 1),
-        data2 = makeData( 1000, 2),
-        data3 = makeData( 1000, 3)
+        r = d3.trait.murts.request().size(2).extent([0, 2 * seconds])
 
-    s = sample( data0, 1000, access)
+    data = []
+    s = sample( data, 1000, access)
     expect(s.length).toBe( 0)
 
-    s = sample( data1, 1000, access)
+    data = makeData( 1000, 1),
+    s = sample( data, 1000, access)
     expect(s.length).toBe( 1)
-    expect(s).toEqual( data1)
+    expect(s).toEqual( data)
 
-    s = sample( data2, 1000, access)
+    data = makeData( 1000, 2),
+    s = sample( data, 1000, access)
     expect(s.length).toBe( 2)
-    expect(s).toEqual( data2)
+    expect(s).toEqual( data)
 
-    s = sample( data3, 1000, access)
+    data = makeData( 1000, 3)
+    s = sample( data, 1000, access)
     expect(s.length).toBe( 3)
-    expect(s).toEqual( data3)
+    expect(s).toEqual( data)
+
+    // Data ever 2000, sample every 1000. Needs to skip forward steps.
+    data = makeData( 2000, 4)
+    s = sample( data, 1000, access)
+    expect(s.length).toBe( 4)
+    expect(s).toEqual( data)
 
   })
 

@@ -400,19 +400,22 @@
 
   }
 
-
-
-  function collectStepStats( data, sourceIndex, timeStop, sourceIndexLast, access) {
-    var d = data[ sourceIndex],
+  function collectNextStep( data, sourceIndex, step, stepEnd, sourceIndexLast, access) {
+    var d = data[ sourceIndex],  // may not be inside step (before timeStop). Calculate a new stepEnd
         x = access.x( d),
         y = access.y( d),
         min = { x: x, y: y, d: d },
         max = { x: x, y: y, d: d },
         sum = { x: x, y: y, count: 1}
 
-    // TODO: What if there is no point within this step? Shouldn't we go to the next step.
+    // If no data in current step, skip forward.
+    if( x > stepEnd) {
+      var span = x - stepEnd,
+          steps = Math.ceil( span / step)
+      stepEnd = steps * step + stepEnd
+    }
 
-    for( sourceIndex ++; x < timeStop && sourceIndex < sourceIndexLast; sourceIndex ++) {
+    for( sourceIndex ++; x < stepEnd && sourceIndex < sourceIndexLast; sourceIndex ++) {
 
       d = data[ sourceIndex]
       x = access.x(d)
@@ -445,6 +448,22 @@
     }
   }
 
+
+  function findMaxAreaPointB( a, b, c, access) {
+    var aX = access.x(a),
+        aY = access.y(a)
+    areaUsingBMin = Math.abs(
+        (aX - c.ave.x) * (b.min.y - aY) -
+        (aX - b.min.x) * (c.ave.y - aY)
+    ) * 0.5
+    areaUsingBMax = Math.abs(
+        (aX - c.ave.x) * (b.max.y - aY) -
+        (aX - b.max.x) * (c.ave.y - aY)
+    ) * 0.5
+
+    return areaUsingBMin < areaUsingBMax ? b.min.d : b.max.d
+  }
+
   /**
    * For now, let's sample everything at once. No tiling.
    *
@@ -458,7 +477,7 @@
    * @param access Access functions for x and y
    */
   function sample( source, step, access) {
-    var a, b, c, stepEnd,
+    var a, b, c, stepEnd, maxAreaPoint,
         sourceIndex = 0,
         sampled = [],
         sourceIndexLast = source.length - 1
@@ -485,33 +504,17 @@
     stepEnd = access.x( a) + step
 
     // Find the first b. At the end of the following for loop, c becomes the next b.
-    b = collectStepStats( source, sourceIndex, stepEnd, sourceIndexLast, access)
+    b = collectNextStep( source, sourceIndex, step, stepEnd, sourceIndexLast, access)
     sourceIndex = b.sourceIndex
     stepEnd = stepEnd + step
 
-    // TODO: For three points, b (aka. source[1]) is never used!
-    // TODO: What if there is no point within the last step?
-
     for( ; sourceIndex < sourceIndexLast; sourceIndex++) {
-      var areaUsingBMin, areaUsingBMax, aX, aY, maxAreaPoint
 
-      c = collectStepStats( source, sourceIndex, stepEnd, sourceIndexLast, access)
+      c = collectNextStep( source, sourceIndex, step, stepEnd, sourceIndexLast, access)
       sourceIndex = c.sourceIndex
-      // TODO: what if c doesn't find any data points in that step?
 
       // Now we have a, b, c
-      aX = access.x(a)
-      aY = access.y(a)
-      areaUsingBMin = Math.abs(
-            (aX - c.ave.x) * (b.min.y - aY) -
-            (aX - b.min.x) * (c.ave.y - aY)
-        ) * 0.5
-      areaUsingBMax = Math.abs(
-            (aX - c.ave.x) * (b.max.y - aY) -
-            (aX - b.max.x) * (c.ave.y - aY)
-        ) * 0.5
-
-      maxAreaPoint = areaUsingBMin < areaUsingBMax ? b.min.d : b.max.d
+      maxAreaPoint = findMaxAreaPointB( a, b, c, access)
       sampled[ sampled.length] = maxAreaPoint
 
       a = maxAreaPoint
@@ -519,8 +522,23 @@
       stepEnd = stepEnd + step
     }
 
+    // sourceIndex can be sourceIndexLast or sourceIndexLast + 1
+
+    // Process the last b using the last point as c.
+    var lastPoint = source[ source.length-1]
+    c = {
+      ave: {
+        x: access.x(lastPoint),
+        y: access.y(lastPoint),
+        count: 1  // for debug or performance stats
+      }
+    }
+    maxAreaPoint = findMaxAreaPointB( a, b, c, access)
+    sampled[ sampled.length] = maxAreaPoint
+
+
     // Always use last point
-    sampled[sampled.length] = source[sourceIndex]
+    sampled[sampled.length] = source[sourceIndexLast]
 
     console.log( 'murts.sample source.length: ' + source.length + ' end  ' + (Date.now()-startTimer) + ' ms')
 
@@ -567,7 +585,7 @@
     stepEnd = access.x( b) + step
 
     // Find the first b. At the end of the following for loop, c becomes the next b.
-    b = collectStepStats( source, sourceIndex, stepEnd, sourceIndexLast, access)
+    b = collectNextStep( source, sourceIndex, stepEnd, sourceIndexLast, access)
     sourceIndex = b.sourceIndex
     stepEnd = stepEnd + step
 
@@ -575,7 +593,7 @@
     for( ; sourceIndex < sourceIndexLast; sourceIndex++) {
       var areaUsingBMin, areaUsingBMax, aX, aY, maxAreaPoint
 
-      c = collectStepStats( source, sourceIndex, stepEnd, sourceIndexLast, access)
+      c = collectNextStep( source, sourceIndex, stepEnd, sourceIndexLast, access)
       sourceIndex = c.sourceIndex
 
       // Now we have a, b, c
