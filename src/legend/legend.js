@@ -29,7 +29,7 @@
     function topOrBottom() { return orient === "top" || orient === "bottom"}
 
     function marginStyle() {
-      var style, m = {left: 2, right: 2}
+      var style, m = {left: 10, right: 10}
       if( _config.legendMargin ) {
         m.left = _config.legendMargin.left || m.left
         m.right = _config.legendMargin.right || m.right
@@ -44,6 +44,9 @@
         style += "margin-top:" + m.top + "px;"
       if( m.bottom )
         style += "margin-bottom:" + m.bottom + "px;"
+
+      style += 'top:' + Math.max(0,_super.marginTop()-5) + 'px;'
+
       return style
     }
 
@@ -79,10 +82,15 @@
           // UPDATE
 
           // ENTER
-          legendTop.enter()
+          var lis = legendTop.enter()
             .append("li")
-            .attr("class", "legend-item")
+            .classed("legend-item", true)
             .style("border-bottom-color", self.color)
+
+          lis.append('span')
+              .classed('legend-mark', true)
+              .style('background-color', self.color)
+          lis.append('span')// If we don't append a span here, the text() call will overwrite span.legend-mark.
             .text(_config.seriesLabel)
 
           // also try: <li><span>• </span>Lorem ipsum</li> with css span { font-size: 20pt; }
