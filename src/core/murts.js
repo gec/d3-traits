@@ -478,7 +478,8 @@
    * @param access Access functions for x and y
    */
   function sample( source, step, access) {
-    var a, b, c, stepEnd, maxAreaPoint,
+    var a, b, c, // the three "buckets"
+        stepEnd, maxAreaPoint,
         sourceIndex = 0,
         sampled = [],
         sourceIndexLast = source.length - 1
@@ -492,7 +493,7 @@
     // TODO: Find first data point within extent
     //
 
-    // Always use first point
+    // Always use the first point
     a = source[sourceIndex++]
     sampled[0] = a
     if( source.length === 1)
@@ -523,10 +524,10 @@
       stepEnd = stepEnd + step
     }
 
-    // sourceIndex can be sourceIndexLast or sourceIndexLast + 1
+    // sourceIndex is set to sourceIndexLast or sourceIndexLast + 1
 
     // Process the last b using the last point as c.
-    var lastPoint = source[ source.length-1]
+    var lastPoint = source[sourceIndexLast]
     c = {
       ave: {
         x: access.x(lastPoint),
@@ -537,9 +538,8 @@
     maxAreaPoint = findMaxAreaPointB( a, b, c, access)
     sampled[ sampled.length] = maxAreaPoint
 
-
     // Always use last point
-    sampled[sampled.length] = source[sourceIndexLast]
+    sampled[sampled.length] = lastPoint
 
     console.log( 'murts.sample source.length: ' + source.length + ' end  ' + (Date.now()-startTimer) + ' ms')
 
