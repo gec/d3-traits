@@ -332,4 +332,14 @@ describe('d3-traits.murts', function() {
 
   })
 
+  it('murts.utilsisDataStore detects murts.dataStore', function() {
+    var murts = d3.trait.murts.dataStore()
+
+    expect( d3.trait.murts.utils.isDataStore( murts)).toBeTruthy()
+    expect( d3.trait.murts.utils.isDataStore( 1)).toBeFalsy()
+    expect( d3.trait.murts.utils.isDataStore( {})).toBeFalsy()
+    expect( d3.trait.murts.utils.isDataStore( true)).toBeFalsy()
+
+  })
+
 });

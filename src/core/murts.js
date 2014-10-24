@@ -495,7 +495,7 @@
 
       if( onUpdate) {
 
-        if( previousRequest && previousRequest.resolution() != resolution)
+        if( previousRequest && previousRequest.resolution() !== resolution)
           getCache( previousRequest.resolution()).removeOnUpdate( onUpdate)
 
         cache.addOnUpdate( onUpdate)
@@ -743,7 +743,12 @@
     return s
   }
 
+  function isMurtsDataStore( obj) {
+    return typeof obj === 'function' && obj.toString().indexOf( 'function murtsDataStore(') === 0
 
+//    var arr = obj.toString().match(/function\s*(\w+)/)
+//    return arr && arr.length === 2 && arr[1] === 'murtsDataStore'
+  }
 
   trait.murts = {
     request: _murtsRequest,
@@ -752,7 +757,8 @@
            ResCache: ResCache,
            sample: sample,
            sampleUpdates: sampleUpdates,
-           mapResolution: mapResolution
+           mapResolution: mapResolution,
+           isDataStore: isMurtsDataStore
     }
   }
 
