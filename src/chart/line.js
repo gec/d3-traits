@@ -112,17 +112,25 @@
     }
 
     function getDataInRange(data, scale, access) {
-      var domainMin, domainMax,
-        indexMin, indexMax,
-        endIndex = data.length - 1,
-        range = scale.range(),
-        rangeMax = d3.trait.utils.extentMax(range)
+      var indexMin, indexMax,
+          range = scale.range(),
+          rangeMax = d3.trait.utils.extentMax(range),
+          domainMin = scale.invert(range[0]),
+          domainMax = scale.invert(rangeMax)
 
-      domainMin = scale.invert(range[0])
-      domainMax = scale.invert(rangeMax)
+      data = trait.murts.utils.getOrElse( data, scale)
+//      if( trait.murts.utils.isDataStore( data)) {
+//        var width, request
+//
+//        width = Math.abs( rangeMax - range[0])
+//        request = trait.murts.request()
+//          .size( width)
+//          .extent( [domainMin, domainMax])
+//        data = data.get( request)
+//      }
 
       indexMin = findClosestIndex(data, access, domainMin, -1)
-      indexMax = findClosestIndex(data, access, domainMax, 1, indexMin, endIndex)
+      indexMax = findClosestIndex(data, access, domainMax, 1, indexMin, data.length - 1)
       indexMax++ // because slice doesn't include max
 
       return data.slice(indexMin, indexMax)

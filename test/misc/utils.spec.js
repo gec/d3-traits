@@ -2,7 +2,8 @@ describe('d3.trait.utils', function() {
 
   var access = {
     series: function(d) { return d; },
-    data:   function(d) { return d; },
+    data: function(d) { return d; },
+    value:   function(d) { return d; },
     scaleName: 'y1'
   }
 
@@ -16,9 +17,6 @@ describe('d3.trait.utils', function() {
 
     min = d3.trait.utils.minFromData([ [] ], access)
     expect(min).toBeCloseTo(0, .01)
-
-    min = d3.trait.utils.minFromData([ [] ], access, 1)
-    expect(min).toBeCloseTo(1, .01)
 
     min = d3.trait.utils.minFromData([ [0, 1, 2] ], access)
     expect(min).toBeCloseTo(0, .01)
@@ -35,8 +33,9 @@ describe('d3.trait.utils', function() {
 
     var min,
         access2 = {
-          series: function(d) { return d.series; },
-          data:   function(d) { return d.y; }
+          series: function(d) { return d.series },
+          data:   function(d) { return d },
+          value:  function(d) { return d.y }
         }
 
     min = d3.trait.utils.minFromAreaData([ {series: [ {y0: 2, y: 1}, {y0: 3, y:2}, {y0: 4, y: 3}]} ], access2)
@@ -68,8 +67,9 @@ describe('d3.trait.utils', function() {
 
     var min,
         access2 = {
-          series: function(d) { return d.series; },
-          data:   function(d) { return d.y; }
+          series: function(d) { return d.series },
+          data:   function(d) { return d },
+          value:  function(d) { return d.y }
         }
 
     min = d3.trait.utils.maxFromAreaData([ {series: [ {y0: 2, y: 1}, {y0: 3, y:2}, {y0: 4, y: 3}]} ], access2)
@@ -126,8 +126,9 @@ describe('d3.trait.utils', function() {
     var extent,
         padding = 0,
         access2 = {
-          series: function(d) { return d.series; },
-          data:   function(d) { return d.y; }
+          series: function(d) { return d.series },
+          data:   function(d) { return d },
+          value:  function(d) { return d.y }
         }
 
     extent = d3.trait.utils.extentFromAreaData([ {series: [ {y0: 1, y: 1}, {y0: 1, y:2}, {y0: 1, y: 3}]} ], access2, padding)

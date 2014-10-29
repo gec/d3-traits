@@ -20,28 +20,31 @@
  */
 (function(d3, trait) {
 
+  var accessDataY0 = function( d) { return d.y0}
+
   function minFromData(data, access, defaultValue) {
-    return minFromDataDo( data, access.series, access.data, defaultValue)
+    return minFromDataDo( data, access.series, access.data, access.value, defaultValue)
   }
   function minFromAreaData(data, access, defaultValue) {
-    return minFromDataDo( data, access.series, function( d) { return d.y0}, defaultValue)
+    return minFromDataDo( data, access.series, access.data, accessDataY0, defaultValue)
   }
-  function minFromDataDo( data, accessSeries, accessData, defaultValue) {
-    var min = d3.min(data, function(s) { return d3.min(accessSeries(s), accessData); })
+  function minFromDataDo( data, accessSeries, accessData, accessValue, defaultValue) {
+    var min = d3.min(data, function(s, i, ra) { return d3.min( accessData( accessSeries(s, i , ra)), accessValue); })
     if( !min )
       min = defaultValue ? defaultValue : 0
     return min
   }
 
   function maxFromData(data, access, defaultValue) {
-    return maxFromDataDo( data, access.series, access.data, defaultValue)
+    return maxFromDataDo( data, access.series, access.data, access.value, defaultValue)
   }
 
   function maxFromAreaData(data, access, defaultValue) {
-    return maxFromDataDo( data, access.series, function( d) { return d.y0 + access.data(d)}, defaultValue)
+    var accessY0PlusData = function( d) { return d.y0 + access.value(d)}
+    return maxFromDataDo( data, access.series, access.data, accessY0PlusData, defaultValue)
   }
-  function maxFromDataDo(data, accessSeries, accessData, defaultValue) {
-    var max = d3.max(data, function(s) { return d3.max(accessSeries(s), accessData); })
+  function maxFromDataDo(data, accessSeries, accessData, accessValue, defaultValue) {
+    var max = d3.max(data, function(s, i, ra) { return d3.max( accessData( accessSeries(s, i, ra)), accessValue); })
     if( !max )
       max = defaultValue ? defaultValue : 0
     return max
@@ -62,7 +65,7 @@
     var extents, min, max
 
     // Get array of extents for each series.
-    extents = data.map(function(s) { return d3.extent( access.series(s), access.data) })
+    extents = data.map(function(s) { return d3.extent( access.data(  access.series(s)), access.value) })
     return extentFromData2( extents, padding, defaultValue)
   }
 
@@ -71,10 +74,10 @@
 
     // Get array of extents for each series.
     extents = data.map(function(s) {
-      var series = access.series(s)
+      var series = access.data( access.series(s))
       var extent = [
         d3.min( series, function( d) { return d.y0}),
-        d3.max( series, function( d) { return d.y0 + access.data(d)})
+        d3.max( series, function( d) { return d.y0 + access.value(d)})
       ]
       return extent
     })

@@ -46,70 +46,71 @@ describe('d3-traits.murts', function() {
   })
 
   it('murts.request should have the correct resolution', function() {
-    var r = d3.trait.murts.request().size( 2)
+    var s = d3.scale.linear().range( [0, 2])
 
-    r.extent( [0, 2 * seconds])
-    expect(r.resolution()).toBe( '1s')
-    r.extent( [0, 2 * 5 * seconds])
-    expect(r.resolution()).toBe( '5s')
-    r.extent( [0, 2 * 15 * seconds])
-    expect(r.resolution()).toBe( '15s')
-    r.extent( [0, 2 * 30 * seconds])
-    expect(r.resolution()).toBe( '30s')
+    s.domain( [0, 2 * seconds])
+    expect(s.resolution()).toBe( '1s')
 
-    r.extent( [0, 2 * minutes])
-    expect(r.resolution()).toBe( '1m')
-    r.extent( [0, 2 * 5 * minutes])
-    expect(r.resolution()).toBe( '5m')
-    r.extent( [0, 2 * 15 * minutes])
-    expect(r.resolution()).toBe( '15m')
-    r.extent( [0, 2 * 30 * minutes])
-    expect(r.resolution()).toBe( '30m')
+    s.domain( [0, 2 * 5 * seconds])
+    expect(s.resolution()).toBe( '5s')
+    s.domain( [0, 2 * 15 * seconds])
+    expect(s.resolution()).toBe( '15s')
+    s.domain( [0, 2 * 30 * seconds])
+    expect(s.resolution()).toBe( '30s')
 
-    r.extent( [0, 2 * hours])
-    expect(r.resolution()).toBe( '1h')
-    r.extent( [0, 2 * 6 * hours])
-    expect(r.resolution()).toBe( '6h')
-    r.extent( [0, 2 * 12 * hours])
-    expect(r.resolution()).toBe( '12h')
+    s.domain( [0, 2 * minutes])
+    expect(s.resolution()).toBe( '1m')
+    s.domain( [0, 2 * 5 * minutes])
+    expect(s.resolution()).toBe( '5m')
+    s.domain( [0, 2 * 15 * minutes])
+    expect(s.resolution()).toBe( '15m')
+    s.domain( [0, 2 * 30 * minutes])
+    expect(s.resolution()).toBe( '30m')
 
-    r.extent( [0, 2 * days])
-    expect(r.resolution()).toBe( '1d')
-    r.extent( [0, 2 * 2 * days])
-    expect(r.resolution()).toBe( '1d')
-    r.extent( [0, 2 * 3 * days])
-    expect(r.resolution()).toBe( '1d')
-    r.extent( [0, 2 * 4 * days])
-    expect(r.resolution()).toBe( '1d')
-    r.extent( [0, 2 * 5 * days])
-    expect(r.resolution()).toBe( '1d')
-    r.extent( [0, 2 * 6 * days])
-    expect(r.resolution()).toBe( '1d')
-    r.extent( [0, 2 * 6.1 * days])
-    expect(r.resolution()).toBe( '1w')
-    r.extent( [0, 2 * 7 * days])
-    expect(r.resolution()).toBe( '1w')
+    s.domain( [0, 2 * hours])
+    expect(s.resolution()).toBe( '1h')
+    s.domain( [0, 2 * 6 * hours])
+    expect(s.resolution()).toBe( '6h')
+    s.domain( [0, 2 * 12 * hours])
+    expect(s.resolution()).toBe( '12h')
 
-    r.extent( [0, 2 * weeks])
-    expect(r.resolution()).toBe( '1w')
-    r.extent( [0, 2 * 2 * weeks])
-    expect(r.resolution()).toBe( '1w')
-    r.extent( [0, 2 * 3 * weeks])
-    expect(r.resolution()).toBe( '1w')
-    r.extent( [0, 2 * 3.1 * weeks])
-    expect(r.resolution()).toBe( '1mo')
+    s.domain( [0, 2 * days])
+    expect(s.resolution()).toBe( '1d')
+    s.domain( [0, 2 * 2 * days])
+    expect(s.resolution()).toBe( '1d')
+    s.domain( [0, 2 * 3 * days])
+    expect(s.resolution()).toBe( '1d')
+    s.domain( [0, 2 * 4 * days])
+    expect(s.resolution()).toBe( '1d')
+    s.domain( [0, 2 * 5 * days])
+    expect(s.resolution()).toBe( '1d')
+    s.domain( [0, 2 * 6 * days])
+    expect(s.resolution()).toBe( '1d')
+    s.domain( [0, 2 * 6.1 * days])
+    expect(s.resolution()).toBe( '1w')
+    s.domain( [0, 2 * 7 * days])
+    expect(s.resolution()).toBe( '1w')
 
-    r.extent( [0, 2 * months])
-    expect(r.resolution()).toBe( '1mo')
-    r.extent( [0, 2 * 10 * months])
-    expect(r.resolution()).toBe( '1mo')
-    r.extent( [0, 2 * 10.1 * months])
-    expect(r.resolution()).toBe( '1y')
+    s.domain( [0, 2 * weeks])
+    expect(s.resolution()).toBe( '1w')
+    s.domain( [0, 2 * 2 * weeks])
+    expect(s.resolution()).toBe( '1w')
+    s.domain( [0, 2 * 3 * weeks])
+    expect(s.resolution()).toBe( '1w')
+    s.domain( [0, 2 * 3.1 * weeks])
+    expect(s.resolution()).toBe( '1mo')
 
-    r.extent( [0, 2 * years])
-    expect(r.resolution()).toBe( '1y')
-    r.extent( [0, 2 * 10 * years])
-    expect(r.resolution()).toBe( '1y')
+    s.domain( [0, 2 * months])
+    expect(s.resolution()).toBe( '1mo')
+    s.domain( [0, 2 * 10 * months])
+    expect(s.resolution()).toBe( '1mo')
+    s.domain( [0, 2 * 10.1 * months])
+    expect(s.resolution()).toBe( '1y')
+
+    s.domain( [0, 2 * years])
+    expect(s.resolution()).toBe( '1y')
+    s.domain( [0, 2 * 10 * years])
+    expect(s.resolution()).toBe( '1y')
 
   })
 
@@ -213,44 +214,44 @@ describe('d3-traits.murts', function() {
   })
 
   it('murts.dataStore should get various resolutions', function() {
-    var s, data, data1s, data5s, data1m,
+    var data, sample1s, sample5s, sample1m,
         murts = d3.trait.murts.dataStore(),
-        request1s = d3.trait.murts.request().step(  1000),
-        request5s = d3.trait.murts.request().step(  5000),
-        request1m = d3.trait.murts.request().step( 60000),
-        ResCache = d3.trait.murts.utils.ResCache,
-        step = 1000,
+        scale1s = d3.scale.linear().range( [0, 1]).domain( [0, 1000]),
+        scale5s = d3.scale.linear().range( [0, 1]).domain( [0, 5000]),
+        scale1m = d3.scale.linear().range( [0, 1]).domain( [0, 60000]),
         a = [     0, 10],
         c = [ 10000, 10]
+
+    expect( scale1s.resolution()).toEqual( '1s')
+    expect( scale5s.resolution()).toEqual( '5s')
+    expect( scale1m.resolution()).toEqual( '1m')
 
     // NOTE: sampleUpdates() does not return 'a'.
 
     data = [ a, [ 5000, 10], [ 5001, 20], c ]
     murts.pushPoints( data)
 
-    data1s = murts.get( request1s)
-    expect(data1s.length).toBe( 4)
-    expect(data1s).toEqual( data)
+    sample1s = murts.get( scale1s)
+    expect(sample1s.data.length).toBe( 4)
+    expect(sample1s.data).toEqual( data)
 
 
-    data5s = murts.get( request5s)
-    expect(data5s.length).toBe( 3)
-    expect(data5s).toEqual( [ a, [ 5001, 20], c ])
+    sample5s = murts.get( scale5s)
+    expect(sample5s.data.length).toBe( 3)
+    expect(sample5s.data).toEqual( [ a, [ 5001, 20], c ])
 
-    data1m = murts.get( request1m)
-    expect(data1m.length).toBe( 3)
-    expect(data1m).toEqual( [ a, [ 5001, 20], c ])
+    sample1m = murts.get( scale1m)
+    expect(sample1m.data.length).toBe( 3)
+    expect(sample1m.data).toEqual( [ a, [ 5001, 20], c ])
 
   })
 
   it('murts.dataStore should handle updates', function() {
-    var s, data, data1s, data5s, data1m,
+    var data, sample1s, sample5s, sample1m,
         murts = d3.trait.murts.dataStore(),
-        request1s = d3.trait.murts.request().step(  1000),
-        request5s = d3.trait.murts.request().step(  5000),
-        request1m = d3.trait.murts.request().step( 60000),
-        ResCache = d3.trait.murts.utils.ResCache,
-        step = 1000,
+        scale1s = d3.scale.linear().range( [0, 1]).domain( [0, 1000]),
+        scale5s = d3.scale.linear().range( [0, 1]).domain( [0, 5000]),
+        scale1m = d3.scale.linear().range( [0, 1]).domain( [0, 60000]),
         a = [     0, 10],
         c = [ 10000, 10],
         d = [ 60000, 60]
@@ -260,75 +261,82 @@ describe('d3-traits.murts', function() {
     data = [ a, [ 5000, 10], [ 5001, 20], c ]
     murts.pushPoints( data)
 
-    data1s = murts.get( request1s)
-    expect(data1s.length).toBe( 4)
-    expect(data1s).toEqual( data)
+    sample1s = murts.get( scale1s)
+    expect(sample1s.data.length).toBe( 4)
+    expect(sample1s.data).toEqual( data)
 
 
-    data5s = murts.get( request5s)
-    expect(data5s.length).toBe( 3)
-    expect(data5s).toEqual( [ a, [ 5001, 20], c ])
+    sample5s = murts.get( scale5s)
+    expect(sample5s.data.length).toBe( 3)
+    expect(sample5s.data).toEqual( [ a, [ 5001, 20], c ])
 
     murts.pushPoints( [d])
 
-    data5s = murts.get( request5s)
-    expect(data5s.length).toBe( 4)
-    expect(data5s).toEqual( [ a, [ 5001, 20], c, d ])
+    sample5s = murts.get( scale5s)
+    expect(sample5s.data.length).toBe( 4)
+    expect(sample5s.data).toEqual( [ a, [ 5001, 20], c, d ])
 
 
-    data1m = murts.get( request1m)
-    expect(data1m.length).toBe( 3)
-    expect(data1m).toEqual( [ a, c, d ])
+    sample1m = murts.get( scale1m)
+    expect(sample1m.data.length).toBe( 3)
+    expect(sample1m.data).toEqual( [ a, c, d ])
 
   })
 
   it('murts.dataStore should call onUpdate handler', function() {
-    var s, data, data1s, data5s, data1m,
+    var data, sample1s, sample5s, sample1m,
         murts = d3.trait.murts.dataStore(),
-        request1s = d3.trait.murts.request().step(  1000),
-        request5s = d3.trait.murts.request().step(  5000),
-        request1m = d3.trait.murts.request().step( 60000),
-        ResCache = d3.trait.murts.utils.ResCache,
-        step = 1000,
+        scale1s = d3.scale.linear().range( [0, 1]).domain( [0, 1000]),
+        scale5s = d3.scale.linear().range( [0, 1]).domain( [0, 5000]),
+        scale1m = d3.scale.linear().range( [0, 1]).domain( [0, 60000]),
         a = [     0, 10],
         c = [ 10000, 10],
-        d = [ 60000, 60]
+        d = [ 60000, 60],
+        e = [120000, 60]
 
-    var notify1sData = [],
-        notify5sData = [],
-        notify1s = function( d) { notify1sData = d },
-        notify5s = function( d) { notify5sData = d }
+    var deregister1s, deregister5s,
+        notify = jasmine.createSpyObj('notify', ['n1s', 'n5s'])
 
     // NOTE: sampleUpdates() does not return 'a'.
 
     data = [ a, [ 5000, 10], [ 5001, 20], c ]
     murts.pushPoints( data)
 
-    data1s = murts.get( request1s, notify1s)
-    expect(data1s.length).toBe( 4)
-    expect(data1s).toEqual( data)
+    sample1s = murts.get( scale1s)
+    deregister1s = sample1s.on( 'update', notify.n1s)
+    expect(sample1s.data.length).toBe( 4)
+    expect(sample1s.data).toEqual( data)
 
 
-    data5s = murts.get( request5s, notify5s)
-    expect(data5s.length).toBe( 3)
-    expect(data5s).toEqual( [ a, [ 5001, 20], c ])
+    sample5s = murts.get( scale5s)
+    deregister5s = sample5s.on( 'update', notify.n5s)
+    expect(sample5s.data.length).toBe( 3)
+    expect(sample5s.data).toEqual( [ a, [ 5001, 20], c ])
 
     murts.pushPoints( [d])
 
     // Notifies
-    expect(notify1sData.length).toBe( 5)
-    expect(notify1sData).toEqual( [ a, [ 5000, 10], [ 5001, 20], c, d ])
-    expect(notify5sData.length).toBe( 4)
-    expect(notify5sData).toEqual( [ a, [ 5001, 20], c, d ])
+    expect( notify.n1s).toHaveBeenCalledWith( 'update', [ a, [ 5000, 10], [ 5001, 20], c, d ])
+    expect( notify.n5s).toHaveBeenCalledWith( 'update', [ a, [ 5001, 20], c, d ])
 
-    data5s = murts.get( request5s)
-    expect(data5s.length).toBe( 4)
-    expect(data5s).toEqual( [ a, [ 5001, 20], c, d ])
+    sample5s = murts.get( scale5s)
+    expect(sample5s.data.length).toBe( 4)
+    expect(sample5s.data).toEqual( [ a, [ 5001, 20], c, d ])
 
 
-    data1m = murts.get( request1m)
-    expect(data1m.length).toBe( 3)
-    expect(data1m).toEqual( [ a, c, d ])
+    sample1m = murts.get( scale1m)
+    expect(sample1m.data.length).toBe( 3)
+    expect(sample1m.data).toEqual( [ a, c, d ])
+
+    notify.n1s.calls.reset()
+    notify.n5s.calls.reset()
+    deregister1s()
+    deregister5s()
+
+
+    murts.pushPoints( [e])
+    expect( notify.n1s).not.toHaveBeenCalled()
+    expect( notify.n5s).not.toHaveBeenCalled()
 
   })
 

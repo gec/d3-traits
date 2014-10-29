@@ -79,7 +79,7 @@
           if( filteredData.length > 0)
             stackLayout( filteredData)
           access.series = access.seriesData
-          access.data = access.y
+          access.value = access.y
           var extent = trait.utils.extentFromAreaData( filteredData, access, domainPadding)
           yMinDomainExtentFromData( extent)
         } else {

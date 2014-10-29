@@ -45,11 +45,13 @@
 
   function getMillisFromDomain(domain) { return domain[ domain.length - 1].getTime() - domain[0].getTime() }
 
-  function makeAccessorsFromConfig(config, scaleName) {
+  function makeAccessorsFromConfig(config, scaleName, scale) {
     return {
       series: config.seriesData,
-      data:   config[scaleName],
-      scaleName: scaleName
+      data: function( s) {return trait.murts.utils.getOrElse( s, scale)},
+      value:   config[scaleName],
+      scaleName: scaleName,
+      scale: scale
     }
   }
 
@@ -169,13 +171,14 @@
     if( domainConfig.domain )
       return domainConfig.domain
 
-    // TODO: This overrides trend. The two should work together.
+    // TODO: This overrides trend. The two should work together somehow.
     if( domainConfig.minDomainFromData) {
       if( trait.utils.isExtentExtended( domain, domainConfig.minDomainFromData))
         domain = trait.utils.extendExtent( domain, domainConfig.minDomainFromData)
       return domain
     }
 
+    data = trait.murts.utils.getOrElse( data)
 
     if( domainConfig.trend )
       domain = getDomainTrend(domainConfig, data, access, domainConfig.padding)
@@ -303,9 +306,9 @@
     var filteredData,
         scaleName = _config.axis,
         axisChar = scaleName.charAt(0),
-        access = makeAccessorsFromConfig(_config, scaleName),
-        domainConfig = makeDomainConfig(_config),
-        scale = d3.time.scale()
+        scale = d3.time.scale(),
+        access = makeAccessorsFromConfig(_config, scaleName, scale),
+        domainConfig = makeDomainConfig(_config)
       ;
 
     _super.minRangeMargin(scaleName, _config.minRangeMargin)
@@ -368,9 +371,9 @@
     var filteredData,
         scaleName = _config.axis,
         axisChar = scaleName.charAt(0),
-        access = makeAccessorsFromConfig(_config, scaleName),
-        domainConfig = makeDomainConfig(_config),
-        scale = d3.scale.linear()
+        scale = d3.scale.linear(),
+        access = makeAccessorsFromConfig(_config, scaleName, scale),
+        domainConfig = makeDomainConfig(_config)
 
     _super.minRangeMargin(_config.axis, _config.minRangeMargin)
 

@@ -49,7 +49,7 @@
       }
 
 
-  function mapResolution( step) {
+  function mapResolutionFromStep( step) {
 
     if( step === undefined || step === null)
       return undefined
@@ -89,6 +89,158 @@
     return res
   }
 
+  function calculateResolution( scale) {
+
+    var range, domainMin
+
+    range= scale.range()
+    if( ! range)
+      return undefined
+
+    domainMin = scale.invert(range[0])
+    if( isNaN( domainMin))
+      return undefined
+
+    var rangeMax = d3.trait.utils.extentMax(range),
+        rangeSpan = Math.abs( rangeMax - range[0]),
+        domainMax = scale.invert(rangeMax),
+        domainSpan = Math.abs( domainMax - domainMin),
+        step = domainSpan / rangeSpan
+
+    return mapResolutionFromStep( step)
+  }
+
+
+  var d3Scale = {
+
+    time: d3.time.scale,
+    linear: d3.scale.linear,
+//    ordinal: d3.scale.ordinal,  TODO: How do ordinal scales have multiple resolutions? Could this be used for buckets?
+    identity: d3.scale.identity
+  }
+
+
+
+  d3.time.scale = function() {
+    var resolution,
+        scale = d3Scale.time(),
+        range = scale.range,
+        rangeRound = scale.rangeRound,
+        domain = scale.domain
+
+    scale.range = function( values) {
+      if( !arguments.length ) return range()
+      range(values)
+      resolution = undefined
+      return this
+    }
+    scale.rangeRound = function( values) {
+      if( !arguments.length ) return rangeRound()
+      rangeRound(values)
+      resolution = undefined
+      return this
+    }
+    scale.domain = function( values) {
+      if( !arguments.length ) return domain()
+      domain(values)
+      resolution = undefined
+      return this
+    }
+
+    scale.resolution = function( res) {
+      if( !arguments.length ) {
+        if( resolution === undefined)
+          resolution = calculateResolution( scale)
+        return resolution
+      }
+
+      if( resolutions.indexOf( res) >= 0)
+        resolution = res
+
+      return this
+    }
+
+    return scale
+  }
+
+  d3.scale.linear = function() {
+    var resolution,
+        scale = d3Scale.linear(),
+        range = scale.range,
+        rangeRound = scale.rangeRound,
+        domain = scale.domain
+
+    scale.range = function( values) {
+      if( !arguments.length ) return range()
+      range(values)
+      resolution = undefined
+      return this
+    }
+    scale.rangeRound = function( values) {
+      if( !arguments.length ) return rangeRound()
+      rangeRound(values)
+      resolution = undefined
+      return this
+    }
+    scale.domain = function( values) {
+      if( !arguments.length ) return domain()
+      domain(values)
+      resolution = undefined
+      return this
+    }
+
+    scale.resolution = function( res) {
+      if( !arguments.length ) {
+        if( resolution === undefined)
+          resolution = calculateResolution( scale)
+        return resolution
+      }
+
+      if( resolutions.indexOf( res) >= 0)
+        resolution = res
+
+      return this
+    }
+
+    return scale
+  }
+
+  d3.scale.identity = function() {
+    var resolution,
+        scale = d3Scale.identity(),
+        range = scale.range,
+        rangeRound = scale.rangeRound,
+        domain = scale.domain
+
+    scale.range = function( values) {
+      if( !arguments.length ) return range()
+      range(values)
+      resolution = undefined
+      return this
+    }
+    scale.domain = function( values) {
+      if( !arguments.length ) return domain()
+      domain(values)
+      resolution = undefined
+      return this
+    }
+
+    scale.resolution = function( res) {
+      if( !arguments.length ) {
+        if( resolution === undefined)
+          resolution = calculateResolution( scale)
+        return resolution
+      }
+
+      if( resolutions.indexOf( res) >= 0)
+        resolution = res
+
+      return this
+    }
+
+    return scale
+  }
+
 
   /**
    * MUltiple Resolution Time Series (murtsDataStore) data store.
@@ -98,90 +250,90 @@
    *   .size( count)
    *   .extent( [from, to]) [from, to] or from
    */
-  function _murtsRequest() {
-    var step, extent,
-        size = 100,
-        resolution = '1s'
+//  function _murtsRequest() {
+//    var step, extent,
+//        size = 100,
+//        resolution = '1s'
+//
+//
+//
+//    function murtsRequest() {
+//      var self = murtsRequest
+//
+//    }
+//
+//    function calculateResolution() {
+//      // Use either step or extent/size
+//      var resolution = mapResolutionFromStep( step)
+//      if( resolution === undefined) {
+//
+//        if( extent === undefined) {
+//          resolution = '1s'
+//        } else {
+//
+//          var from, to, calculatedStep
+//          if( Array.isArray( extent) ) {
+//            from = extent[0]
+//            to = extent[extent.length-1]
+//          } else {
+//            from = extent
+//            to = Date.now()
+//          }
+//          calculatedStep = Math.max( 0, (to - from) / size)
+//          resolution = mapResolutionFromStep( calculatedStep)
+//        }
+//
+//      }
+//      return resolution
+//    }
+//
+//
+//    /**
+//     * The step is the amount of milliseconds between each data point.
+//     * @param _step
+//     */
+//    murtsRequest.step = function ( _step) {
+//      if( !arguments.length ) return step
+//      step = Math.max( 0, _step)
+//      resolution = calculateResolution()
+//      return this
+//    }
+//
+//    /**
+//     * The size is the number of data points.
+//     * @param _size
+//     */
+//    murtsRequest.size = function ( _size) {
+//      if( !arguments.length ) return size
+//      size = Math.max( 1, _size)
+//      resolution = calculateResolution()
+//      return this
+//    }
+//
+//    /**
+//     * The extent is the min and max of data points domain.
+//     * @param _extent
+//     */
+//    murtsRequest.extent = function ( _extent) {
+//      if( !arguments.length ) return extent
+//      extent = _extent
+//      resolution = calculateResolution()
+//      return this
+//    }
+//
+//    /**
+//     * The extent is the numbert of data points.
+//     * @param _resolution
+//     */
+//    murtsRequest.resolution = function () {
+//      return resolution
+//    }
+//
+//    return murtsRequest
+//  }
 
 
-
-    function murtsRequest() {
-      var self = murtsRequest
-
-    }
-
-    function calculateResolution() {
-      // Use either step or extent/size
-      var resolution = mapResolution( step)
-      if( resolution === undefined) {
-
-        if( extent === undefined) {
-          resolution = '1s'
-        } else {
-
-          var from, to, calculatedStep
-          if( Array.isArray( extent) ) {
-            from = extent[0]
-            to = extent[extent.length-1]
-          } else {
-            from = extent
-            to = Date.now()
-          }
-          calculatedStep = Math.max( 0, (to - from) / size)
-          resolution = mapResolution( calculatedStep)
-        }
-
-      }
-      return resolution
-    }
-
-
-    /**
-     * The step is the amount of milliseconds between each data point.
-     * @param _step
-     */
-    murtsRequest.step = function ( _step) {
-      if( !arguments.length ) return step
-      step = Math.max( 0, _step)
-      resolution = calculateResolution()
-      return this
-    }
-
-    /**
-     * The size is the numbert of data points.
-     * @param _size
-     */
-    murtsRequest.size = function ( _size) {
-      if( !arguments.length ) return size
-      size = Math.max( 1, _size)
-      resolution = calculateResolution()
-      return this
-    }
-
-    /**
-     * The extent is the numbert of data points.
-     * @param _extent
-     */
-    murtsRequest.extent = function ( _extent) {
-      if( !arguments.length ) return extent
-      extent = _extent
-      resolution = calculateResolution()
-      return this
-    }
-
-    /**
-     * The extent is the numbert of data points.
-     * @param _resolution
-     */
-    murtsRequest.resolution = function () {
-      return resolution
-    }
-
-    return murtsRequest
-  }
-
-
-  function ResCache( resolution, access, data) {
+  function DataSample( resolution, access, data) {
     this.resolution = resolution
     this.stepSize = resolutionMillis[ this.resolution]
     this.access = access
@@ -195,23 +347,40 @@
       source: undefined,
       unsampledCount:0
     }
-    this.onUpdateHandlers = []
+    this.onHandlers = {
+      update: []
+    }
   }
 
-  ResCache.prototype.addOnUpdate = function( handler) {
-    var index = this.onUpdateHandlers.indexOf( handler)
-    if( index < 0)
-      this.onUpdateHandlers.push( handler)
+  var nullFunction = function() {}
+
+  DataSample.prototype.on = function( event, handler) {
+    var handlers, deregister
+
+    if( ! this.onHandlers.hasOwnProperty( event))
+      this.onHandlers[event] = []
+
+    handlers = this.onHandlers[event]
+    var index = handlers.indexOf( handler)
+    if( index < 0) {
+      handlers.push( handler)
+
+      deregister = function() {
+        var i = handlers.indexOf( handler)
+        if( i >= 0)
+          handlers.splice( i, 1)
+      }
+    } else {
+      deregister = nullFunction
+    }
+
+    return deregister
   }
 
-  ResCache.prototype.removeOnUpdate = function( handler) {
-    var index = this.onUpdateHandlers.indexOf( handler)
-    if( index >= 0)
-      this.onUpdateHandlers.splice( index, 1)
-  }
+  DataSample.prototype.extendNextStepPastExtent = function() {
+    if( ! this.extent)
+      return
 
-
-  ResCache.prototype.extendNextStepPastExtent = function() {
     var extentX = this.extent[1]
 
     // If the last point is beyond nextStep, advance nextStep to one step beyond.
@@ -222,7 +391,7 @@
     }
   }
 
-  ResCache.prototype.initialSample = function( source) {
+  DataSample.prototype.initialSample = function( source) {
     var s = sample( source.data, this.stepSize, this.access)
     this.data = s.data
     this.sampled.nextStep = s.nextStep
@@ -234,9 +403,9 @@
         this.access.x( this.data[0]),
         this.access.x( this.data[this.data.length-1])
       ]
+      this.extendNextStepPastExtent()
     }
 
-    this.extendNextStepPastExtent()
   }
 
   /**
@@ -246,7 +415,7 @@
    */
 
 
-  ResCache.prototype.pushPoints = function( points) {
+  DataSample.prototype.pushPoints = function( points) {
     var pushedCount = points.length
 
     if( this.data === undefined)
@@ -262,17 +431,17 @@
     }
 
     var self = this
-    this.onUpdateHandlers.forEach( function( onUpdate) {
-      onUpdate( self.data)
+    this.onHandlers.update.forEach( function( handler) {
+      handler( 'update', self.data)
     })
 
-    if( this.nextLowerResolution)
+    if( pushedCount > 0 && this.nextLowerResolution)
       this.nextLowerResolution.sourceUpdated( pushedCount)
 
     return this;
   }
 
-  ResCache.prototype.findIndexOfStepStartFromEnd = function( data, stepStart, fromEnd) {
+  DataSample.prototype.findIndexOfStepStartFromEnd = function( data, stepStart, fromEnd) {
     var i
 
     fromEnd = fromEnd === undefined ? 0 : fromEnd
@@ -285,7 +454,7 @@
     return Math.max( i, 0)
   }
 
-  ResCache.prototype.sampleUpdatesFromSource = function() {
+  DataSample.prototype.sampleUpdatesFromSource = function() {
     var source = this.sampled.source,
         length = this.data.length
 
@@ -326,7 +495,10 @@
    *
    * @param count
    */
-  ResCache.prototype.sourceUpdated = function( pushedCount) {
+  DataSample.prototype.sourceUpdated = function( pushedCount) {
+    if( pushedCount <= 0)
+      return
+
     var source = this.sampled.source
     if( this.nextHigherResolution === source) {
       this.sampled.unsampledCount += pushedCount
@@ -341,8 +513,8 @@
     }
 
     var self = this
-    this.onUpdateHandlers.forEach( function( onUpdate) {
-      onUpdate( self.data)
+    this.onHandlers.update.forEach( function( handler) {
+      handler( 'update', self.data)
     })
 
   }
@@ -417,7 +589,7 @@
      * .y( accessor)
      * .push( newValue) single or array
      * .on( 'push', callback)
-     * .get( request, callback)
+     * .get( scale, callback)
      *
      */
 
@@ -448,7 +620,7 @@
       var r = resolution || SOURCE
       var c = caches[r]
       if( c === undefined){
-        c = new ResCache( r, access)
+        c = new DataSample( r, access)
         caches[r] = c
         linkCache( c)
       }
@@ -474,8 +646,8 @@
     }
 
 
-    murtsDataStore.get = function( request, onUpdate, previousRequest) {
-      var resolution = request.resolution(),
+    murtsDataStore.get = function( scale) {
+      var resolution = scale ? scale.resolution() : undefined,
           cache = getCache( resolution)
 
       if( cache.data === undefined) {
@@ -493,20 +665,12 @@
         }
       }
 
-      if( onUpdate) {
-
-        if( previousRequest && previousRequest.resolution() !== resolution)
-          getCache( previousRequest.resolution()).removeOnUpdate( onUpdate)
-
-        cache.addOnUpdate( onUpdate)
-      }
-
       cache.lastRead = Date.now()
-      return cache.data;
+      return cache;
     }
 
-    murtsDataStore.removeOnUpdate = function( request, onUpdate) {
-      var resolution = request.resolution(),
+    murtsDataStore.removeOnUpdate = function( scale, onUpdate) {
+      var resolution = scale.resolution(),
           cache = getCache(resolution)
 
       cache.removeOnUpdate( onUpdate)
@@ -650,7 +814,7 @@
 
     var s = sampleFromIndex( sampled, source, sourceIndex, a, stepSize, nextStep, access)
 
-    console.log( 'murts.sample source.length: ' + source.length + ' end  ' + (Date.now()-startTimer) + ' ms')
+    console.log( 'murts.sample source.length: ' + source.length + ', sample.length: ' + s.data.length + ' end  ' + (Date.now()-startTimer) + ' ms')
 
     return s
   }
@@ -738,7 +902,7 @@
 
     var s = sampleFromIndex( sampled, source, sourceIndex, a, stepSize, nextStep, access)
 
-    console.log( 'murts.sampleUdates source.length-start: ' + updateCount + ' end  ' + (Date.now()-startTimer) + ' ms')
+    console.log( 'murts.sampleUdates source.length-start: ' + updateCount + ', sample.length: ' + s.data.length + ' end  ' + (Date.now()-startTimer) + ' ms')
 
     return s
   }
@@ -750,15 +914,19 @@
 //    return arr && arr.length === 2 && arr[1] === 'murtsDataStore'
   }
 
+  function getOrElse( obj, scale) {
+    return isMurtsDataStore( obj) ? obj.get( scale).data : obj
+  }
+
   trait.murts = {
-    request: _murtsRequest,
     dataStore: _murtsDataStore,
     utils: {
-           ResCache: ResCache,
+           DataSample: DataSample,
            sample: sample,
            sampleUpdates: sampleUpdates,
-           mapResolution: mapResolution,
-           isDataStore: isMurtsDataStore
+           mapResolution: mapResolutionFromStep,
+           isDataStore: isMurtsDataStore,
+           getOrElse: getOrElse
     }
   }
 
