@@ -48,7 +48,13 @@
          '1y':  1 * years + 0.25 * days
       }
 
-
+  /**
+   * Map a continuum of steps to discrete list of resolutions. Don't want to have samples for
+   * 5.1s, 5.125s, etc. Just want anything close the 5s to be mapped to 5s.
+   *
+   * @param step Number of milliseconds in the resolution.
+   * @returns {*}
+   */
   function mapResolutionFromStep( step) {
 
     if( step === undefined || step === null)
@@ -120,7 +126,12 @@
   }
 
 
-
+  /**
+   * Add resolution() function to d3.time.scale and keep track of when resolution has to
+   * be recalculated.
+   *
+   * @returns enhanced d3.time.scale
+   */
   d3.time.scale = function() {
     var resolution,
         scale = d3Scale.time(),
@@ -163,6 +174,12 @@
     return scale
   }
 
+  /**
+   * Add resolution() function to d3.scale.linear and keep track of when resolution has to
+   * be recalculated.
+   *
+   * @returns enhanced d3.scale.linear
+   */
   d3.scale.linear = function() {
     var resolution,
         scale = d3Scale.linear(),
@@ -205,6 +222,12 @@
     return scale
   }
 
+  /**
+   * Add resolution() function to d3.scale.identity and keep track of when resolution has to
+   * be recalculated.
+   *
+   * @returns enhanced d3.scale.identity
+   */
   d3.scale.identity = function() {
     var resolution,
         scale = d3Scale.identity(),
@@ -259,6 +282,7 @@
     this.data = data  // Murts.get() will key off undefined to initiate sampling.
     this.sampled = sampled
     this.extents = undefined  // {x: [], y, []}
+    this.constraints = { maxCount: undefined, maxTime: undefined}
     this.nextResolution = { higher: null, lower: null}
     this.lastRead = Date.now()
     this.resampling = {
@@ -273,6 +297,13 @@
 
   var nullFunction = function() {}
 
+  /**
+   * Register for event. The only event right now is 'update', but we may add more.
+   *
+   * @param event 'update' for now.
+   * @param handler Function to be called when event occurs. Example call: handler( 'update', Sampling.data, Sampling)
+   * @returns deregister function. Call deregister with no arguments to deregister.
+   */
   Sampling.prototype.on = function( event, handler) {
     var handlers, deregister
 
@@ -369,6 +400,52 @@
     }
   }
 
+  Sampling.prototype.applyConstraintsBeforePushPoints = function( points) {
+    var didConstrain = false
+
+    if( ! this.constraints || this.data === undefined)
+      return
+
+    if( this.constraints.maxCount !== undefined && this.constraints.maxCount > 0) {
+      var totalCount = this.data.length + points.length
+      if( this.constraints.maxCount > totalCount) {
+        var removeCount = totalCount - this.constraints.maxCount,
+            removeFromDataCount = Math.min( this.data.length, removeCount),
+            removeFromPointsCount = removeCount - removeFromDataCount
+        if( removeFromDataCount > 0)
+          this.data.splice( 0, removeFromDataCount)
+        if( removeFromPointsCount > 0)
+          points.splice( 0, removeFromPointsCount)
+        didConstrain = true
+      }
+    }
+
+    if( this.constraints.maxTime !== undefined && this.constraints.maxTime > 0) {
+      var pointsTimeMax = this.access.x( points[points.length]),
+          pointsTimeMin = this.access.x( points[0]),
+          dateCutoff = pointsTimeMax - this.constraints.maxTime,
+          dataTimeMin = this.data.length > 0 ? this.access.x( this.data[0]) : undefined
+
+      if( pointsTimeMin > dateCutoff) {
+        // Remove all this.data and possibly some of points too.
+
+        didConstrain = true
+      } else if( dataTimeMin !== undefined && dataTimeMin < dateCutoff){
+        // Remove some or all of this.data
+        // Find the correct index and splice this.data.
+
+
+        didConstrain = true
+      }
+
+    }
+
+    //TODO: what about extents? Could save index of points used for current extents.
+    // if the index is one we're removing, we need to recalculate extents.
+
+    return didConstrain
+  }
+
   /**
    * We've got new raw or sampled data. We need to notify our nextResolution.lower that we have more data.
    * The next lower resolution sample can keep track of when it wants to resample.
@@ -384,6 +461,11 @@
       this.sampled = this.sampled || sampled
 
     if( pushedCount > 0) {
+
+      if( this.applyConstraintsBeforePushPoints( points)) {
+        pushedCount = points.length
+        // TODO: what about extents?
+      }
 
       this.data = this.data.concat( points)
       this.updateExtentsFromPoints( points)
