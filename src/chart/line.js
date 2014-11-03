@@ -119,15 +119,7 @@
           domainMax = scale.invert(rangeMax)
 
       data = trait.murts.utils.getOrElse( data, scale)
-//      if( trait.murts.utils.isDataStore( data)) {
-//        var width, request
-//
-//        width = Math.abs( rangeMax - range[0])
-//        request = trait.murts.request()
-//          .size( width)
-//          .extent( [domainMin, domainMax])
-//        data = data.get( request)
-//      }
+      //console.log( 'chartLine: getDataInRange: data.length: ' + data.length + ' res: ' + scale.resolution())
 
       indexMin = findClosestIndex(data, access, domainMin, -1)
       indexMax = findClosestIndex(data, access, domainMax, 1, indexMin, data.length - 1)
@@ -139,7 +131,7 @@
     chartLine.update = function(type, duration) {
       this._super(type, duration)
 
-      var dur = duration || _super.duration()
+      var dur = duration === undefined ? _super.duration() : duration
       var attrD = function(d) {
         return line(getDataInRange(_config.seriesData(d), x1, _config.x1));
       }

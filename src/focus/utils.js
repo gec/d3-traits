@@ -79,7 +79,7 @@
 
     data.forEach(function(series, seriesIndex, array) {
       var found, alterIndex,
-          data = access.seriesData(series),
+          data = trait.murts.utils.getOrElse( access.seriesData(series), x),
           // search the domain for the closest point in x
           index = bisectLeft(data, targetDomain.x)
 

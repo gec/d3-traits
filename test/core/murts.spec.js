@@ -234,15 +234,21 @@ describe('d3-traits.murts', function() {
     sample1s = murts.get( scale1s)
     expect(sample1s.data.length).toBe( 4)
     expect(sample1s.data).toEqual( data)
+    expect(sample1s.extents.x).toEqual( [0, 10000])
+    expect(sample1s.extents.y).toEqual( [10, 20])
 
 
     sample5s = murts.get( scale5s)
     expect(sample5s.data.length).toBe( 3)
     expect(sample5s.data).toEqual( [ a, [ 5001, 20], c ])
+    expect(sample5s.extents.x).toEqual( [0, 10000])
+    expect(sample5s.extents.y).toEqual( [10, 20])
 
     sample1m = murts.get( scale1m)
     expect(sample1m.data.length).toBe( 3)
     expect(sample1m.data).toEqual( [ a, [ 5001, 20], c ])
+    expect(sample1m.extents.x).toEqual( [0, 10000])
+    expect(sample1m.extents.y).toEqual( [10, 20])
 
   })
 
@@ -264,22 +270,30 @@ describe('d3-traits.murts', function() {
     sample1s = murts.get( scale1s)
     expect(sample1s.data.length).toBe( 4)
     expect(sample1s.data).toEqual( data)
+    expect(sample1s.extents.x).toEqual( [0, 10000])
+    expect(sample1s.extents.y).toEqual( [10, 20])
 
 
     sample5s = murts.get( scale5s)
     expect(sample5s.data.length).toBe( 3)
     expect(sample5s.data).toEqual( [ a, [ 5001, 20], c ])
+    expect(sample5s.extents.x).toEqual( [0, 10000])
+    expect(sample5s.extents.y).toEqual( [10, 20])
 
     murts.pushPoints( [d])
 
     sample5s = murts.get( scale5s)
     expect(sample5s.data.length).toBe( 4)
     expect(sample5s.data).toEqual( [ a, [ 5001, 20], c, d ])
+    expect(sample5s.extents.x).toEqual( [0, 60000])
+    expect(sample5s.extents.y).toEqual( [10, 60])
 
 
     sample1m = murts.get( scale1m)
     expect(sample1m.data.length).toBe( 3)
     expect(sample1m.data).toEqual( [ a, c, d ])
+    expect(sample1m.extents.x).toEqual( [0, 60000])
+    expect(sample1m.extents.y).toEqual( [10, 60])
 
   })
 
@@ -316,8 +330,8 @@ describe('d3-traits.murts', function() {
     murts.pushPoints( [d])
 
     // Notifies
-    expect( notify.n1s).toHaveBeenCalledWith( 'update', [ a, [ 5000, 10], [ 5001, 20], c, d ])
-    expect( notify.n5s).toHaveBeenCalledWith( 'update', [ a, [ 5001, 20], c, d ])
+    expect( notify.n1s).toHaveBeenCalledWith( 'update', [ a, [ 5000, 10], [ 5001, 20], c, d ], jasmine.any(Object))
+    expect( notify.n5s).toHaveBeenCalledWith( 'update', [ a, [ 5001, 20], c, d ], jasmine.any(Object))
 
     sample5s = murts.get( scale5s)
     expect(sample5s.data.length).toBe( 4)

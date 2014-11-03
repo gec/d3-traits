@@ -243,106 +243,25 @@
 
 
   /**
-   * MUltiple Resolution Time Series (murtsDataStore) data store.
+   * Sampling is a time-series data store for a single resolution. It may be sampled data
+   * or raw source data.
    *
-   * request()
-   *   .step( milliseconds)
-   *   .size( count)
-   *   .extent( [from, to]) [from, to] or from
+   * @param resolution
+   * @param access
+   * @param data      Data or undefined
+   * @param sampled   True if data is sampled data
+   * @constructor
    */
-//  function _murtsRequest() {
-//    var step, extent,
-//        size = 100,
-//        resolution = '1s'
-//
-//
-//
-//    function murtsRequest() {
-//      var self = murtsRequest
-//
-//    }
-//
-//    function calculateResolution() {
-//      // Use either step or extent/size
-//      var resolution = mapResolutionFromStep( step)
-//      if( resolution === undefined) {
-//
-//        if( extent === undefined) {
-//          resolution = '1s'
-//        } else {
-//
-//          var from, to, calculatedStep
-//          if( Array.isArray( extent) ) {
-//            from = extent[0]
-//            to = extent[extent.length-1]
-//          } else {
-//            from = extent
-//            to = Date.now()
-//          }
-//          calculatedStep = Math.max( 0, (to - from) / size)
-//          resolution = mapResolutionFromStep( calculatedStep)
-//        }
-//
-//      }
-//      return resolution
-//    }
-//
-//
-//    /**
-//     * The step is the amount of milliseconds between each data point.
-//     * @param _step
-//     */
-//    murtsRequest.step = function ( _step) {
-//      if( !arguments.length ) return step
-//      step = Math.max( 0, _step)
-//      resolution = calculateResolution()
-//      return this
-//    }
-//
-//    /**
-//     * The size is the number of data points.
-//     * @param _size
-//     */
-//    murtsRequest.size = function ( _size) {
-//      if( !arguments.length ) return size
-//      size = Math.max( 1, _size)
-//      resolution = calculateResolution()
-//      return this
-//    }
-//
-//    /**
-//     * The extent is the min and max of data points domain.
-//     * @param _extent
-//     */
-//    murtsRequest.extent = function ( _extent) {
-//      if( !arguments.length ) return extent
-//      extent = _extent
-//      resolution = calculateResolution()
-//      return this
-//    }
-//
-//    /**
-//     * The extent is the numbert of data points.
-//     * @param _resolution
-//     */
-//    murtsRequest.resolution = function () {
-//      return resolution
-//    }
-//
-//    return murtsRequest
-//  }
-
-
-  function DataSample( resolution, access, data) {
+  function Sampling( resolution, access, data, sampled) {
     this.resolution = resolution
     this.stepSize = resolutionMillis[ this.resolution]
     this.access = access
-    this.data = data
-    this.extent = undefined
-    this.nextHigherResolution = null
-    this.nextLowerResolution = null
+    this.data = data  // Murts.get() will key off undefined to initiate sampling.
+    this.sampled = sampled
+    this.extents = undefined  // {x: [], y, []}
+    this.nextResolution = { higher: null, lower: null}
     this.lastRead = Date.now()
-    this.sampled = {
+    this.resampling = {
       nextStep: 0,
       source: undefined,
       unsampledCount:0
@@ -354,7 +273,7 @@
 
   var nullFunction = function() {}
 
-  DataSample.prototype.on = function( event, handler) {
+  Sampling.prototype.on = function( event, handler) {
     var handlers, deregister
 
     if( ! this.onHandlers.hasOwnProperty( event))
@@ -377,71 +296,112 @@
     return deregister
   }
 
-  DataSample.prototype.extendNextStepPastExtent = function() {
-    if( ! this.extent)
+  Sampling.prototype.extendNextStepPastExtent = function() {
+    if( ! this.extents)  // No data, so no extents.
       return
 
-    var extentX = this.extent[1]
+    var maxX = this.extents.x[1]
 
     // If the last point is beyond nextStep, advance nextStep to one step beyond.
-    if( extentX >= this.sampled.nextStep) {
-      var jump = extentX - this.sampled.nextStep,
+    if( maxX >= this.resampling.nextStep) {
+      var jump = maxX - this.resampling.nextStep,
           steps = Math.floor( jump / this.stepSize) + 1
-      this.sampled.nextStep += steps * this.stepSize
+      this.resampling.nextStep += steps * this.stepSize
     }
   }
 
-  DataSample.prototype.initialSample = function( source) {
+  Sampling.prototype.initialSample = function( source) {
     var s = sample( source.data, this.stepSize, this.access)
     this.data = s.data
-    this.sampled.nextStep = s.nextStep
-    this.sampled.source = source
-    this.sampled.unsampledCount = 0
+    this.extents = s.extents
+    this.sampled = true
+    this.resampling.nextStep = s.nextStep
+    this.resampling.source = source
+    this.resampling.unsampledCount = 0
 
-    if( this.data.length > 0) {
-      this.extent = [
-        this.access.x( this.data[0]),
-        this.access.x( this.data[this.data.length-1])
-      ]
+    if( this.data.length > 0)
       this.extendNextStepPastExtent()
-    }
 
   }
 
   /**
-   * We've got new raw data. We need to notify our nextLowerResolution that we have more data.
+   * Update the x and y extents based on the new data.
+   * Assume points have been added to the end of the data so x min
+   * is not updated (except in the case where there is no previous
+   * extents).
    *
-   * The next lower resolution cache can keep track of us and when it wants to resample.
+   * @param newPoints
    */
+  Sampling.prototype.updateExtentsFromPoints = function( newPoints) {
 
+    var newPointsExtentY = d3.extent( newPoints, this.access.y)
 
-  DataSample.prototype.pushPoints = function( points) {
+    if( ! this.extents) {
+      this.extents = {
+        x: [this.access.x(this.data[0])],
+        y: newPointsExtentY
+      }
+    } else {
+      trait.utils.extendExtent( this.extents.y, newPointsExtentY)
+    }
+
+    // Update x max. X min is already set.
+    this.extents.x[1] = this.access.x(this.data[this.data.length - 1])
+  }
+
+  /**
+   * Update the x and y extents based on the new data.
+   * Assume points have been added to the end of the data so x min
+   * is not updated (except in the case where there is no previous
+   * extents).
+   *
+   * @param newPoints
+   */
+  Sampling.prototype.updateExtentsFromExtents = function( newExtents) {
+    if( ! newExtents)
+      return
+
+    if( this.extents) {
+      trait.utils.extendExtent( this.extents.x, newExtents.x)
+      trait.utils.extendExtent( this.extents.y, newExtents.y)
+    } else {
+      this.extents = newExtents
+    }
+  }
+
+  /**
+   * We've got new raw or sampled data. We need to notify our nextResolution.lower that we have more data.
+   * The next lower resolution sample can keep track of when it wants to resample.
+   */
+  Sampling.prototype.pushPoints = function( points, sampled) {
     var pushedCount = points.length
 
     if( this.data === undefined)
       this.data = []
 
-    this.data = this.data.concat( points)
+    // If any data pushed to us is sampled, we'll always be sampled.
+    if( sampled !== undefined)
+      this.sampled = this.sampled || sampled
 
-    if( this.data.length > 0) {
-      this.extent = [
-        this.access.x( this.data[0]),
-        this.access.x( this.data[this.data.length-1])
-      ]
+    if( pushedCount > 0) {
+
+      this.data = this.data.concat( points)
+      this.updateExtentsFromPoints( points)
+
+      var self = this
+      this.onHandlers.update.forEach( function( handler) {
+        handler( 'update', self.data, self)
+      })
+
+      if( pushedCount > 0 && this.nextResolution.lower)
+        this.nextResolution.lower.sourceUpdated( pushedCount)
     }
 
-    var self = this
-    this.onHandlers.update.forEach( function( handler) {
-      handler( 'update', self.data)
-    })
-
-    if( pushedCount > 0 && this.nextLowerResolution)
-      this.nextLowerResolution.sourceUpdated( pushedCount)
 
     return this;
   }
 
-  DataSample.prototype.findIndexOfStepStartFromEnd = function( data, stepStart, fromEnd) {
+  Sampling.prototype.findIndexOfStepStartFromEnd = function( data, stepStart, fromEnd) {
     var i
 
     fromEnd = fromEnd === undefined ? 0 : fromEnd
@@ -454,8 +414,8 @@
     return Math.max( i, 0)
   }
 
-  DataSample.prototype.sampleUpdatesFromSource = function() {
-    var source = this.sampled.source,
+  Sampling.prototype.sampleUpdatesFromSource = function() {
+    var source = this.resampling.source,
         length = this.data.length
 
     if( length <= 2) {
@@ -463,18 +423,20 @@
       return
     }
 
-    var stepStart = this.sampled.nextStep - this.stepSize
-    var sourceIndex = this.findIndexOfStepStartFromEnd( source.data, stepStart, this.sampled.unsampledCount)
+    var stepStart = this.resampling.nextStep - this.stepSize
+    var sourceIndex = this.findIndexOfStepStartFromEnd( source.data, stepStart, this.resampling.unsampledCount)
     var sampledIndex = this.findIndexOfStepStartFromEnd( this.data, stepStart)
 
     // Remove the last and, possibly, the second to last samples.
     this.data.splice( sampledIndex, length - sampledIndex)
 
     var a = this.data[this.data.length-1],
-        s = sampleUpdates( source.data, sourceIndex, a, this.stepSize, this.sampled.nextStep, this.access)
+        s = sampleUpdates( source.data, sourceIndex, a, this.stepSize, this.resampling.nextStep, this.access)
     this.data = this.data.concat( s.data)
-    this.sampled.nextStep = s.nextStep
-    this.sampled.unsampledCount = 0
+    this.updateExtentsFromExtents(s.extents)
+
+    this.resampling.nextStep = s.nextStep
+    this.resampling.unsampledCount = 0
 
     this.extendNextStepPastExtent()
   }
@@ -495,26 +457,26 @@
    *
    * @param count
    */
-  DataSample.prototype.sourceUpdated = function( pushedCount) {
+  Sampling.prototype.sourceUpdated = function( pushedCount) {
     if( pushedCount <= 0)
       return
 
-    var source = this.sampled.source
-    if( this.nextHigherResolution === source) {
-      this.sampled.unsampledCount += pushedCount
+    var source = this.resampling.source
+    if( this.nextResolution.higher === source) {
+      this.resampling.unsampledCount += pushedCount
 
       // if source's latest point is beyond our nextStep
-      if( source && source.extent && source.extent[1] >= this.sampled.nextStep) {
+      if( source && source.extents && source.extents.x[1] >= this.resampling.nextStep) {
         this.sampleUpdatesFromSource()
       }
 
     } else {
-      this.initialSample( this.nextHigherResolution)
+      this.initialSample( this.nextResolution.higher)
     }
 
     var self = this
     this.onHandlers.update.forEach( function( handler) {
-      handler( 'update', self.data)
+      handler( 'update', self.data, self)
     })
 
   }
@@ -525,15 +487,15 @@
           x: function( d) { return d[0] },
           y: function( d) { return d[1] }
         },
-        caches = {}
+        samples = {}
 
     function findHigherResolution( index) {
       var i, r
 
       for(i = index - 1; i >= 0; i-- ) {
         r = resolutions[i]
-        if( caches.hasOwnProperty(r)) {
-          return caches[r]
+        if( samples.hasOwnProperty(r)) {
+          return samples[r]
         }
       }
       return null
@@ -543,43 +505,52 @@
 
       for(i = index + 1; i < resolutions.length; i++ ) {
         r = resolutions[i]
-        if( caches.hasOwnProperty(r)) {
-          return caches[r]
+        if( samples.hasOwnProperty(r)) {
+          return samples[r]
         }
       }
       return null
     }
-    function linkCache( cache) {
-      var i, r, c, lower, higher,
-          index = resolutions.indexOf( cache.resolution)
+
+    /**
+     * Put sample into linked list of higher and lower resolution samples
+     * @param sample
+     */
+    function linkSample( sample) {
+      var lower, higher,
+          index = resolutions.indexOf( sample.resolution)
 
       lower = findLowerResolution( index)
       if( lower) {
-        cache.nextLowerResolution = lower
-        lower.nextHigherResolution = cache
+        sample.nextResolution.lower = lower
+        lower.nextResolution.higher = sample
       }
 
       higher = findHigherResolution( index)
       if( higher) {
-        cache.nextHigherResolution = higher
-        higher.nextLowerResolution = cache
+        sample.nextResolution.higher = higher
+        higher.nextResolution.lower = sample
       }
     }
 
-    function unlinkCache( cache) {
+    /**
+     * Remove sample from linked list of higher and lower resolution samples
+     * @param sample
+     */
+    function unlinkSample( sample) {
       var lower, higher,
-          index = resolutions.indexOf( cache.resolution)
+          index = resolutions.indexOf( sample.resolution)
 
       lower = findLowerResolution( index)
       higher = findHigherResolution( index)
 
       if( higher)
-        higher.nextLowerResolution = lower
+        higher.nextResolution.lower = lower
       if( lower)
-        lower.nextHigherResolution = higher
+        lower.nextResolution.higher = higher
 
-      cache.nextLowerResolution = null
-      cache.nextHigherResolution = null
+      sample.nextResolution.lower = null
+      sample.nextResolution.higher = null
     }
 
     /**
@@ -614,15 +585,15 @@
     }
 
 
-    // TODO: remove cache
+    // TODO: remove sample from list of samples
 
-    function getCache( resolution) {
+    function getSampling( resolution) {
       var r = resolution || SOURCE
-      var c = caches[r]
+      var c = samples[r]
       if( c === undefined){
-        c = new DataSample( r, access)
-        caches[r] = c
-        linkCache( c)
+        c = new Sampling( r, access)
+        samples[r] = c
+        linkSample( c)
       }
       return c
     }
@@ -639,45 +610,45 @@
      * @param resolution
      * @returns {murtsDataStore}
      */
-    murtsDataStore.pushPoints = function( data, resolution) {
-      var c = getCache( resolution)
-      c.pushPoints( data)
+    murtsDataStore.pushPoints = function( data, sampled, resolution) {
+      var sampling = getSampling( resolution)
+      sampling.pushPoints( data, sampled)
       return this;
     }
 
 
     murtsDataStore.get = function( scale) {
       var resolution = scale ? scale.resolution() : undefined,
-          cache = getCache( resolution)
+          sampling = getSampling( resolution)
 
-      if( cache.data === undefined) {
+      if( sampling.data === undefined) {
         // TODO: What if there is no source?
-        var index = resolutions.indexOf( cache.resolution),
+        var index = resolutions.indexOf( sampling.resolution),
             source = findHigherResolution( index)
         if( source && source.data) {
-          cache.initialSample( source)
+          sampling.initialSample( source)
         } else {
           if( ! source)
-            console.error( 'murts.get findHigherResolution( ' + cache.resolution + ') -- no cache found to sample from')
+            console.error( 'murts.get findHigherResolution( ' + sampling.resolution + ') -- no source data found to sample from')
           else
-            console.error( 'murts.get findHigherResolution( ' + cache.resolution + ') -- no data found in cache')
-          cache.data = []
+            console.error( 'murts.get findHigherResolution( ' + sampling.resolution + ') -- no data found in source')
+          sampling.data = []
         }
       }
 
-      cache.lastRead = Date.now()
-      return cache;
+      sampling.lastRead = Date.now()
+      return sampling;
     }
 
     murtsDataStore.removeOnUpdate = function( scale, onUpdate) {
       var resolution = scale.resolution(),
-          cache = getCache(resolution)
+          sampling = getSampling(resolution)
 
-      cache.removeOnUpdate( onUpdate)
+      sampling.removeOnUpdate( onUpdate)
     }
 
     murtsDataStore.reset = function() {
-      caches = {}
+      samples = {}
       access = {
         x: function( d) { return d[0] },
         y: function( d) { return d[1] }
@@ -694,8 +665,11 @@
     var d = data[ sourceIndex],  // may not be inside step (before timeStop). Calculate a new nextStep
         x = access.x( d),
         y = access.y( d),
-        min = { x: x, y: y, d: d },
-        max = { x: x, y: y, d: d },
+        extents = {
+          x: [x, x],
+          y: [y, y],
+          d: [d, d]
+        },
         sum = { x: x, y: y, count: 1}
 
     // If no data in current step, skip forward.
@@ -721,14 +695,14 @@
         sum.y += y
         sum.count ++
 
-        if( y < min.y) {
-          min.x = x
-          min.y = y
-          min.d = d
-        } else if( y > max.y) {
-          max.x = x
-          max.y = y
-          max.d = d
+        if( y < extents.y[0]) {
+          extents.x[0] = x
+          extents.y[0] = y
+          extents.d[0] = d
+        } else if( y > extents.y[1]) {
+          extents.x[1] = x
+          extents.y[1] = y
+          extents.d[1] = d
         }
 
         sourceIndex ++
@@ -737,8 +711,7 @@
     }
 
     return {
-      min: min,
-      max: max,
+      extents: extents,
       ave: {
         x: sum.x / sum.count,
         y: sum.y / sum.count,
@@ -755,15 +728,15 @@
         aX = access.x(a),
         aY = access.y(a)
     areaUsingBMin = Math.abs(
-        (aX - c.ave.x) * (b.min.y - aY) -
-        (aX - b.min.x) * (c.ave.y - aY)
+        (aX - c.ave.x) * (b.extents.y[0] - aY) -
+        (aX - b.extents.x[0]) * (c.ave.y - aY)
     ) * 0.5
     areaUsingBMax = Math.abs(
-        (aX - c.ave.x) * (b.max.y - aY) -
-        (aX - b.max.x) * (c.ave.y - aY)
+        (aX - c.ave.x) * (b.extents.y[1] - aY) -
+        (aX - b.extents.x[1]) * (c.ave.y - aY)
     ) * 0.5
 
-    return areaUsingBMin > areaUsingBMax ? b.min.d : b.max.d
+    return areaUsingBMin > areaUsingBMax ? b.extents.d[0] : b.extents.d[1]
   }
 
   /**
@@ -779,7 +752,7 @@
    * @param access Access functions for x and y
    */
   function sample( source, stepSize, access) {
-    var a, // the first "bucket"
+    var a, // a is the first "bucket"
         nextStep,
         sourceIndex = 0,
         sampled = []
@@ -800,6 +773,7 @@
 
     // Always use the first point
     a = source[sourceIndex++]
+
     sampled[0] = a
     nextStep = access.x( a) + stepSize
     if( source.length < 3) {
@@ -808,7 +782,11 @@
       console.log( 'murts.sample source.length: ' + source.length + ' end  ' + (Date.now()-startTimer) + ' ms')
       return {
         data: sampled,
-        nextStep: nextStep
+        nextStep: nextStep,
+        extents: {
+          x: d3.extent( sampled, access.x),
+          y: d3.extent( sampled, access.y)
+        }
       }
     }
 
@@ -823,18 +801,27 @@
   function sampleFromIndex( sampled, source, sourceIndex, a, stepSize, nextStep, access) {
     var b, c,   // the three "buckets" (including 'a' which is passed in)
         maxAreaPoint,
-        sourceIndexLast = source.length - 1
+        sourceIndexLast = source.length - 1,
+        aX = access.x( a),
+        aY = access.y( a),
+        extents = {
+          x: [ aX, aX],
+          y: [ aY, aY]
+        }
 
 
     // Find the first b. At the end of the following for loop, c becomes the next b.
     b = collectStep( source, sourceIndex, stepSize, nextStep, sourceIndexLast, access)
     sourceIndex = b.sourceIndex
+    trait.utils.extendExtent( extents.y, b.extents.y)
+
 
     for( ; sourceIndex < sourceIndexLast; sourceIndex++) {
 
       nextStep = b.nextStep + stepSize
       c = collectStep( source, sourceIndex, stepSize, nextStep, sourceIndexLast, access)
       sourceIndex = c.sourceIndex
+      trait.utils.extendExtent( extents.y, c.extents.y)
 
       // Now we have a, b, c
       maxAreaPoint = findMaxAreaPointB( a, b, c, access)
@@ -847,11 +834,14 @@
     // sourceIndex is set to sourceIndexLast or sourceIndexLast + 1
 
     // Process the last b using the last point as c.
-    var lastPoint = source[sourceIndexLast]
+    var lastPoint = source[sourceIndexLast],
+        lastX = access.x( lastPoint),
+        lastY = access.y( lastPoint)
+
     c = {
       ave: {
-        x: access.x(lastPoint),
-        y: access.y(lastPoint),
+        x: lastX,
+        y: lastY,
         count: 1  // for debug or performance stats
       }
     }
@@ -860,9 +850,13 @@
 
     // Always use last point
     sampled[sampled.length] = lastPoint
+    extents.x[1] = access.x( lastPoint)
+    extents.y[0] = Math.min( extents.y[0], lastY)
+    extents.y[1] = Math.max( extents.y[1], lastY)
 
     return {
       data: sampled,
+      extents: extents,
       nextStep: nextStep // Start of next step. The last point may be before this.
     }
 
@@ -876,33 +870,36 @@
    * @param access Access functions for x and y
    */
   function sampleUpdates( source, sourceIndex, a, stepSize, nextStep, access) {
-    var b, c, // the three "buckets" (including 'a' which is passed in)
-        maxAreaPoint,
-        sampled = [],
-        sourceIndexLast = source.length - 1,
+    var sampled = [],
         updateCount = source.length - sourceIndex
 
     var startTimer = Date.now()
-    console.log( 'murts.sampleUdates source.length-start: ' + (updateCount) + ' start')
-
-    // The first point, 'a' is already in the caller's sampled array.
+    //console.log( 'murts.sampleUdates source.length-start: ' + (updateCount) + ' start')
 
     if( updateCount <= 1) {
+      var extents
 
-      if( updateCount === 1)
+      if( updateCount === 1) {
         sampled[0] = source[sourceIndex++]
+        extents = {
+          x: d3.extent( sampled, access.x),
+          y: d3.extent( sampled, access.y)
+        }
+      }
 
       console.log( 'murts.sampleUdates source.length-start: ' + updateCount + ' end  ' + (Date.now()-startTimer) + ' ms')
 
       return {
         data: sampled,
-        nextStep: nextStep
+        nextStep: nextStep,
+        extents: extents
       }
     }
 
+    // The first point, 'a' is already in the caller's sampled array.
     var s = sampleFromIndex( sampled, source, sourceIndex, a, stepSize, nextStep, access)
 
-    console.log( 'murts.sampleUdates source.length-start: ' + updateCount + ', sample.length: ' + s.data.length + ' end  ' + (Date.now()-startTimer) + ' ms')
+    //console.log( 'murts.sampleUdates source.length-start: ' + updateCount + ', sample.length: ' + s.data.length + ' end  ' + (Date.now()-startTimer) + ' ms')
 
     return s
   }
@@ -921,7 +918,7 @@
   trait.murts = {
     dataStore: _murtsDataStore,
     utils: {
-           DataSample: DataSample,
+           Sampling: Sampling,
            sample: sample,
            sampleUpdates: sampleUpdates,
            mapResolution: mapResolutionFromStep,

@@ -149,8 +149,11 @@
         colorIndexNext = 0,
         colors = getColorsFunction(),
         colorsUsed = [],
-        externalListeners = {}  // subscribption listeners here or on each element.
-
+        externalListeners = {},  // subscribption listeners here or on each element.
+        invalidate = {
+          lastTime: 0,
+          timer: undefined
+        }
 
     var select, duration = 0
     var selection
@@ -762,6 +765,47 @@
      * @param duration
      */
     chartBase.update = function(type, duration) {
+    };
+
+    function invalidateTimerCancel() {
+      if( invalidate.timer === undefined)
+        return
+      clearTimeout( invalidate.timer)
+      invalidate.timer = undefined
+    }
+
+    function invalidateDoUpdate( type, duration) {
+      var now = Date.now()
+
+      console.log( 'invalidateDoUpdate count: ' + invalidate.count + ', timeSince: ' + (now - invalidate.lastTime))
+      invalidate.count = 0
+      invalidate.lastTime = Date.now()
+      chartBase.update( type, duration)
+    }
+
+    chartBase.invalidate = function(type, duration) {
+      var now = Date.now()
+
+      if( type === 'domain') {
+        invalidateTimerCancel()
+        invalidateDoUpdate( type, duration)
+        return
+      }
+
+      if( invalidate.timer) {
+        invalidate.count ++
+      } else {
+        // If no activity for a while, update now.
+        if( now - invalidate.lastTime > 1000) {
+          invalidateDoUpdate( type, duration)
+        } else {
+          invalidate.count = 0
+          invalidate.timer = setTimeout( function() {
+            invalidate.timer = undefined
+            invalidateDoUpdate( type, duration)
+          }, 1000)
+        }
+      }
     };
 
     chartBase.select = function() {
