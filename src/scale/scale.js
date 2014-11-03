@@ -51,6 +51,7 @@
       data: function( s) {return trait.murts.utils.getOrElse( s, scale)},
       value:   config[scaleName],
       scaleName: scaleName,
+      axisChar: scaleName.charAt(0),
       scale: scale
     }
   }

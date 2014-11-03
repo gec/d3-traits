@@ -23,32 +23,54 @@
   var accessDataY0 = function( d) { return d.y0}
 
   function minFromData(data, access, defaultValue) {
-    return minFromDataDo( data, access.series, access.data, access.value, defaultValue)
+    return minFromDataDo( data, access, access.value, defaultValue)
   }
   function minFromAreaData(data, access, defaultValue) {
-    return minFromDataDo( data, access.series, access.data, accessDataY0, defaultValue)
+    return minFromDataDo( data, access, accessDataY0, defaultValue)
   }
-  function minFromDataDo( data, accessSeries, accessData, accessValue, defaultValue) {
-    var min = d3.min(data, function(s, i, ra) { return d3.min( accessData( accessSeries(s, i , ra)), accessValue); })
+  function minFromDataDo( data, access, accessValue, defaultValue) {
+    var min = d3.min(data, function(s, i, ra) { return minFromMurtsOrArray( access.series(s, i, ra), access, accessValue) })
     if( !min )
       min = defaultValue ? defaultValue : 0
     return min
   }
 
   function maxFromData(data, access, defaultValue) {
-    return maxFromDataDo( data, access.series, access.data, access.value, defaultValue)
+    return maxFromDataDo( data, access, access.value, defaultValue)
   }
 
   function maxFromAreaData(data, access, defaultValue) {
     var accessY0PlusData = function( d) { return d.y0 + access.value(d)}
-    return maxFromDataDo( data, access.series, access.data, accessY0PlusData, defaultValue)
+    return maxFromDataDo( data, access, accessY0PlusData, defaultValue)
   }
-  function maxFromDataDo(data, accessSeries, accessData, accessValue, defaultValue) {
-    var max = d3.max(data, function(s, i, ra) { return d3.max( accessData( accessSeries(s, i, ra)), accessValue); })
+  function maxFromDataDo(data, access, accessValue, defaultValue) {
+    var max = d3.max(data, function(s, i, ra) { return maxFromMurtsOrArray( access.series(s, i, ra), access, accessValue) })
     if( !max )
       max = defaultValue ? defaultValue : 0
     return max
   }
+
+  function minFromMurtsOrArray( series, access, accessValue) {
+    if( trait.murts.utils.isDataStore( series)) {
+      var sampling = series.get()
+      return sampling.extents === undefined ? undefined
+        : access.axisChar === 'x' ? sampling.extents.x[0]
+        : sampling.extents.y[0]
+    } else {
+      return d3.min( series, accessValue)
+    }
+  }
+  function maxFromMurtsOrArray( series, access, accessValue) {
+    if( trait.murts.utils.isDataStore( series)) {
+      var sampling = series.get()
+      return sampling.extents === undefined ? undefined
+        : access.axisChar === 'x' ? sampling.extents.x[1]
+        : sampling.extents.y[1]
+    } else {
+      return d3.max( series, accessValue)
+    }
+  }
+
 
 
   /**
@@ -62,11 +84,20 @@
    * @returns  The extent of all data in an array of the form [min,max]
    */
   function extentFromData(data, access, padding, defaultValue) {
-    var extents, min, max
-
     // Get array of extents for each series.
-    extents = data.map(function(s) { return d3.extent( access.data(  access.series(s)), access.value) })
-    return extentFromData2( extents, padding, defaultValue)
+    var extents = data.map(function(s) { return extentFromMurtsOrArray(access.series(s), access) })
+    return extentFromExtents( extents, padding, defaultValue)
+  }
+
+  function extentFromMurtsOrArray( series, access) {
+    if( trait.murts.utils.isDataStore( series)) {
+      var sampling = series.get()
+      return sampling.extents === undefined ? [undefined, undefined]
+        : access.axisChar === 'x' ? sampling.extents.x
+        : sampling.extents.y
+    } else {
+      return d3.extent( series, access.value)
+    }
   }
 
   function extentFromAreaData(data, access, padding, defaultValue) {
@@ -82,7 +113,7 @@
       return extent
     })
 
-    return extentFromData2( extents, padding, defaultValue)
+    return extentFromExtents( extents, padding, defaultValue)
   }
 
   /**
@@ -91,7 +122,7 @@
    * @param defaultValue if no extents, use default if available.
    * @returns Extent array.
    */
-  function extentFromData2( extents, padding, defaultValue) {
+  function extentFromExtents( extents, padding, defaultValue) {
     var min, max
 
     min = d3.min(extents, function(e) { return e[0] }) // the minimums of each extent
