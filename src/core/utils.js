@@ -253,7 +253,7 @@
    *
    * union( extentWithIndices)
    * union( array, offset)
-   *
+   * union( minOrMaxValue, valueIndex)
    *
    * @param extentWithIndices
    * @param offset
@@ -262,15 +262,15 @@
   ExtentWithIndices.prototype.union = function( extentWithIndices, offset) {
     var didExtend = false
 
-    if( ! extentWithIndices )
+    if( arguments.length === 0)
       return didExtend
 
     if( Array.isArray( extentWithIndices)) {
       // Need to call the constructor of 'this' class.
-      var newEWI = {}
-      Object.getPrototypeOf( this).constructor.call( newEWI, extentWithIndices, this.access, offset)
-      didExtend = this.union( newEWI)
-    } else {
+      var thisProto = Object.getPrototypeOf( this),
+          newby = new thisProto.constructor(extentWithIndices, this.access, offset)
+      didExtend = this.union( newby)
+    } else if( extentWithIndices instanceof ExtentWithIndices) {
       // Note: undefined on either side evaluates to false.
       if( extentWithIndices.values[0] < this.values[0]) {
         this.values[0] = extentWithIndices.values[0]
@@ -282,10 +282,34 @@
         this.indices[1] = extentWithIndices.indices[1]
         didExtend = true
       }
+    } else {
+      var v = extentWithIndices,
+          i = offset
+
+      if( v < this.values[0]) {
+        this.values[0] = v
+        this.indices[0] = i
+        didExtend = true
+      }
+      if( v > this.values[1]) {
+        this.values[1] = v
+        this.indices[1] = i
+        didExtend = true
+      }
     }
 
 
     return didExtend
+  }
+
+  ExtentWithIndices.prototype.shifted = function( data, count) {
+    this.indices[0] -= count
+    this.indices[1] -= count
+
+    if( isNaN( this.indices[0]) || this.indices[0] < 0 ||
+        isNaN( this.indices[1]) || this.indices[1] < 0) {
+      this.set( data)
+    }
   }
 
 //  /**
@@ -408,6 +432,7 @@
 
   /**
    * extendMax( array)
+   * extendMax( extentWithIndices)
    * extendMax( max, maxIndex)
    *
    * @param max If max is greater than old max, use it for max extent

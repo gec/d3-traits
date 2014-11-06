@@ -116,7 +116,7 @@ describe('trait.ExtentWithIndices', function() {
 
   });
 
-  it('union should work with data', function() {
+  it('union should work with array', function() {
     var e = new d3.trait.ExtentWithIndices( [1, 2, 3])
     e.union( [1, 2, 3, 0, 5])
     expect(e.values[0]).toBe(0)
@@ -150,6 +150,30 @@ describe('trait.ExtentWithIndices', function() {
     expect(e.values[0]).toBe(1)
     expect(e.values[1]).toBe(3)
     expect(e.indices[0]).toBe(0)
+    expect(e.indices[1]).toBe(2)
+
+  });
+
+  it('union should work with value and index', function() {
+    var e = new d3.trait.ExtentWithIndices( [1, 2, 3])
+    e.union( 5, 3)
+    expect(e.values[0]).toBe(1)
+    expect(e.values[1]).toBe(5)
+    expect(e.indices[0]).toBe(0)
+    expect(e.indices[1]).toBe(3)
+
+    e = new d3.trait.ExtentWithIndices( [1, 2, 3])
+    e.union( 0, 3)
+    expect(e.values[0]).toBe(0)
+    expect(e.values[1]).toBe(3)
+    expect(e.indices[0]).toBe(3)
+    expect(e.indices[1]).toBe(2)
+
+    e = new d3.trait.ExtentWithIndices( [1, 0, 5])
+    e.union( 2, 7)
+    expect(e.values[0]).toBe(0)
+    expect(e.values[1]).toBe(5)
+    expect(e.indices[0]).toBe(1)
     expect(e.indices[1]).toBe(2)
 
   });
@@ -252,7 +276,7 @@ describe('trait.ExtentWithIndicesSorted', function() {
     expect(e.indices[1]).toBe(2)
   });
 
-  it('union should work with data', function() {
+  it('union should work with array', function() {
     var e = new d3.trait.ExtentWithIndicesSorted( [1, 2, 3])
     e.union( [1, 2, 3, 4, 5])
     expect(e.values[0]).toBe(1)
@@ -275,6 +299,32 @@ describe('trait.ExtentWithIndicesSorted', function() {
     expect(e.indices[1]).toBe(4)
 
   });
+
+  it('union should work with value and index', function() {
+    var e = new d3.trait.ExtentWithIndicesSorted( [1, 2, 3])
+    e.union( 5, 3)
+    expect(e.values[0]).toBe(1)
+    expect(e.values[1]).toBe(5)
+    expect(e.indices[0]).toBe(0)
+    expect(e.indices[1]).toBe(3)
+
+    e = new d3.trait.ExtentWithIndicesSorted( [1, 2, 3])
+    e.union( 0, 3)
+    expect(e.values[0]).toBe(0)
+    expect(e.values[1]).toBe(3)
+    expect(e.indices[0]).toBe(3)
+    expect(e.indices[1]).toBe(2)
+
+    e = new d3.trait.ExtentWithIndicesSorted( [0, 5])
+    e.union( 2, 7)
+    expect(e.values[0]).toBe(0)
+    expect(e.values[1]).toBe(5)
+    expect(e.indices[0]).toBe(0)
+    expect(e.indices[1]).toBe(1)
+
+  });
+
+
 
   it('max should work with ExtentWithIndicesSorted as first argument', function() {
     var e = new d3.trait.ExtentWithIndicesSorted( [1, 2, 3])

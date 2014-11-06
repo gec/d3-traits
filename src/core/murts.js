@@ -281,7 +281,7 @@
     this.access = access
     this.data = data  // Murts.get() will key off undefined to initiate sampling.
     this.sampled = sampled
-    this.extents = undefined  // {x: [], y, []}
+    this.extents = undefined  // {x: [], xIndices: [], y: [], yIndices: []}
     this.constraints = { maxCount: undefined, maxTime: undefined}
     this.nextResolution = { higher: null, lower: null}
     this.lastRead = Date.now()
@@ -331,7 +331,7 @@
     if( ! this.extents)  // No data, so no extents.
       return
 
-    var maxX = this.extents.x[1]
+    var maxX = this.extents.x.values[1]
 
     // If the last point is beyond nextStep, advance nextStep to one step beyond.
     if( maxX >= this.resampling.nextStep) {
@@ -355,50 +355,6 @@
 
   }
 
-  /**
-   * Update the x and y extents based on the new data.
-   * Assume points have been added to the end of the data so x min
-   * is not updated (except in the case where there is no previous
-   * extents).
-   *
-   * @param newPoints
-   */
-  Sampling.prototype.updateExtentsFromPoints = function( newPoints) {
-
-    var newPointsExtentY = d3.extent( newPoints, this.access.y)
-
-    if( ! this.extents) {
-      this.extents = {
-        x: [this.access.x(this.data[0])],
-        y: newPointsExtentY
-      }
-    } else {
-      trait.utils.extendExtent( this.extents.y, newPointsExtentY)
-    }
-
-    // Update x max. X min is already set.
-    this.extents.x[1] = this.access.x(this.data[this.data.length - 1])
-  }
-
-  /**
-   * Update the x and y extents based on the new data.
-   * Assume points have been added to the end of the data so x min
-   * is not updated (except in the case where there is no previous
-   * extents).
-   *
-   * @param newPoints
-   */
-  Sampling.prototype.updateExtentsFromExtents = function( newExtents) {
-    if( ! newExtents)
-      return
-
-    if( this.extents) {
-      trait.utils.extendExtent( this.extents.x, newExtents.x)
-      trait.utils.extendExtent( this.extents.y, newExtents.y)
-    } else {
-      this.extents = newExtents
-    }
-  }
 
   Sampling.prototype.applyConstraintsBeforePushPoints = function( points) {
     var didConstrain = false
@@ -412,10 +368,14 @@
         var removeCount = totalCount - this.constraints.maxCount,
             removeFromDataCount = Math.min( this.data.length, removeCount),
             removeFromPointsCount = removeCount - removeFromDataCount
-        if( removeFromDataCount > 0)
+        if( removeFromDataCount > 0) {
           this.data.splice( 0, removeFromDataCount)
+          this.extents.x.shifted( this.data, removeFromDataCount)
+          this.extents.y.shifted( this.data, removeFromDataCount)
+        }
         if( removeFromPointsCount > 0)
           points.splice( 0, removeFromPointsCount)
+
         didConstrain = true
       }
     }
@@ -423,18 +383,34 @@
     if( this.constraints.maxTime !== undefined && this.constraints.maxTime > 0) {
       var pointsTimeMax = this.access.x( points[points.length]),
           pointsTimeMin = this.access.x( points[0]),
-          dateCutoff = pointsTimeMax - this.constraints.maxTime,
-          dataTimeMin = this.data.length > 0 ? this.access.x( this.data[0]) : undefined
+          dataTimeMax = this.data.length > 0 ? this.access.x( this.data[0]) : undefined,
+          dataTimeMin = this.data.length > 0 ? this.access.x( this.data[0]) : undefined,
+          timeCutoff = pointsTimeMax - this.constraints.maxTime
 
-      if( pointsTimeMin > dateCutoff) {
-        // Remove all this.data and possibly some of points too.
+      if( (dataTimeMin && dataTimeMin < timeCutoff) || pointsTimeMin < timeCutoff) {
+        var index, count,
+            bisectLeft = d3.bisector(this.access.x).left
 
-        didConstrain = true
-      } else if( dataTimeMin !== undefined && dataTimeMin < dateCutoff){
-        // Remove some or all of this.data
-        // Find the correct index and splice this.data.
+        if( dataTimeMax < timeCutoff) {
+          // Remove all this.data and possibly some of points too.
+          this.data = []
+          this.extents.x.reset()
+          this.extents.y.reset()
+        } else if( dataTimeMin < timeCutoff)  {
+          // Remove some of this.data
+          index = Math.max( bisectLeft(this.data, timeCutoff), this.data.length - 1)
+          count = this.data.length - index
+          this.data.splice( index, count)
+          this.extents.x.shifted( this.data, count)
+          this.extents.y.shifted( this.data, count)
+        }
 
-
+        if( pointsTimeMin < timeCutoff){
+          // Remove some or all of this.data
+          // Find the correct index and splice this.data.
+          index = Math.max( bisectLeft(points, timeCutoff), this.data.length - 1)
+          points.splice( index, points.length - index)
+        }
         didConstrain = true
       }
 
@@ -462,13 +438,20 @@
 
     if( pushedCount > 0) {
 
-      if( this.applyConstraintsBeforePushPoints( points)) {
+      if( this.applyConstraintsBeforePushPoints( points))
         pushedCount = points.length
-        // TODO: what about extents?
-      }
 
+      var newDataIndex = this.data.length
       this.data = this.data.concat( points)
-      this.updateExtentsFromPoints( points)
+      if( this.extents) {
+        this.extents.x.set( this.data)
+        this.extents.y.union( this.data, newDataIndex)
+      } else {
+        this.extents = {
+          x: new trait.ExtentWithIndicesSorted( this.data, this.access.x),
+          y: new trait.ExtentWithIndices( this.data, this.access.y)
+        }
+      }
 
       var self = this
       this.onHandlers.update.forEach( function( handler) {
@@ -498,11 +481,12 @@
 
   Sampling.prototype.sampleUpdatesFromSource = function() {
     var source = this.resampling.source,
-        length = this.data.length
+        length = this.data.length,
+        pushedCount = 0
 
     if( length <= 2) {
       this.initialSample( source)
-      return
+      return this.data.length
     }
 
     var stepStart = this.resampling.nextStep - this.stepSize
@@ -514,13 +498,28 @@
 
     var a = this.data[this.data.length-1],
         s = sampleUpdates( source.data, sourceIndex, a, this.stepSize, this.resampling.nextStep, this.access)
+
+    this.applyConstraintsBeforePushPoints(s.data)
+    pushedCount = s.data.length
+
     this.data = this.data.concat( s.data)
-    this.updateExtentsFromExtents(s.extents)
+    if( this.extents && s.extents) {
+      this.extents.x.max(s.extents.x)
+      this.extents.y.union(s.extents.y)
+    } else {
+      this.extents = {
+        x: new trait.ExtentWithIndicesSorted( this.data, this.access.x),
+        y: new trait.ExtentWithIndices( this.data, this.access.y)
+      }
+    }
+
 
     this.resampling.nextStep = s.nextStep
     this.resampling.unsampledCount = 0
 
     this.extendNextStepPastExtent()
+
+    return pushedCount
   }
 
   /**
@@ -543,23 +542,28 @@
     if( pushedCount <= 0)
       return
 
-    var source = this.resampling.source
+    var source = this.resampling.source,
+        pushed = 0
+
     if( this.nextResolution.higher === source) {
       this.resampling.unsampledCount += pushedCount
 
       // if source's latest point is beyond our nextStep
-      if( source && source.extents && source.extents.x[1] >= this.resampling.nextStep) {
-        this.sampleUpdatesFromSource()
+      if( source && source.extents && source.extents.x.values[1] >= this.resampling.nextStep) {
+        pushed = this.sampleUpdatesFromSource()
       }
 
     } else {
       this.initialSample( this.nextResolution.higher)
+      pushed = true
     }
 
-    var self = this
-    this.onHandlers.update.forEach( function( handler) {
-      handler( 'update', self.data, self)
-    })
+    if( pushed > 0) {
+      var self = this
+      this.onHandlers.update.forEach( function( handler) {
+        handler( 'update', self.data, self)
+      })
+    }
 
   }
 
@@ -866,8 +870,8 @@
         data: sampled,
         nextStep: nextStep,
         extents: {
-          x: d3.extent( sampled, access.x),
-          y: d3.extent( sampled, access.y)
+          x: new trait.ExtentWithIndicesSorted( sampled, access.x),
+          y: new trait.ExtentWithIndices( sampled, access.y)
         }
       }
     }
@@ -887,15 +891,14 @@
         aX = access.x( a),
         aY = access.y( a),
         extents = {
-          x: [ aX, aX],
-          y: [ aY, aY]
+          x: new trait.ExtentWithIndicesSorted( aX, 0, aX, 0),
+          y: new trait.ExtentWithIndices( aY, 0, aY, 0)
         }
 
 
     // Find the first b. At the end of the following for loop, c becomes the next b.
     b = collectStep( source, sourceIndex, stepSize, nextStep, sourceIndexLast, access)
     sourceIndex = b.sourceIndex
-    trait.utils.extendExtent( extents.y, b.extents.y)
 
 
     for( ; sourceIndex < sourceIndexLast; sourceIndex++) {
@@ -903,10 +906,10 @@
       nextStep = b.nextStep + stepSize
       c = collectStep( source, sourceIndex, stepSize, nextStep, sourceIndexLast, access)
       sourceIndex = c.sourceIndex
-      trait.utils.extendExtent( extents.y, c.extents.y)
 
       // Now we have a, b, c
       maxAreaPoint = findMaxAreaPointB( a, b, c, access)
+      extents.y.union( access.y( maxAreaPoint), sampled.length)
       sampled[ sampled.length] = maxAreaPoint
 
       a = maxAreaPoint
@@ -928,13 +931,13 @@
       }
     }
     maxAreaPoint = findMaxAreaPointB( a, b, c, access)
+    extents.y.union( access.y( maxAreaPoint), sampled.length)
     sampled[ sampled.length] = maxAreaPoint
 
     // Always use last point
+    extents.y.union( lastY, sampled.length)
+    extents.x.max( lastX, sampled.length)
     sampled[sampled.length] = lastPoint
-    extents.x[1] = access.x( lastPoint)
-    extents.y[0] = Math.min( extents.y[0], lastY)
-    extents.y[1] = Math.max( extents.y[1], lastY)
 
     return {
       data: sampled,
@@ -964,8 +967,8 @@
       if( updateCount === 1) {
         sampled[0] = source[sourceIndex++]
         extents = {
-          x: d3.extent( sampled, access.x),
-          y: d3.extent( sampled, access.y)
+          x: new trait.ExtentWithIndicesSorted( sampled, access.x),
+          y: new trait.ExtentWithIndices( sampled, access.y)
         }
       }
 
