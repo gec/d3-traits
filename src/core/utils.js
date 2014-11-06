@@ -167,6 +167,280 @@
     this.origin.y += point.y
   }
 
+  function ExtentWithIndices_reset() {
+    this.values = [undefined, undefined]
+    this.indices = [undefined, undefined]
+  }
+
+  function ExtentWithIndices_set( array, offset) {
+    var i = offset === undefined ? -1 : offset - 1,
+        n = array.length,
+        a, ai,
+        b,
+        c, ci,
+        f = this.access;
+
+    if( f === undefined) {
+      while (++i < n && !((a = c = array[i]) != null && a <= a)) a = c = undefined;
+      if( a !== undefined)
+        ai = ci = i
+      while (++i < n) if ((b = array[i]) != null) {
+        if (a > b) {a = b; ai = i}
+        if (c < b) {c = b; ci = i}
+      }
+    } else {
+      while (++i < n && !((a = c = f.call(array, array[i], i)) != null && a <= a)) a = undefined;
+      if( a !== undefined)
+        ai = ci = i
+      while (++i < n) if ((b = f.call(array, array[i], i)) != null) {
+        if (a > b) {a = b; ai = i}
+        if (c < b) {c = b; ci = i}
+      }
+    }
+    this.values = [a, c]
+    this.indices = [ai, ci]
+  }
+
+  /**
+   * ExtentWithIndices()
+   * ExtentWithIndices( array, access)
+   * ExtentWithIndices( array, access, offset)
+   * ExtentWithIndices( min, minIndex, max, maxIndex)
+   *
+   * @param min
+   * @param minIndex
+   * @param max
+   * @param maxIndex
+   * @constructor
+   */
+  function ExtentWithIndices_init( min, minIndex, max, maxIndex) {
+
+    switch( arguments.length) {
+      case 0:
+        ExtentWithIndices_reset.call(this)
+        this.access = undefined
+        break;
+      case 4:
+        this.values = [min, max]
+        this.indices = [minIndex, maxIndex]
+        break;
+      default:
+        this.access = minIndex
+        ExtentWithIndices_set.call( this, min, max)
+    }
+  }
+
+
+  /**
+   * ExtentWithIndices()
+   * ExtentWithIndices( array, f)
+   * ExtentWithIndices( min, minIndex, max, maxIndex)
+   *
+   * @param array
+   * @param f
+   * @constructor
+   */
+  function ExtentWithIndices() {
+    ExtentWithIndices_init.apply( this, arguments)
+  }
+
+//  ExtentWithIndices.prototype.constructor = ExtentWithIndices
+  ExtentWithIndices.prototype.set = ExtentWithIndices_set
+
+  ExtentWithIndices.prototype.reset = ExtentWithIndices_reset
+
+  /**
+   *
+   * union( extentWithIndices)
+   * union( array, offset)
+   *
+   *
+   * @param extentWithIndices
+   * @param offset
+   * @returns {boolean}
+   */
+  ExtentWithIndices.prototype.union = function( extentWithIndices, offset) {
+    var didExtend = false
+
+    if( ! extentWithIndices )
+      return didExtend
+
+    if( Array.isArray( extentWithIndices)) {
+      // Need to call the constructor of 'this' class.
+      var newEWI = {}
+      Object.getPrototypeOf( this).constructor.call( newEWI, extentWithIndices, this.access, offset)
+      didExtend = this.union( newEWI)
+    } else {
+      // Note: undefined on either side evaluates to false.
+      if( extentWithIndices.values[0] < this.values[0]) {
+        this.values[0] = extentWithIndices.values[0]
+        this.indices[0] = extentWithIndices.indices[0]
+        didExtend = true
+      }
+      if( extentWithIndices.values[1] > this.values[1]) {
+        this.values[1] = extentWithIndices.values[1]
+        this.indices[1] = extentWithIndices.indices[1]
+        didExtend = true
+      }
+    }
+
+
+    return didExtend
+  }
+
+//  /**
+//   * extendMax( array)
+//   * extendMax( array, offset)
+//   * extendMax( max, maxIndex)
+//   *
+//   * @param max
+//   * @param maxIndex
+//   * @returns {boolean}
+//   */
+//  ExtentWithIndices.prototype.max = function( max, maxIndex) {
+//    var v, i
+//
+//    if( Array.isArray( max)) {
+//      //TODO: do the max with offset
+//      i = max.length - 1
+//      if( i >= 0)
+//        v = this.access !== undefined ? this.access.call( this, max[i], i) : max[i]
+//    } else {
+//      v = max
+//      i = maxIndex
+//    }
+//
+//    // Note: undefined on either side evaluates to false.
+//    if( i >= 0 && v > this.values[i]) {
+//      this.values[1] = v
+//      this.indices[1] = i
+//      return true
+//    } else
+//      return false
+//  }
+//
+//  /**
+//   * setMax( array)
+//   * setMax( max, maxIndex)
+//   *
+//   * @param max New max extent
+//   * @param maxIndex New index of max extent
+//   */
+//  ExtentWithIndices.prototype.setMax = function( max, maxIndex) {
+//    var v, i
+//
+//    if( Array.isArray( max)) {
+//      i = max.length - 1
+//      if( i >= 0)
+//        v = this.access !== undefined ? this.access.call( this, max[i], i) : max[i]
+//    } else {
+//      v = max
+//      i = maxIndex
+//    }
+//
+//    this.values[1] = v
+//    this.indices[1] = i
+//  }
+//
+//  /**
+//   * setMin( array)
+//   * setMin( min, minIndex)
+//   *
+//   * @param min New min extent
+//   * @param minIndex New index of min extent
+//   */
+//  ExtentWithIndices.prototype.setMin = function( min, minIndex) {
+//    var v, i
+//
+//    if( Array.isArray( min)) {
+//      i = 0
+//      if( min.length > 0)
+//        v = this.access !== undefined ? this.access.call( this, min[i], i) : min[i]
+//    } else {
+//      v = min
+//      i = minIndex
+//    }
+//
+//    this.values[1] = v
+//    this.indices[1] = i
+//  }
+
+
+  function ExtentWithIndicesSorted_set( array) {
+    if( ! array)
+      return
+
+    var a, c,
+        f = this.access,
+        last = array.length - 1
+
+    if( f !== undefined)
+      this.access = f
+
+    if( last < 0) {
+      ExtentWithIndices_reset.call(this)
+    } else {
+      a = f === undefined ? array[0] : this.access.call( array, array[0], 0)
+      c = f === undefined ? array[last] : this.access.call( array, array[last], last)
+      this.values = [a, c]
+      this.indices = [0, last]
+    }
+  }
+
+  function ExtentWithIndicesSorted( min, minIndex, max, maxIndex) {
+    switch( arguments.length) {
+      case 0:
+        ExtentWithIndices_reset.call(this)
+        this.access = undefined
+        break;
+      case 4:
+        this.values = [min, max]
+        this.indices = [minIndex, maxIndex]
+        break;
+      default:
+        this.access = minIndex
+        ExtentWithIndicesSorted_set.call( this, min)
+    }
+  }
+  ExtentWithIndicesSorted.prototype = new ExtentWithIndices()
+  ExtentWithIndicesSorted.prototype.constructor = ExtentWithIndicesSorted
+  ExtentWithIndicesSorted.prototype.set = ExtentWithIndicesSorted_set
+
+  /**
+   * extendMax( array)
+   * extendMax( max, maxIndex)
+   *
+   * @param max If max is greater than old max, use it for max extent
+   * @param maxIndex Index of new max (if max > current max)
+   * @returns {boolean} True: The extent was extended.
+   */
+  ExtentWithIndicesSorted.prototype.max = function( max, maxIndex) {
+    var v, i
+
+    if( Array.isArray( max)) {
+      i = max.length - 1
+      if( i >= 0)
+        v = this.access !== undefined ? this.access.call( this, max[i], i) : max[i]
+    } else if( max instanceof ExtentWithIndices) {
+      v = max.values[1]
+      i = max.indices[1]
+    } else {
+      v = max
+      i = maxIndex
+    }
+
+    // Note: undefined on either side evaluates to false.
+    if( i >= 0 && (this.values[1] === undefined || v > this.values[1])) {
+      this.values[1] = v
+      this.indices[1] = i
+      return true
+    } else
+      return false
+  }
+
+
+
+
 //  Rect.prototype.fitInColumn = function(x, colWidth) {
 //
 //    if( this.anchor.x === 0) {
@@ -188,5 +462,7 @@
   trait.Size = Size
   trait.Margin = Margin
   trait.Rect = Rect
+  trait.ExtentWithIndices = ExtentWithIndices
+  trait.ExtentWithIndicesSorted = ExtentWithIndicesSorted
 
 }(d3, d3.trait));
