@@ -252,7 +252,7 @@ describe('d3-traits.murts', function() {
 
   })
 
-  it('murts.dataStore should handle updates', function() {
+  it('murts.dataStore should push new points and update lower resolution samples', function() {
     var data, sample1s, sample5s, sample1m,
         murts = d3.trait.murts.dataStore(),
         scale1s = d3.scale.linear().range( [0, 1]).domain( [0, 1000]),
@@ -294,6 +294,99 @@ describe('d3-traits.murts', function() {
     expect(sample1m.data).toEqual( [ a, c, d ])
     expect(sample1m.extents.x.values).toEqual( [0, 60000])
     expect(sample1m.extents.y.values).toEqual( [10, 60])
+
+  })
+  it('murts.dataStore should manage size constraints', function() {
+    var data, sample1s, sample5s, sample1m,
+        murts = d3.trait.murts.dataStore(),
+        scale1s = d3.scale.linear().range( [0, 1]).domain( [0, 1000]),
+        scale5s = d3.scale.linear().range( [0, 1]).domain( [0, 5000]),
+        scale1m = d3.scale.linear().range( [0, 1]).domain( [0, 60000]),
+        a = [     0, 10],
+        c = [ 10000, 10],
+        d = [ 60000, 60]
+
+    // NOTE: sampleUpdates() does not return 'a'.
+
+    expect( murts.constrainSize()).toBe(0)
+    murts.constrainSize(3)
+    expect( murts.constrainSize()).toBe(3)
+
+    data = [ a, [ 5000, 10], [ 5001, 20], c ]
+    murts.pushPoints( data)
+
+    sample1s = murts.get( scale1s)
+    expect(sample1s.data.length).toBe( 3)
+    expect(sample1s.data).toEqual( [[ 5000, 10], [ 5001, 20], c ])
+    expect(sample1s.extents.x.values).toEqual( [5000, 10000])
+    expect(sample1s.extents.y.values).toEqual( [10, 20])
+
+
+    sample5s = murts.get( scale5s)
+    expect(sample5s.data.length).toBe( 3)
+    expect(sample5s.data).toEqual( [ [ 5000, 10], [ 5001, 20], c ])
+
+    murts.pushPoints( [d])
+
+    sample5s = murts.get( scale5s)
+    expect(sample5s.data.length).toBe( 3)
+    expect(sample5s.data).toEqual( [ [ 5001, 20], c, d ])
+    expect(sample5s.extents.x.values).toEqual( [5001, 60000])
+    expect(sample5s.extents.y.values).toEqual( [10, 60])
+
+
+    sample1m = murts.get( scale1m)
+    expect(sample1m.data.length).toBe( 3)
+    expect(sample1m.data).toEqual( [ [ 5001, 20], c, d ])
+    expect(sample1m.extents.x.values).toEqual( [5001, 60000])
+    expect(sample1m.extents.y.values).toEqual( [10, 60])
+
+  })
+
+  it('murts.dataStore should manage time constraints', function() {
+    var data, sample1s, sample5s, sample1m,
+        murts = d3.trait.murts.dataStore(),
+        scale1s = d3.scale.linear().range( [0, 1]).domain( [0, 1000]),
+        scale5s = d3.scale.linear().range( [0, 1]).domain( [0, 5000]),
+        scale1m = d3.scale.linear().range( [0, 1]).domain( [0, 60000]),
+        a = [     0, 10],
+        c = [ 10000, 10],
+        d = [ 60000, 60]
+
+    // NOTE: sampleUpdates() does not return 'a'.
+
+    expect( murts.constrainTime()).toBe(0)
+    murts.constrainTime( 9000)
+    expect( murts.constrainTime()).toBe(9000)
+
+    data = [ a, [ 5000, 10], [ 5001, 20], c ]
+    murts.pushPoints( data)
+
+    sample1s = murts.get( scale1s)
+    expect(sample1s.data.length).toBe( 3)
+    expect(sample1s.data).toEqual( [[ 5000, 10], [ 5001, 20], c ])
+    expect(sample1s.extents.x.values).toEqual( [5000, 10000])
+    expect(sample1s.extents.y.values).toEqual( [10, 20])
+
+
+    sample5s = murts.get( scale5s)
+    expect(sample5s.data.length).toBe( 3)
+    expect(sample5s.data).toEqual( [ [ 5000, 10], [ 5001, 20], c ])
+
+    murts.pushPoints( [d])
+
+    sample5s = murts.get( scale5s)
+    expect(sample5s.data.length).toBe( 1)
+    expect(sample5s.data).toEqual( [ d ])
+    expect(sample5s.extents.x.values).toEqual( [60000, 60000])
+    expect(sample5s.extents.y.values).toEqual( [60, 60])
+
+
+    sample1m = murts.get( scale1m)
+    expect(sample1m.data.length).toBe( 1)
+    expect(sample1m.data).toEqual( [ d ])
+    expect(sample1m.extents.x.values).toEqual( [60000, 60000])
+    expect(sample1m.extents.y.values).toEqual( [60, 60])
 
   })
 

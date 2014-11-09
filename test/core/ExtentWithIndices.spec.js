@@ -145,12 +145,22 @@ describe('trait.ExtentWithIndices', function() {
     expect(e.indices[0]).toBe(2)
     expect(e.indices[1]).toBe(1)
 
-    e.set( [1, 2])
+  });
+
+  it('union should work with undefined extents', function() {
+    var e = new d3.trait.ExtentWithIndices()
     e.union( [1, 2, 3])
     expect(e.values[0]).toBe(1)
     expect(e.values[1]).toBe(3)
     expect(e.indices[0]).toBe(0)
     expect(e.indices[1]).toBe(2)
+
+    e.reset()
+    e.union( [4, 5])
+    expect(e.values[0]).toBe(4)
+    expect(e.values[1]).toBe(5)
+    expect(e.indices[0]).toBe(0)
+    expect(e.indices[1]).toBe(1)
 
   });
 

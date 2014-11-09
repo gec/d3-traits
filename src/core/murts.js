@@ -275,14 +275,14 @@
    * @param sampled   True if data is sampled data
    * @constructor
    */
-  function Sampling( resolution, access, data, sampled) {
+  function Sampling( resolution, access, constraints, data, sampled) {
     this.resolution = resolution
     this.stepSize = resolutionMillis[ this.resolution]
     this.access = access
     this.data = data  // Murts.get() will key off undefined to initiate sampling.
     this.sampled = sampled
     this.extents = undefined  // {x: [], xIndices: [], y: [], yIndices: []}
-    this.constraints = { maxCount: undefined, maxTime: undefined}
+    this.constraints = constraints
     this.nextResolution = { higher: null, lower: null}
     this.lastRead = Date.now()
     this.resampling = {
@@ -356,68 +356,108 @@
   }
 
 
+  Sampling.prototype.constrainSize = function( size) {
+    if( size >= 0) {
+      this.constraints.size = size
+      this.applyConstraintsBeforePushPoints()
+    }
+  }
+
+  Sampling.prototype.constrainTime = function( time) {
+    if( time >= 0) {
+      this.constraints.time = time
+      this.applyConstraintsBeforePushPoints()
+    }
+  }
+
+  /**
+   * Shift the left most count of points off the data array.
+   * @param count
+   */
+  Sampling.prototype.shift = function( count) {
+    if( count >= this.data.length) {
+      this.data = []
+      this.extents.x.reset()
+      this.extents.y.reset()
+    } else {
+      this.data.splice( 0, count)
+      this.extents.x.shifted( this.data, count)
+      this.extents.y.shifted( this.data, count)
+    }
+  }
+
   Sampling.prototype.applyConstraintsBeforePushPoints = function( points) {
     var didConstrain = false
 
-    if( ! this.constraints || this.data === undefined)
-      return
+    var pendingLength = points ? points.length : 0,
+        currentLength = this.data ? this.data.length : 0
 
-    if( this.constraints.maxCount !== undefined && this.constraints.maxCount > 0) {
-      var totalCount = this.data.length + points.length
-      if( this.constraints.maxCount > totalCount) {
-        var removeCount = totalCount - this.constraints.maxCount,
-            removeFromDataCount = Math.min( this.data.length, removeCount),
-            removeFromPointsCount = removeCount - removeFromDataCount
-        if( removeFromDataCount > 0) {
-          this.data.splice( 0, removeFromDataCount)
-          this.extents.x.shifted( this.data, removeFromDataCount)
-          this.extents.y.shifted( this.data, removeFromDataCount)
-        }
-        if( removeFromPointsCount > 0)
-          points.splice( 0, removeFromPointsCount)
+    if( currentLength + pendingLength === 0)
+      return didConstrain
 
-        didConstrain = true
+    var shiftCurrent = 0, // amount of current data to shift off
+        shiftPending = 0  // If all current data is shifted, we might be shifting some pending as well.
+
+    // Constrain by size
+    //
+    if( this.constraints.size > 0) {
+      var totalLength = currentLength + pendingLength
+      if( this.constraints.size < totalLength) {
+        var shiftTotal = totalLength - this.constraints.size
+        shiftCurrent = Math.min( currentLength, shiftTotal),
+        shiftPending = shiftTotal - shiftCurrent
       }
     }
 
-    if( this.constraints.maxTime !== undefined && this.constraints.maxTime > 0) {
-      var pointsTimeMax = this.access.x( points[points.length]),
-          pointsTimeMin = this.access.x( points[0]),
-          dataTimeMax = this.data.length > 0 ? this.access.x( this.data[0]) : undefined,
-          dataTimeMin = this.data.length > 0 ? this.access.x( this.data[0]) : undefined,
-          timeCutoff = pointsTimeMax - this.constraints.maxTime
+    // If we're shifting all the data, do it now
+    if( currentLength > 0 && shiftCurrent === currentLength) {
+      this.shift( shiftCurrent)
+      currentLength = this.data.length
+      shiftCurrent = 0
+      didConstrain = true
+    }
 
-      if( (dataTimeMin && dataTimeMin < timeCutoff) || pointsTimeMin < timeCutoff) {
-        var index, count,
+    // Constrain by time
+    //
+    if( this.constraints.time > 0) {
+      var pendingTimeMax = pendingLength > 0 ? this.access.x( points[pendingLength-1]) : undefined,
+          pendingTimeMin = pendingLength > 0 ? this.access.x( points[0]) : undefined,
+          currentTimeMax = currentLength > 0 ? this.access.x( this.data[currentLength-1]) : undefined,
+          currentTimeMin = currentLength > 0 ? this.access.x( this.data[0]) : undefined,
+          timeCutoff = (pendingLength > 0 ? pendingTimeMax : currentTimeMax) - this.constraints.time
+
+      if( currentTimeMin < timeCutoff || pendingTimeMin < timeCutoff) {
+        var index,
             bisectLeft = d3.bisector(this.access.x).left
 
-        if( dataTimeMax < timeCutoff) {
+        if( currentTimeMax < timeCutoff) {
           // Remove all this.data and possibly some of points too.
-          this.data = []
-          this.extents.x.reset()
-          this.extents.y.reset()
-        } else if( dataTimeMin < timeCutoff)  {
-          // Remove some of this.data
-          index = Math.max( bisectLeft(this.data, timeCutoff), this.data.length - 1)
-          count = this.data.length - index
-          this.data.splice( index, count)
-          this.extents.x.shifted( this.data, count)
-          this.extents.y.shifted( this.data, count)
+          shiftCurrent = currentLength
+
+        } else if( currentTimeMin < timeCutoff)  {
+          // Remove some of this.data. Ignore anthing before shiftCurrent
+          index = Math.max( bisectLeft(this.data, timeCutoff, shiftCurrent), currentLength - 1)
+          shiftCurrent = Math.max( shiftCurrent, index)
         }
 
-        if( pointsTimeMin < timeCutoff){
-          // Remove some or all of this.data
-          // Find the correct index and splice this.data.
-          index = Math.max( bisectLeft(points, timeCutoff), this.data.length - 1)
-          points.splice( index, points.length - index)
+        if( pendingTimeMin < timeCutoff){
+          // Remove some or all of points. Never remove the last point, even if it's time is ancient.
+          // Find the correct index and splice points.
+          index = Math.max( bisectLeft(points, timeCutoff), currentLength - 2)
+          shiftPending = Math.max( shiftPending, index)
         }
-        didConstrain = true
       }
 
     }
 
-    //TODO: what about extents? Could save index of points used for current extents.
-    // if the index is one we're removing, we need to recalculate extents.
+    if( shiftCurrent > 0) {
+      this.shift( shiftCurrent)
+      didConstrain = true
+    }
+    if( shiftPending > 0) {
+      points.splice( 0, shiftPending)
+      didConstrain = true
+    }
 
     return didConstrain
   }
@@ -444,7 +484,7 @@
       var newDataIndex = this.data.length
       this.data = this.data.concat( points)
       if( this.extents) {
-        this.extents.x.set( this.data)
+        this.extents.x.union( this.data)
         this.extents.y.union( this.data, newDataIndex)
       } else {
         this.extents = {
@@ -504,7 +544,7 @@
 
     this.data = this.data.concat( s.data)
     if( this.extents && s.extents) {
-      this.extents.x.max(s.extents.x)
+      this.extents.x.union(s.extents.x)
       this.extents.y.union(s.extents.y)
     } else {
       this.extents = {
@@ -572,6 +612,10 @@
     var access = {
           x: function( d) { return d[0] },
           y: function( d) { return d[1] }
+        },
+        constraints = {
+          size: 0, // max size for Sampling data array. Zero for no constraint
+          time: 0  // max time before last time in data array. Zero for no constraint
         },
         samples = {}
 
@@ -651,8 +695,6 @@
      */
 
     function murtsDataStore() {
-      var self = murtsDataStore
-
     }
 
     /**
@@ -670,6 +712,40 @@
       return this
     }
 
+    /**
+     * Constrain the size of all Sampling data arrays.
+     *
+     * @param _size
+     * @returns this if no arguments; otherwise, it returns the current size constraint.
+     */
+    murtsDataStore.constrainSize = function ( size) {
+      if( !arguments.length ) return constraints.size
+      if( size >= 0) {
+        constraints.size = size
+        for( var res in samples) {
+          samples[res].constrainSize( constraints.size)
+        }
+      }
+      return this
+    }
+
+    /**
+     * Constrain the time of all Sampling data arrays to be no older that the last point's time.
+     *
+     * @param _size
+     * @returns this if no arguments; otherwise, it returns the current size constraint.
+     */
+    murtsDataStore.constrainTime = function ( time) {
+      if( !arguments.length ) return constraints.time
+      if( time >= 0) {
+        constraints.time = time
+        for( var res in samples) {
+          samples[res].constrainTime( constraints.time)
+        }
+      }
+      return this
+    }
+
 
     // TODO: remove sample from list of samples
 
@@ -677,7 +753,7 @@
       var r = resolution || SOURCE
       var c = samples[r]
       if( c === undefined){
-        c = new Sampling( r, access)
+        c = new Sampling( r, access, constraints)
         samples[r] = c
         linkSample( c)
       }
@@ -888,13 +964,10 @@
     var b, c,   // the three "buckets" (including 'a' which is passed in)
         maxAreaPoint,
         sourceIndexLast = source.length - 1,
-        aX = access.x( a),
-        aY = access.y( a),
         extents = {
-          x: new trait.ExtentWithIndicesSorted( aX, 0, aX, 0),
-          y: new trait.ExtentWithIndices( aY, 0, aY, 0)
+          x: new trait.ExtentWithIndicesSorted( [a], access.x),
+          y: new trait.ExtentWithIndices( [a], access.y)
         }
-
 
     // Find the first b. At the end of the following for loop, c becomes the next b.
     b = collectStep( source, sourceIndex, stepSize, nextStep, sourceIndexLast, access)

@@ -249,6 +249,10 @@
 
   ExtentWithIndices.prototype.reset = ExtentWithIndices_reset
 
+  ExtentWithIndices.prototype.access = function( access) {
+    this.access = access
+  }
+
   /**
    *
    * union( extentWithIndices)
@@ -272,12 +276,12 @@
       didExtend = this.union( newby)
     } else if( extentWithIndices instanceof ExtentWithIndices) {
       // Note: undefined on either side evaluates to false.
-      if( extentWithIndices.values[0] < this.values[0]) {
+      if( this.values[0] === undefined || extentWithIndices.values[0] < this.values[0]) {
         this.values[0] = extentWithIndices.values[0]
         this.indices[0] = extentWithIndices.indices[0]
         didExtend = true
       }
-      if( extentWithIndices.values[1] > this.values[1]) {
+      if( this.values[1] === undefined || extentWithIndices.values[1] > this.values[1]) {
         this.values[1] = extentWithIndices.values[1]
         this.indices[1] = extentWithIndices.indices[1]
         didExtend = true
