@@ -54,8 +54,8 @@
     if( trait.murts.utils.isDataStore( series)) {
       var sampling = series.get()
       return sampling.extents === undefined ? undefined
-        : access.axisChar === 'x' ? sampling.extents.x[0]
-        : sampling.extents.y[0]
+        : access.axisChar === 'x' ? sampling.extents.x.values[0]
+        : sampling.extents.y.values[0]
     } else {
       return d3.min( series, accessValue)
     }
@@ -64,8 +64,8 @@
     if( trait.murts.utils.isDataStore( series)) {
       var sampling = series.get()
       return sampling.extents === undefined ? undefined
-        : access.axisChar === 'x' ? sampling.extents.x[1]
-        : sampling.extents.y[1]
+        : access.axisChar === 'x' ? sampling.extents.x.values[1]
+        : sampling.extents.y.values[1]
     } else {
       return d3.max( series, accessValue)
     }
@@ -93,8 +93,8 @@
     if( trait.murts.utils.isDataStore( series)) {
       var sampling = series.get()
       return sampling.extents === undefined ? [undefined, undefined]
-        : access.axisChar === 'x' ? sampling.extents.x
-        : sampling.extents.y
+        : access.axisChar === 'x' ? sampling.extents.x.values
+        : sampling.extents.y.values
     } else {
       return d3.extent( series, access.value)
     }
