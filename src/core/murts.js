@@ -371,7 +371,8 @@
   }
 
   /**
-   * Shift the left most count of points off the data array.
+   * Shift the left most count of points off the data array and
+   * update extents.
    * @param count
    */
   Sampling.prototype.shift = function( count) {
@@ -386,7 +387,33 @@
     }
   }
 
+  /**
+   * Apply constraints before pushing new points. Constraints can be for
+   * time, size, or both. Both current data and new points may be shifted
+   * off. The extents are also updated.
+   *
+   * @param points
+   * @returns {boolean} True if constraints were applied to current or new points.
+   */
   Sampling.prototype.applyConstraintsBeforePushPoints = function( points) {
+
+    // ALGORITHM:
+    //   If there are new points
+    //     Use the last new point for the time constraint calculation.
+    //     Include the number of new points in the size constraint.
+    //
+    //   1. Find the amount to shift off using the size constraint.
+    //   2. Find the amount to shift off using the time constraint.
+    //   3. Find the max of time and size, then do the actual shift with that amount.
+    //   - The constraints may remove all current points and shift some of new points.
+    //   - Never remove the last point.
+    //
+    // Note: Could apply constraints after pushing points, but it's useful
+    // to have two sets of points to work with. If the current
+    // set of points can be shifted completely, that's a lot faster than
+    // concat, then shift off (for CPU and garbage collection).
+
+
     var didConstrain = false
 
     var pendingLength = points ? points.length : 0,
