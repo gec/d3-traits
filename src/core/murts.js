@@ -528,7 +528,7 @@
 
         } else if( currentTimeMin < timeCutoff)  {
           // Remove some of this.data. Ignore anthing before shiftCurrent
-          index = Math.max( bisectLeft(this.data, timeCutoff, shiftCurrent), currentLength - 1)
+          index = Math.min( bisectLeft(this.data, timeCutoff, shiftCurrent), currentLength - 1)
           shiftCurrent = Math.max( shiftCurrent, index)
           //console.log( 'Sampling.applyConstraintsBeforePushPoints ' + this.resolution + ' currentTimeMin < tc  shiftCurrent=' + shiftCurrent)
         }
@@ -536,7 +536,7 @@
         if( pendingTimeMin < timeCutoff){
           // Remove some or all of points. Never remove the last point, even if it's time is ancient.
           // Find the correct index and splice points.
-          index = Math.max( bisectLeft(points, timeCutoff), currentLength - 2)
+          index = Math.min( bisectLeft(points, timeCutoff), pendingLength - 1)
           shiftPending = Math.max( shiftPending, index)
           //console.log( 'Sampling.applyConstraintsBeforePushPoints ' + this.resolution + ' pendingTimeMin < tc  shiftPending=' + shiftPending)
         }
@@ -901,11 +901,13 @@
         if( source && source.data) {
           sampling.initialSample( source)
         } else {
-          if( ! source)
-            console.error( 'murts.get findHigherResolution( ' + sampling.resolution + ') -- no source data found to sample from')
-          else
-            console.error( 'murts.get findHigherResolution( ' + sampling.resolution + ') -- no data found in source')
           sampling.data = []
+          if( sampling.resolution !== SOURCE) {
+            if( ! source)
+              console.error( 'murts.get findHigherResolution( ' + sampling.resolution + ') -- no source data found to sample from')
+            else
+              console.error( 'murts.get findHigherResolution( ' + sampling.resolution + ') -- no data found in source')
+          }
         }
       }
 

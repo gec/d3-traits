@@ -343,7 +343,172 @@ describe('d3-traits.murts', function() {
 
   })
 
-  it('murts.dataStore should manage time constraints', function() {
+  describe( 'murts.dataStore time constraint', function() {
+    var data, sample1s, murts,
+        scale1s = d3.scale.linear().range( [0, 1]).domain( [0, 1000]),
+        p0 = [  0,  100],
+        p4 = [  4,  104],
+        p5 = [  5,  105],
+        p6 = [  6,  106],
+        p9 = [  9,  109],
+        p10 = [ 10, 110],
+        p11 = [ 11, 111],
+        p14 = [ 14, 114],
+        p15 = [ 15, 115],
+        p16 = [ 16, 116],
+        p19 = [ 19, 119],
+        p20 = [ 20, 120],
+        p21 = [ 21, 121],
+        p24 = [ 24, 124],
+        p25 = [ 25, 125],
+        p29 = [ 29, 129],
+        p30 = [ 30, 130],
+        p32 = [ 32, 132],
+        p35 = [ 35, 135],
+        p50 = [ 50, 150]
+
+    beforeEach(function() {
+      murts = d3.trait.murts.dataStore()
+      murts.constrainTime( 10)
+      sample1s = murts.get( scale1s)
+    })
+
+    it('should roll off in the middle', function() {
+
+      expect( murts.constrainTime()).toBe(10)
+      expect(sample1s.data.length).toBe( 0)
+
+      data = [ p0, p4, p5, p6, p9, p10 ]
+      murts.pushPoints( data)
+      expect(sample1s.data.length).toBe( 6)
+      expect(sample1s.data).toEqual( data)
+      expect(sample1s.extents.x.values).toEqual( [p0[0], p10[0]])
+      expect(sample1s.extents.y.values).toEqual( [p0[1], p10[1]])
+
+      murts.pushPoints( [p15])
+      expect(sample1s.data.length).toBe( 5)
+      expect(sample1s.data).toEqual( [ p5, p6, p9, p10, p15 ])
+      expect(sample1s.extents.x.values).toEqual( [p5[0], p15[0]])
+      expect(sample1s.extents.y.values).toEqual( [p5[1], p15[1]])
+
+    })
+
+    it('should roll off the first point', function() {
+
+      expect( murts.constrainTime()).toBe(10)
+      expect(sample1s.data.length).toBe( 0)
+
+      data = [ p0, p4, p5, p6, p9, p10 ]
+      murts.pushPoints( data)
+
+      murts.pushPoints( [p11])
+      expect(sample1s.data.length).toBe( 6)
+      expect(sample1s.data).toEqual( [ p4, p5, p6, p9, p10, p11 ])
+      expect(sample1s.extents.x.values).toEqual( [p4[0], p11[0]])
+      expect(sample1s.extents.y.values).toEqual( [p4[1], p11[1]])
+
+    })
+
+    it('should roll off most points', function() {
+
+      expect( murts.constrainTime()).toBe(10)
+      expect(sample1s.data.length).toBe( 0)
+
+      data = [ p0, p4, p5, p6, p9, p10 ]
+      murts.pushPoints( data)
+
+      murts.pushPoints( [p19])
+      expect(sample1s.data.length).toBe( 3)
+      expect(sample1s.data).toEqual( [ p9, p10, p19 ])
+      expect(sample1s.extents.x.values).toEqual( [p9[0], p19[0]])
+      expect(sample1s.extents.y.values).toEqual( [p9[1], p19[1]])
+
+    })
+
+    it('should roll off points except last', function() {
+
+      expect( murts.constrainTime()).toBe(10)
+      expect(sample1s.data.length).toBe( 0)
+
+      data = [ p0, p4, p5, p6, p9, p10 ]
+      murts.pushPoints( data)
+
+      murts.pushPoints( [p20])
+      expect(sample1s.data.length).toBe( 2)
+      expect(sample1s.data).toEqual( [ p10, p20 ])
+      expect(sample1s.extents.x.values).toEqual( [p10[0], p20[0]])
+      expect(sample1s.extents.y.values).toEqual( [p10[1], p20[1]])
+
+    })
+
+    it('should roll off all points', function() {
+
+      expect( murts.constrainTime()).toBe(10)
+      expect(sample1s.data.length).toBe( 0)
+
+      data = [ p0, p4, p5, p6, p9, p10 ]
+      murts.pushPoints( data)
+
+      murts.pushPoints( [p21])
+      expect(sample1s.data.length).toBe( 1)
+      expect(sample1s.data).toEqual( [ p21 ])
+      expect(sample1s.extents.x.values).toEqual( [p21[0], p21[0]])
+      expect(sample1s.extents.y.values).toEqual( [p21[1], p21[1]])
+
+    })
+
+    it('should roll off all points and one of pushed points', function() {
+
+      expect( murts.constrainTime()).toBe(10)
+      expect(sample1s.data.length).toBe( 0)
+
+      data = [ p0, p4, p5, p6, p9, p10 ]
+      murts.pushPoints( data)
+
+      murts.pushPoints( [p21, p24, p25, p29, p30, p32])
+      expect(sample1s.data.length).toBe( 5)
+      expect(sample1s.data).toEqual( [ p24, p25, p29, p30, p32 ])
+      expect(sample1s.extents.x.values).toEqual ( [p24[0], p32[0]])
+      expect(sample1s.extents.y.values).toEqual( [p24[1], p32[1]])
+
+    })
+
+    it('should roll off all points and half of pushed points', function() {
+
+      expect( murts.constrainTime()).toBe(10)
+      expect(sample1s.data.length).toBe( 0)
+
+      data = [ p0, p4, p5, p6, p9, p10 ]
+      murts.pushPoints( data)
+
+      murts.pushPoints( [p21, p24, p25, p29, p30, p32, p35])
+      expect(sample1s.data.length).toBe( 5)
+      expect(sample1s.data).toEqual( [ p25, p29, p30, p32, p35 ])
+      expect(sample1s.extents.x.values).toEqual ( [p25[0], p35[0]])
+      expect(sample1s.extents.y.values).toEqual( [p25[1], p35[1]])
+
+    })
+
+    it('should roll off all points and all but last of pushed points', function() {
+
+      expect( murts.constrainTime()).toBe(10)
+      expect(sample1s.data.length).toBe( 0)
+
+      data = [ p0, p4, p5, p6, p9, p10 ]
+      murts.pushPoints( data)
+
+      murts.pushPoints( [p21, p24, p25, p29, p30, p32, p35, p50])
+      expect(sample1s.data.length).toBe( 1)
+      expect(sample1s.data).toEqual( [ p50 ])
+      expect(sample1s.extents.x.values).toEqual ( [p50[0], p50[0]])
+      expect(sample1s.extents.y.values).toEqual( [p50[1], p50[1]])
+
+    })
+
+  })
+
+
+  it('murts.dataStore should manage time constraints with multiple resolutions', function() {
     var data, sample1s, sample5s, sample1m,
         murts = d3.trait.murts.dataStore(),
         scale1s = d3.scale.linear().range( [0, 1]).domain( [0, 1000]),
