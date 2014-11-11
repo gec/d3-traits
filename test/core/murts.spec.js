@@ -392,7 +392,7 @@ describe('d3-traits.murts', function() {
 
 
   it('murts.dataStore time constraints should not remove last point', function() {
-    var data, sample1s, sample5s, sample1m,
+    var data, sample1s, sample5s,
         murts = d3.trait.murts.dataStore(),
         scale1s = d3.scale.linear().range( [0, 1]).domain( [0, 1000]),
         scale5s = d3.scale.linear().range( [0, 1]).domain( [0, 5000]),
@@ -443,6 +443,79 @@ describe('d3-traits.murts', function() {
     expect(sample5s.extents.x.values).toEqual( [d[0], d[0]])
     expect(sample5s.extents.y.values).toEqual( [d[1], d[1]])
 
+  })
+
+  describe( 'murts.dataStore constraint throttling', function() {
+
+    beforeEach(function() {
+      timerCallback = jasmine.createSpy("timerCallback")
+      jasmine.clock().install()
+    })
+
+    afterEach(function() {
+      jasmine.clock().uninstall()
+    });
+
+    it('murts.dataStore time constraints should be throttled', function() {
+      var data, sample1s, sample5s,
+          murts = d3.trait.murts.dataStore(),
+          scale1s = d3.scale.linear().range( [0, 1]).domain( [0, 1000]),
+          scale5s = d3.scale.linear().range( [0, 1]).domain( [0, 5000]),
+          a = [     0, 10],
+          c = [ 10000, 10],
+          d = [ 60000, 60],
+          time = 1000
+
+      spyOn(Date, 'now').and.callFake(function() {
+        return time;
+      })
+
+      // NOTE: sampleUpdates() does not return 'a'.
+
+      murts.constrainTime( 1000)
+      murts.constrainThrottling( 1000)
+
+      data = [ a, [ 5000, 10], [ 5001, 20], c ]
+      murts.pushPoints( data)
+
+      sample1s = murts.get( scale1s)
+      sample5s = murts.get( scale5s)
+
+      expect(sample1s.data.length).toBe( 1)
+      expect(sample1s.data).toEqual( [c])
+      expect(sample1s.extents.x.values).toEqual( [c[0], c[0]])
+      expect(sample1s.extents.y.values).toEqual( [c[1], c[1]])
+
+      expect(sample5s.data.length).toBe( 1)
+      expect(sample5s.data).toEqual( [c])
+      expect(sample5s.extents.x.values).toEqual( [c[0], c[0]])
+      expect(sample5s.extents.y.values).toEqual( [c[1], c[1]])
+
+      expect(sample1s.throttling.timer).toBeUndefined()
+      murts.pushPoints( [d])
+
+      expect(sample1s.throttling.timer).toBeDefined()
+      expect(sample1s.data.length).toBe( 2)
+      expect(sample1s.data).toEqual( [c, d])
+
+      expect(sample5s.throttling.timer).toBeUndefined()  // because source <= 2
+      expect(sample5s.data.length).toBe( 1)
+      expect(sample5s.data).toEqual( [d])
+
+      time = 2001
+      jasmine.clock().tick(1001)
+
+      expect(sample1s.data.length).toBe( 1)
+      expect(sample1s.data).toEqual( [d])
+      expect(sample1s.extents.x.values).toEqual( [d[0], d[0]])
+      expect(sample1s.extents.y.values).toEqual( [d[1], d[1]])
+
+      expect(sample5s.data.length).toBe( 1)
+      expect(sample5s.data).toEqual( [d])
+      expect(sample5s.extents.x.values).toEqual( [d[0], d[0]])
+      expect(sample5s.extents.y.values).toEqual( [d[1], d[1]])
+
+    })
   })
 
   it('murts.dataStore should call onUpdate handler', function() {
