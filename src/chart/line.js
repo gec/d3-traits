@@ -111,14 +111,14 @@
         return maxIndex + direction >= data.length ? data.length - 1 : maxIndex + direction
     }
 
-    function getDataInRange(data, scale, access) {
-      var indexMin, indexMax,
+    function getDataInRange(series, scale, access) {
+      var indexMin, indexMax, data,
           range = scale.range(),
           rangeMax = d3.trait.utils.extentMax(range),
           domainMin = scale.invert(range[0]),
           domainMax = scale.invert(rangeMax)
 
-      data = trait.murts.utils.getOrElse( data, scale)
+      data = trait.murts.utils.getOrElse( series, scale)
       //console.log( 'chartLine: getDataInRange: data.length: ' + data.length + ' res: ' + scale.resolution())
 
       indexMin = findClosestIndex(data, access, domainMin, -1)
