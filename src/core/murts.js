@@ -616,22 +616,30 @@
   }
 
   Sampling.prototype.sampleUpdatesFromSource = function() {
-    var source = this.resampling.source,
+    var saveLength,
+        source = this.resampling.source,
         length = this.data.length,
         pushedCount = 0
 
     //console.log( 'Sampling.sampleUpdatesFromSource ' + this.resolution + ' BEGIN  length ' + length)
     if( length <= 2) {
+      saveLength = length
       this.initialSample( source)
-      return this.data.length
+      return this.data.length - saveLength
     }
 
     var stepStart = this.resampling.nextStep - this.stepSize
     var sourceIndex = this.findIndexOfStepStartFromEnd( source.data, stepStart, this.resampling.unsampledCount)
     var sampledIndex = this.findIndexOfStepStartFromEnd( this.data, stepStart)
 
-    // Remove the last and, possibly, the second to last samples.
+    // Remove the last points that need to be resampled.
     this.data.splice( sampledIndex, length - sampledIndex)
+
+    if( this.data.length <= 2) {
+      saveLength = length
+      this.initialSample( source)
+      return this.data.length - saveLength
+    }
 
     var a = this.data[this.data.length-1],
         s = sampleUpdates( source.data, sourceIndex, a, this.stepSize, this.resampling.nextStep, this.access)
@@ -680,23 +688,26 @@
       return
 
     var source = this.resampling.source,
-        pushed = 0
+        thisPushedCount = 0
 
     if( this.nextResolution.higher === source) {
       this.resampling.unsampledCount += pushedCount
 
       // if source's latest point is beyond our nextStep
       if( source && source.extents && source.extents.x.values[1] >= this.resampling.nextStep) {
-        pushed = this.sampleUpdatesFromSource()
+        thisPushedCount = this.sampleUpdatesFromSource()
       }
 
     } else {
       this.initialSample( this.nextResolution.higher)
-      pushed = pushedCount
+      thisPushedCount = this.data.length
     }
 
-    if( pushed > 0)
+    if( thisPushedCount > 0) {
       this.notify( 'update')
+      if( this.nextResolution.lower)
+        this.nextResolution.lower.sourceUpdated( thisPushedCount)
+    }
 
   }
 

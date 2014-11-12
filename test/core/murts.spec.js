@@ -296,6 +296,48 @@ describe('d3-traits.murts', function() {
     expect(sample1m.extents.y.values).toEqual( [10, 60])
 
   })
+
+  it('murts.dataStore should push new points and update lower resolution samples after starting with no data', function() {
+    var data, sample1s, sample5s, sample1m,
+        murts = d3.trait.murts.dataStore(),
+        scale1s = d3.scale.linear().range( [0, 1]).domain( [0, 1000]),
+        scale5s = d3.scale.linear().range( [0, 1]).domain( [0, 5000]),
+        scale1m = d3.scale.linear().range( [0, 1]).domain( [0, 60000]),
+        a = [     0, 10],
+        c = [ 10000, 10],
+        d = [ 60000, 60]
+
+    sample1s = murts.get()
+    sample5s = murts.get(scale5s)
+    sample1m = murts.get(scale1m)
+
+    expect( sample1s.resolution).toBe('1s')
+    expect( sample5s.resolution).toBe('5s')
+    expect( sample1m.resolution).toBe('1m')
+
+    data = [ a, [ 5000, 10], [ 5001, 20], c ]
+    murts.pushPoints( data)
+    expect(sample1s.data.length).toBe( 4)
+    expect(sample1s.data).toEqual( data)
+    expect(sample1s.extents.x.values).toEqual( [0, 10000])
+    expect(sample1s.extents.y.values).toEqual( [10, 20])
+    expect(sample5s.data.length).toBe( 3)
+    expect(sample5s.data).toEqual( [ a, [ 5001, 20], c ])
+    expect(sample5s.extents.x.values).toEqual( [0, 10000])
+    expect(sample5s.extents.y.values).toEqual( [10, 20])
+    expect(sample1m.data.length).toBe( 3)
+
+    murts.pushPoints( [d])
+    expect(sample5s.data.length).toBe( 4)
+    expect(sample5s.data).toEqual( [ a, [ 5001, 20], c, d ])
+    expect(sample5s.extents.x.values).toEqual( [0, 60000])
+    expect(sample5s.extents.y.values).toEqual( [10, 60])
+    expect(sample1m.data.length).toBe( 3)
+    expect(sample1m.data).toEqual( [ a, c, d ])
+    expect(sample1m.extents.x.values).toEqual( [0, 60000])
+    expect(sample1m.extents.y.values).toEqual( [10, 60])
+  })
+
   it('murts.dataStore should manage size constraints', function() {
     var data, sample1s, sample5s, sample1m,
         murts = d3.trait.murts.dataStore(),
