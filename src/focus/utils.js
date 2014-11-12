@@ -71,40 +71,45 @@
    * @param isDataStacked  T: This is an area plot with access.y(d) and d.y0. F: Use access.y(d)
    * @returns Array of focus objects
    */
-  function getFocusItems( data, focusPoint, focusConfig, access, x, y, color, isDataStacked) {
+  function getFocusItems( filteredSeries, focusPoint, focusConfig, access, x, y, color, isDataStacked) {
     var foci = [],
         targetDomain = new d3.trait.Point(x.invert(focusPoint.x), y.invert(focusPoint.y)),
         bisectLeft = d3.bisector(access.x).left,
         getRangePoint = isDataStacked ? getRangePointStacked : getRangePointNormal
 
-    data.forEach(function(series, seriesIndex, array) {
-      var found, alterIndex,
-          data = trait.murts.utils.getOrElse( access.seriesData(series), x),
-          // search the domain for the closest point in x
-          index = bisectLeft(data, targetDomain.x)
+    filteredSeries.forEach(function(series, seriesIndex, array) {
+      var found, alterIndex, index,
+          seriesData = trait.murts.utils.getOrElse( access.seriesData(series), x)
 
-      if( index >= data.length )
-        index = data.length - 1
-      found = getFocusItem(series, data, index, access, x, y, getRangePoint, focusPoint)
+      if( seriesData.length > 0) {
 
-      alterIndex = found.index - 1
-      if( alterIndex >= 0 ) {
-        var alter = getFocusItem(series, data, alterIndex, access, x, y, getRangePoint, focusPoint)
-        // console.log( "found x=" + access.x( found.item) + " y=" + access.y( found.item) + " d=" + found.distance + "  " + targetDomain.x + " " + targetDomain.y)
-        // console.log( "alter x=" + access.x( alter.item) + " y=" + access.y( alter.item) + " d=" + alter.distance + "  " + targetDomain.x + " " + targetDomain.y)
-        if( focusConfig.axis === 'x' ) {
-          if( alter.distanceX < found.distanceX )
-            found = alter
-        } else {
-          if( alter.distance < found.distance )
-            found = alter
+        // search the domain for the closest point in x
+        index = bisectLeft(seriesData, targetDomain.x)
+
+        if( index >= seriesData.length )
+          index = seriesData.length - 1
+        found = getFocusItem(series, seriesData, index, access, x, y, getRangePoint, focusPoint)
+
+        alterIndex = found.index - 1
+        if( alterIndex >= 0 ) {
+          var alter = getFocusItem(series, seriesData, alterIndex, access, x, y, getRangePoint, focusPoint)
+          // console.log( "found x=" + access.x( found.item) + " y=" + access.y( found.item) + " d=" + found.distance + "  " + targetDomain.x + " " + targetDomain.y)
+          // console.log( "alter x=" + access.x( alter.item) + " y=" + access.y( alter.item) + " d=" + alter.distance + "  " + targetDomain.x + " " + targetDomain.y)
+          if( focusConfig.axis === 'x' ) {
+            if( alter.distanceX < found.distanceX )
+              found = alter
+          } else {
+            if( alter.distance < found.distance )
+              found = alter
+          }
+        }
+
+        if( withinFocusDistance( found, focusConfig) ) {
+          found.color = color(series)
+          foci.push(found)
         }
       }
 
-      if( withinFocusDistance( found, focusConfig) ) {
-        found.color = color(series)
-        foci.push(found)
-      }
     })
 
     return foci
