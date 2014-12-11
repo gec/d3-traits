@@ -23,7 +23,8 @@
   var chartGroupClipPathNextId = 1,
       debug = {
         layoutAxes: false,
-        resize: false
+        resize: false,
+        invalidate: false
       }
 
 
@@ -522,21 +523,23 @@
      * Remove everything that was added to element.
      */
     chartBase.remove = function() {
-      selection.each(function(_data) {
-        var element = this // the div element
+      if( selection) {
+        selection.each(function(_data) {
+          var element = this // the div element
 
-        if( element._svg ) {
-          element._svg.remove();
-          delete element._svg;
-          delete element._svgDefs;
-          delete element._container;
-          delete element._chartGroup;
-          delete element._chartGroupClipPath;
-          delete element._chartGroupClipPathRect;
-          delete element.__onFocusChangeListeners;
-          delete element.__onChartMouseOutListeners;
-        }
-      })
+          if( element._svg ) {
+            element._svg.remove();
+            delete element._svg;
+            delete element._svgDefs;
+            delete element._container;
+            delete element._chartGroup;
+            delete element._chartGroupClipPath;
+            delete element._chartGroupClipPathRect;
+            delete element.__onFocusChangeListeners;
+            delete element.__onChartMouseOutListeners;
+          }
+        })
+      }
 
     };
 
@@ -776,8 +779,8 @@
 
     function invalidateDoUpdate( type, duration) {
       var now = Date.now()
-
-      console.log( 'invalidateDoUpdate count: ' + invalidate.count + ', timeSince: ' + (now - invalidate.lastTime))
+      if( debug.invalidate)
+        console.log( 'invalidateDoUpdate count: ' + invalidate.count + ', timeSince: ' + (now - invalidate.lastTime))
       invalidate.count = 0
       invalidate.lastTime = Date.now()
       chartBase.update( type, duration)
