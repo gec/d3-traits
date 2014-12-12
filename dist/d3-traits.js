@@ -1,4 +1,4 @@
-/*! d3-traits - v0.0.1 - 2014-09-19
+/*! d3-traits - v0.0.1 - 2014-12-12
 * https://github.com/gec/d3-traits
 * Copyright (c) 2014 d3-traits; Licensed ,  */
 (function(d3) {
@@ -716,6 +716,309 @@
     this.origin.y += point.y
   }
 
+  function ExtentWithIndices_reset() {
+    this.values = [undefined, undefined]
+    this.indices = [undefined, undefined]
+  }
+
+  function ExtentWithIndices_set( array, offset) {
+    var i = offset === undefined ? -1 : offset - 1,
+        n = array.length,
+        a, ai,
+        b,
+        c, ci,
+        f = this.access;
+
+    if( f === undefined) {
+      while (++i < n && !((a = c = array[i]) != null && a <= a)) a = c = undefined;
+      if( a !== undefined)
+        ai = ci = i
+      while (++i < n) if ((b = array[i]) != null) {
+        if (a > b) {a = b; ai = i}
+        if (c < b) {c = b; ci = i}
+      }
+    } else {
+      while (++i < n && !((a = c = f.call(array, array[i], i)) != null && a <= a)) a = undefined;
+      if( a !== undefined)
+        ai = ci = i
+      while (++i < n) if ((b = f.call(array, array[i], i)) != null) {
+        if (a > b) {a = b; ai = i}
+        if (c < b) {c = b; ci = i}
+      }
+    }
+    this.values = [a, c]
+    this.indices = [ai, ci]
+  }
+
+  /**
+   * ExtentWithIndices()
+   * ExtentWithIndices( array, access)
+   * ExtentWithIndices( array, access, offset)
+   * ExtentWithIndices( min, minIndex, max, maxIndex)
+   *
+   * @param min
+   * @param minIndex
+   * @param max
+   * @param maxIndex
+   * @constructor
+   */
+  function ExtentWithIndices_init( min, minIndex, max, maxIndex) {
+
+    switch( arguments.length) {
+      case 0:
+        ExtentWithIndices_reset.call(this)
+        this.access = undefined
+        break;
+      case 4:
+        this.values = [min, max]
+        this.indices = [minIndex, maxIndex]
+        break;
+      default:
+        this.access = minIndex
+        ExtentWithIndices_set.call( this, min, max)
+    }
+  }
+
+
+  /**
+   * ExtentWithIndices()
+   * ExtentWithIndices( array, f)
+   * ExtentWithIndices( min, minIndex, max, maxIndex)
+   *
+   * @param array
+   * @param f
+   * @constructor
+   */
+  function ExtentWithIndices() {
+    ExtentWithIndices_init.apply( this, arguments)
+  }
+
+//  ExtentWithIndices.prototype.constructor = ExtentWithIndices
+  ExtentWithIndices.prototype.set = ExtentWithIndices_set
+
+  ExtentWithIndices.prototype.reset = ExtentWithIndices_reset
+
+  ExtentWithIndices.prototype.access = function( access) {
+    this.access = access
+  }
+
+  /**
+   *
+   * union( extentWithIndices)
+   * union( array, offset)
+   * union( minOrMaxValue, valueIndex)
+   *
+   * @param extentWithIndices
+   * @param offset
+   * @returns {boolean}
+   */
+  ExtentWithIndices.prototype.union = function( extentWithIndices, offset) {
+    var didExtend = false
+
+    if( arguments.length === 0)
+      return didExtend
+
+    if( Array.isArray( extentWithIndices)) {
+      // Need to call the constructor of 'this' class.
+      var thisProto = Object.getPrototypeOf( this),
+          newby = new thisProto.constructor(extentWithIndices, this.access, offset)
+      didExtend = this.union( newby)
+    } else if( extentWithIndices instanceof ExtentWithIndices) {
+      // Note: undefined on either side evaluates to false.
+      if( this.values[0] === undefined || extentWithIndices.values[0] < this.values[0]) {
+        this.values[0] = extentWithIndices.values[0]
+        this.indices[0] = extentWithIndices.indices[0]
+        didExtend = true
+      }
+      if( this.values[1] === undefined || extentWithIndices.values[1] > this.values[1]) {
+        this.values[1] = extentWithIndices.values[1]
+        this.indices[1] = extentWithIndices.indices[1]
+        didExtend = true
+      }
+    } else {
+      var v = extentWithIndices,
+          i = offset
+
+      if( v < this.values[0]) {
+        this.values[0] = v
+        this.indices[0] = i
+        didExtend = true
+      }
+      if( v > this.values[1]) {
+        this.values[1] = v
+        this.indices[1] = i
+        didExtend = true
+      }
+    }
+
+
+    return didExtend
+  }
+
+  ExtentWithIndices.prototype.shifted = function( data, count) {
+    this.indices[0] -= count
+    this.indices[1] -= count
+
+    if( isNaN( this.indices[0]) || this.indices[0] < 0 ||
+        isNaN( this.indices[1]) || this.indices[1] < 0) {
+      this.set( data)
+    }
+  }
+
+//  /**
+//   * extendMax( array)
+//   * extendMax( array, offset)
+//   * extendMax( max, maxIndex)
+//   *
+//   * @param max
+//   * @param maxIndex
+//   * @returns {boolean}
+//   */
+//  ExtentWithIndices.prototype.max = function( max, maxIndex) {
+//    var v, i
+//
+//    if( Array.isArray( max)) {
+//      //TODO: do the max with offset
+//      i = max.length - 1
+//      if( i >= 0)
+//        v = this.access !== undefined ? this.access.call( this, max[i], i) : max[i]
+//    } else {
+//      v = max
+//      i = maxIndex
+//    }
+//
+//    // Note: undefined on either side evaluates to false.
+//    if( i >= 0 && v > this.values[i]) {
+//      this.values[1] = v
+//      this.indices[1] = i
+//      return true
+//    } else
+//      return false
+//  }
+//
+//  /**
+//   * setMax( array)
+//   * setMax( max, maxIndex)
+//   *
+//   * @param max New max extent
+//   * @param maxIndex New index of max extent
+//   */
+//  ExtentWithIndices.prototype.setMax = function( max, maxIndex) {
+//    var v, i
+//
+//    if( Array.isArray( max)) {
+//      i = max.length - 1
+//      if( i >= 0)
+//        v = this.access !== undefined ? this.access.call( this, max[i], i) : max[i]
+//    } else {
+//      v = max
+//      i = maxIndex
+//    }
+//
+//    this.values[1] = v
+//    this.indices[1] = i
+//  }
+//
+//  /**
+//   * setMin( array)
+//   * setMin( min, minIndex)
+//   *
+//   * @param min New min extent
+//   * @param minIndex New index of min extent
+//   */
+//  ExtentWithIndices.prototype.setMin = function( min, minIndex) {
+//    var v, i
+//
+//    if( Array.isArray( min)) {
+//      i = 0
+//      if( min.length > 0)
+//        v = this.access !== undefined ? this.access.call( this, min[i], i) : min[i]
+//    } else {
+//      v = min
+//      i = minIndex
+//    }
+//
+//    this.values[1] = v
+//    this.indices[1] = i
+//  }
+
+
+  function ExtentWithIndicesSorted_set( array) {
+    if( ! array)
+      return
+
+    var a, c,
+        f = this.access,
+        last = array.length - 1
+
+    if( f !== undefined)
+      this.access = f
+
+    if( last < 0) {
+      ExtentWithIndices_reset.call(this)
+    } else {
+      a = f === undefined ? array[0] : this.access.call( array, array[0], 0)
+      c = f === undefined ? array[last] : this.access.call( array, array[last], last)
+      this.values = [a, c]
+      this.indices = [0, last]
+    }
+  }
+
+  function ExtentWithIndicesSorted( min, minIndex, max, maxIndex) {
+    switch( arguments.length) {
+      case 0:
+        ExtentWithIndices_reset.call(this)
+        this.access = undefined
+        break;
+      case 4:
+        this.values = [min, max]
+        this.indices = [minIndex, maxIndex]
+        break;
+      default:
+        this.access = minIndex
+        ExtentWithIndicesSorted_set.call( this, min)
+    }
+  }
+  ExtentWithIndicesSorted.prototype = new ExtentWithIndices()
+  ExtentWithIndicesSorted.prototype.constructor = ExtentWithIndicesSorted
+  ExtentWithIndicesSorted.prototype.set = ExtentWithIndicesSorted_set
+
+  /**
+   * extendMax( array)
+   * extendMax( extentWithIndices)
+   * extendMax( max, maxIndex)
+   *
+   * @param max If max is greater than old max, use it for max extent
+   * @param maxIndex Index of new max (if max > current max)
+   * @returns {boolean} True: The extent was extended.
+   */
+  ExtentWithIndicesSorted.prototype.max = function( max, maxIndex) {
+    var v, i
+
+    if( Array.isArray( max)) {
+      i = max.length - 1
+      if( i >= 0)
+        v = this.access !== undefined ? this.access.call( this, max[i], i) : max[i]
+    } else if( max instanceof ExtentWithIndices) {
+      v = max.values[1]
+      i = max.indices[1]
+    } else {
+      v = max
+      i = maxIndex
+    }
+
+    // Note: undefined on either side evaluates to false.
+    if( i >= 0 && (this.values[1] === undefined || v > this.values[1])) {
+      this.values[1] = v
+      this.indices[1] = i
+      return true
+    } else
+      return false
+  }
+
+
+
+
 //  Rect.prototype.fitInColumn = function(x, colWidth) {
 //
 //    if( this.anchor.x === 0) {
@@ -737,6 +1040,8 @@
   trait.Size = Size
   trait.Margin = Margin
   trait.Rect = Rect
+  trait.ExtentWithIndices = ExtentWithIndices
+  trait.ExtentWithIndicesSorted = ExtentWithIndicesSorted
 
 }(d3, d3.trait));
 
@@ -849,6 +1154,1198 @@
 
   trait.config.axes = axes
   trait.config.accessorsXY = accessorsXY
+
+}(d3, d3.trait));
+
+(function (d3, trait) {
+
+  var SOURCE = '1s',
+      seconds = 1000,
+      minutes = 60 * seconds,
+      hours = 60 * minutes,
+      days = 24 * hours,
+      weeks = 7 * days,
+      months = 30 * days,
+      years = 365 * days,  // don't use 365.25 so matches '1y' when == 365
+      resolutions = [ SOURCE, '5s', '15s', '30s', '1m', '5m', '15m', '30m', '1h', '6h', '12h', '1d', '1w', '1mo', '1y'],
+      resolutionMillis = {
+        '1s': 1 * seconds,
+        '5s':  5 * seconds,
+        '15s': 15 * seconds,
+        '30s': 30 * seconds,
+         '1m':  1 * minutes,
+         '5m':  5 * minutes,
+        '15m': 15 * minutes,
+        '30m': 30 * minutes,
+        '12h': 12 * hours,
+         '6h':  6 * hours,
+         '1h':  1 * hours,
+         '1d':  1 * days,
+         '1w':  1 * weeks,
+        '1mo':  1 * months,
+         '1y':  1 * years + 0.25 * days
+      }
+
+  /**
+   * Map a continuum of steps to discrete list of resolutions. Don't want to have samples for
+   * 5.1s, 5.125s, etc. Just want anything close the 5s to be mapped to 5s.
+   *
+   * @param step Number of milliseconds in the resolution.
+   * @returns {*}
+   */
+  function mapResolutionFromStep( step) {
+
+    if( step === undefined || step === null)
+      return undefined
+    if( step <= 0)
+      return SOURCE
+
+    var res = SOURCE
+
+    if( step < hours) {
+      if( step < minutes) {
+        res =  step <= 3 * seconds ? '1s'
+          : step <= 12 * seconds ? '5s'
+          : step <= 24 * seconds ? '15s'
+          : '30s'
+      } else { // 1m to 30m
+        res =  step <= 3 * minutes ? '1m'
+          : step <= 12 * minutes ? '5m'
+          : step <= 24 * minutes ? '15m'
+          : '30m'
+      }
+    } else {
+      if( step < days) {
+        res =  step <= 4 * hours ? '1h'
+          : step <= 9 * hours ? '6h'
+          : '12h'
+      } else if( step <= 6 * days) {
+        res = '1d'
+      } else if( step <= 3 * weeks) {
+        res = '1w'
+      } else if( step <= 10 * months) {
+        res = '1mo'
+      } else {
+        res = '1y'
+      }
+    }
+
+    return res
+  }
+
+  function calculateResolution( scale) {
+
+    var range, domainMin
+
+    range= scale.range()
+    if( ! range)
+      return undefined
+
+    domainMin = scale.invert(range[0])
+    if( isNaN( domainMin))
+      return undefined
+
+    var rangeMax = d3.trait.utils.extentMax(range),
+        rangeSpan = Math.abs( rangeMax - range[0]),
+        domainMax = scale.invert(rangeMax),
+        domainSpan = Math.abs( domainMax - domainMin),
+        step = domainSpan / rangeSpan
+
+    return mapResolutionFromStep( step)
+  }
+
+
+  var d3Scale = {
+
+    time: d3.time.scale,
+    linear: d3.scale.linear,
+//    ordinal: d3.scale.ordinal,  TODO: How do ordinal scales have multiple resolutions? Could this be used for buckets?
+    identity: d3.scale.identity
+  }
+
+
+  /**
+   * Add resolution() function to d3.time.scale and keep track of when resolution has to
+   * be recalculated.
+   *
+   * @returns enhanced d3.time.scale
+   */
+  d3.time.scale = function() {
+    var resolution,
+        scale = d3Scale.time(),
+        range = scale.range,
+        rangeRound = scale.rangeRound,
+        domain = scale.domain
+
+    scale.range = function( values) {
+      if( !arguments.length ) return range()
+      range(values)
+      resolution = undefined
+      return this
+    }
+    scale.rangeRound = function( values) {
+      if( !arguments.length ) return rangeRound()
+      rangeRound(values)
+      resolution = undefined
+      return this
+    }
+    scale.domain = function( values) {
+      if( !arguments.length ) return domain()
+      domain(values)
+      resolution = undefined
+      return this
+    }
+
+    scale.resolution = function( res) {
+      if( !arguments.length ) {
+        if( resolution === undefined)
+          resolution = calculateResolution( scale)
+        return resolution
+      }
+
+      if( resolutions.indexOf( res) >= 0)
+        resolution = res
+
+      return this
+    }
+
+    return scale
+  }
+
+  /**
+   * Add resolution() function to d3.scale.linear and keep track of when resolution has to
+   * be recalculated.
+   *
+   * @returns enhanced d3.scale.linear
+   */
+  d3.scale.linear = function() {
+    var resolution,
+        scale = d3Scale.linear(),
+        range = scale.range,
+        rangeRound = scale.rangeRound,
+        domain = scale.domain
+
+    scale.range = function( values) {
+      if( !arguments.length ) return range()
+      range(values)
+      resolution = undefined
+      return this
+    }
+    scale.rangeRound = function( values) {
+      if( !arguments.length ) return rangeRound()
+      rangeRound(values)
+      resolution = undefined
+      return this
+    }
+    scale.domain = function( values) {
+      if( !arguments.length ) return domain()
+      domain(values)
+      resolution = undefined
+      return this
+    }
+
+    scale.resolution = function( res) {
+      if( !arguments.length ) {
+        if( resolution === undefined)
+          resolution = calculateResolution( scale)
+        return resolution
+      }
+
+      if( resolutions.indexOf( res) >= 0)
+        resolution = res
+
+      return this
+    }
+
+    return scale
+  }
+
+  /**
+   * Add resolution() function to d3.scale.identity and keep track of when resolution has to
+   * be recalculated.
+   *
+   * @returns enhanced d3.scale.identity
+   */
+  d3.scale.identity = function() {
+    var resolution,
+        scale = d3Scale.identity(),
+        range = scale.range,
+        rangeRound = scale.rangeRound,
+        domain = scale.domain
+
+    scale.range = function( values) {
+      if( !arguments.length ) return range()
+      range(values)
+      resolution = undefined
+      return this
+    }
+    scale.domain = function( values) {
+      if( !arguments.length ) return domain()
+      domain(values)
+      resolution = undefined
+      return this
+    }
+
+    scale.resolution = function( res) {
+      if( !arguments.length ) {
+        if( resolution === undefined)
+          resolution = calculateResolution( scale)
+        return resolution
+      }
+
+      if( resolutions.indexOf( res) >= 0)
+        resolution = res
+
+      return this
+    }
+
+    return scale
+  }
+
+
+  /**
+   * Sampling is a time-series data store for a single resolution. It may be sampled data
+   * or raw source data.
+   *
+   * @param resolution
+   * @param access
+   * @param data      Data or undefined
+   * @param sampled   True if data is sampled data
+   * @constructor
+   */
+  function Sampling( resolution, access, constraints, data, sampled) {
+    this.resolution = resolution
+    this.stepSize = resolutionMillis[ this.resolution]
+    this.access = access      // Not a copy. Access always the same across Samples.
+    this.data = data          // Murts.get() will key off undefined to initiate sampling.
+    this.sampled = sampled    // true if sampled.
+    // TODO: If we get data in this constructor, shouldn't we calculate the extents?
+    this.extents = undefined  // {x: [], xIndices: [], y: [], yIndices: []}
+    this.constraints = {
+      time: constraints.time,
+      size: constraints.size
+    }
+    this.throttling = {
+      time: constraints.throttling,
+      last: 0,
+      timer: undefined
+    }
+    this.nextResolution = { higher: null, lower: null}
+    this.lastRead = Date.now()
+    this.resampling = {
+      nextStep: 0,
+      source: undefined,
+      unsampledCount:0
+    }
+    this.onHandlers = {
+      update: []
+    }
+  }
+
+  var nullFunction = function() {}
+
+  /**
+   * Register for event. The only event right now is 'update', but we may add more.
+   *
+   * @param event 'update' for now.
+   * @param handler Function to be called when event occurs. Example call: handler( 'update', Sampling.data, Sampling)
+   * @returns deregister function. Call deregister with no arguments to deregister.
+   */
+  Sampling.prototype.on = function( event, handler) {
+    var handlers, deregister
+
+    if( ! this.onHandlers.hasOwnProperty( event))
+      this.onHandlers[event] = []
+
+    handlers = this.onHandlers[event]
+    var index = handlers.indexOf( handler)
+    if( index < 0) {
+      handlers.push( handler)
+
+      deregister = function() {
+        var i = handlers.indexOf( handler)
+        if( i >= 0)
+          handlers.splice( i, 1)
+      }
+    } else {
+      deregister = nullFunction
+    }
+
+    return deregister
+  }
+
+  Sampling.prototype.notify = function( type) {
+    var self = this
+    this.onHandlers.update.forEach( function( handler) {
+      handler( type, self.data, self)
+    })
+
+  }
+
+  Sampling.prototype.extendNextStepPastExtent = function() {
+    if( ! this.extents)  // No data, so no extents.
+      return
+
+    var maxX = this.extents.x.values[1]
+
+    // If the last point is beyond nextStep, advance nextStep to one step beyond.
+    if( maxX >= this.resampling.nextStep) {
+      var jump = maxX - this.resampling.nextStep,
+          steps = Math.floor( jump / this.stepSize) + 1
+      this.resampling.nextStep += steps * this.stepSize
+    }
+  }
+
+  Sampling.prototype.initialSample = function( source) {
+    var s = sample( source.data, this.stepSize, this.access)
+    this.data = s.data
+    this.extents = s.extents
+    this.sampled = true
+    this.resampling.nextStep = s.nextStep
+    this.resampling.source = source
+    this.resampling.unsampledCount = 0
+
+    if( this.data.length > 0)
+      this.extendNextStepPastExtent()
+
+    this.applyConstraintsBeforePushPoints()
+  }
+
+
+  Sampling.prototype.constrainSize = function( size) {
+    if( size >= 0) {
+      this.constraints.size = size
+      if( this.applyConstraintsBeforePushPoints())
+        this.notify( 'constrained')
+    }
+  }
+
+  Sampling.prototype.constrainTime = function( time) {
+    if( time >= 0) {
+      this.constraints.time = time
+      if( this.applyConstraintsBeforePushPoints())
+        this.notify( 'constrained')
+    }
+  }
+
+  Sampling.prototype.constrainThrottling = function( time) {
+    if( this.throttling.time >= 0) {
+      this.throttling.time = time
+    }
+  }
+
+  Sampling.prototype.delayConstraints = function( now) {
+    if( this.throttling.timer) {
+      //console.log( 'Sampling.delayConstraints ' + this.resolution + ' this.throttling.timer exists; return')
+      return true
+
+    }
+
+    if( this.throttling.time > 0 && this.throttling.last + this.throttling.time > now) {
+      var self = this,
+          todo = function() {
+            self.throttling.timer = undefined
+            //console.log( 'Sampling.delayConstraints ' + self.resolution + ' TIMER WAKEUP')
+            if( self.applyConstraintsBeforePushPoints())
+              self.notify( 'constrained')
+          },
+          delay = this.throttling.last + this.throttling.time - now + 1
+      //console.log( 'Sampling.delayConstraints ' + this.resolution + ' TIMER CREATE throttling.last:'+this.throttling.last+' + throttling.time:'+this.throttling.time+' = '+(this.throttling.last + this.throttling.time)+'>  now:' + now + ', delay=' + delay)
+      this.throttling.timer = setTimeout( todo, delay)
+      return true
+    } //else
+      //console.log( 'Sampling.delayConstraints ' + this.resolution + ' throttling.last:'+this.throttling.last+' + throttling.time:'+this.throttling.time+' = '+(this.throttling.last + this.throttling.time)+'<= now:' + now)
+
+
+    return false
+  }
+
+  /**
+   * Shift the left most count of points off the data array and
+   * update extents.
+   * @param count
+   */
+  Sampling.prototype.shift = function( count) {
+    if( count >= this.data.length) {
+      this.data = []
+      this.extents.x.reset()
+      this.extents.y.reset()
+    } else {
+      this.data.splice( 0, count)
+      this.extents.x.shifted( this.data, count)
+      this.extents.y.shifted( this.data, count)
+    }
+  }
+
+  /**
+   * Apply constraints before pushing new points. Constraints can be for
+   * time, size, or both. Both current data and new points may be shifted
+   * off. The extents are also updated.
+   *
+   * @param points
+   * @returns {boolean} True if constraints were applied to current or new points.
+   */
+  Sampling.prototype.applyConstraintsBeforePushPoints = function( points) {
+
+    // ALGORITHM:
+    //   If there are new points
+    //     Use the last new point for the time constraint calculation.
+    //     Include the number of new points in the size constraint.
+    //
+    //   1. Find the amount to shift off using the size constraint.
+    //   2. Find the amount to shift off using the time constraint.
+    //   3. Find the max of time and size, then do the actual shift with that amount.
+    //   - The constraints may remove all current points and shift some of new points.
+    //   - Never remove the last point.
+    //
+    // Note: Could apply constraints after pushing points, but it's useful
+    // to have two sets of points to work with. If the current
+    // set of points can be shifted completely, that's a lot faster than
+    // concat, then shift off (for CPU and garbage collection).
+
+
+    var didConstrain = false
+
+    var pendingLength = points ? points.length : 0,
+        currentLength = this.data ? this.data.length : 0
+
+    //console.log( 'Sampling.applyConstraintsBeforePushPoints ' + this.resolution + ' BEGIN  pendingLength=' + pendingLength + ', currentLength=' + currentLength)
+
+    if( currentLength + pendingLength === 0)
+      return didConstrain
+
+    var shiftCurrent = 0, // amount of current data to shift off
+        shiftPending = 0, // If all current data is shifted, we might be shifting some pending as well.
+        now = Date.now()
+
+    // Constrain by size
+    //
+    if( this.constraints.size > 0) {
+      var totalLength = currentLength + pendingLength
+      if( this.constraints.size < totalLength) {
+
+        if( this.delayConstraints( now) )
+          return false
+
+        var shiftTotal = totalLength - this.constraints.size
+        shiftCurrent = Math.min( currentLength, shiftTotal),
+        shiftPending = shiftTotal - shiftCurrent
+      }
+    }
+
+    // If we're shifting all the data, do it now
+    if( currentLength > 0 && shiftCurrent === currentLength) {
+      this.shift( shiftCurrent)
+      currentLength = this.data.length
+      shiftCurrent = 0
+      didConstrain = true
+    }
+
+    // Constrain by time
+    //
+    if( this.constraints.time > 0) {
+      var pendingTimeMax = pendingLength > 0 ? this.access.x( points[pendingLength-1]) : undefined,
+          pendingTimeMin = pendingLength > 0 ? this.access.x( points[0]) : undefined,
+          currentTimeMax = currentLength > 0 ? this.access.x( this.data[currentLength-1]) : undefined,
+          currentTimeMin = currentLength > 0 ? this.access.x( this.data[0]) : undefined,
+          timeCutoff = (pendingLength > 0 ? pendingTimeMax : currentTimeMax) - this.constraints.time
+
+      if( currentTimeMin < timeCutoff || pendingTimeMin < timeCutoff) {
+
+        //console.log( 'Sampling.applyConstraintsBeforePushPoints ' + this.resolution + ' currentTimeMin='+currentTimeMin+' < tc || pendingTimeMin='+pendingTimeMin+' < tc timeCutoff=' + timeCutoff)
+        if( this.delayConstraints( now))
+          return false
+
+        var index,
+            bisectLeft = d3.bisector(this.access.x).left
+
+        if( currentTimeMax < timeCutoff) {
+          // Remove all this.data and possibly some of points too.
+          shiftCurrent = currentLength
+          //console.log( 'Sampling.applyConstraintsBeforePushPoints ' + this.resolution + ' currentTimeMax < tc  shiftCurrent=' + shiftCurrent)
+
+        } else if( currentTimeMin < timeCutoff)  {
+          // Remove some of this.data. Ignore anthing before shiftCurrent
+          index = Math.min( bisectLeft(this.data, timeCutoff, shiftCurrent), currentLength - 1)
+          shiftCurrent = Math.max( shiftCurrent, index)
+          //console.log( 'Sampling.applyConstraintsBeforePushPoints ' + this.resolution + ' currentTimeMin < tc  shiftCurrent=' + shiftCurrent)
+        }
+
+        if( pendingTimeMin < timeCutoff){
+          // Remove some or all of points. Never remove the last point, even if it's time is ancient.
+          // Find the correct index and splice points.
+          index = Math.min( bisectLeft(points, timeCutoff), pendingLength - 1)
+          shiftPending = Math.max( shiftPending, index)
+          //console.log( 'Sampling.applyConstraintsBeforePushPoints ' + this.resolution + ' pendingTimeMin < tc  shiftPending=' + shiftPending)
+        }
+      }
+
+    }
+
+    if( shiftCurrent > 0) {
+      //console.log( 'Sampling.applyConstraintsBeforePushPoints ' + this.resolution + ' shiftCurrent > 0  shifting ' + shiftCurrent)
+      this.shift( shiftCurrent)
+      didConstrain = true
+    }
+    if( shiftPending > 0) {
+      //console.log( 'Sampling.applyConstraintsBeforePushPoints ' + this.resolution + ' shiftPending > 0  shifting ' + shiftPending)
+      points.splice( 0, shiftPending)
+      didConstrain = true
+    }
+
+    if( didConstrain)
+      this.throttling.last = now
+
+    return didConstrain
+  }
+
+  /**
+   * We've got new raw or sampled data. We need to notify our nextResolution.lower that we have more data.
+   * The next lower resolution sample can keep track of when it wants to resample.
+   */
+  Sampling.prototype.pushPoints = function( points, sampled) {
+    var pushedCount = points.length
+
+    if( this.data === undefined)
+      this.data = []
+
+    // If any data pushed to us is sampled, we'll always be sampled.
+    if( sampled !== undefined)
+      this.sampled = this.sampled || sampled
+
+    if( pushedCount > 0) {
+
+      if( this.applyConstraintsBeforePushPoints( points))
+        pushedCount = points.length
+
+      var newDataIndex = this.data.length
+      this.data = this.data.concat( points)
+      if( this.extents) {
+        this.extents.x.union( this.data)
+        this.extents.y.union( this.data, newDataIndex)
+      } else {
+        this.extents = {
+          x: new trait.ExtentWithIndicesSorted( this.data, this.access.x),
+          y: new trait.ExtentWithIndices( this.data, this.access.y)
+        }
+      }
+
+      this.notify( 'update')
+
+      if( pushedCount > 0 && this.nextResolution.lower)
+        this.nextResolution.lower.sourceUpdated( pushedCount)
+    }
+
+
+    return this;
+  }
+
+  Sampling.prototype.findIndexOfStepStartFromEnd = function( data, stepStart, fromEnd) {
+    var i
+
+    fromEnd = fromEnd === undefined ? 0 : fromEnd
+    i = data.length - 1 - fromEnd
+    i = Math.min( i, data.length - 1)
+
+    while( i >= 0 && this.access.x( data[i]) >= stepStart)
+      i--
+    i++
+    return Math.max( i, 0)
+  }
+
+  Sampling.prototype.sampleUpdatesFromSource = function() {
+    var saveLength,
+        source = this.resampling.source,
+        length = this.data.length,
+        pushedCount = 0
+
+    //console.log( 'Sampling.sampleUpdatesFromSource ' + this.resolution + ' BEGIN  length ' + length)
+    if( length <= 2) {
+      saveLength = length
+      this.initialSample( source)
+      return this.data.length - saveLength
+    }
+
+    var stepStart = this.resampling.nextStep - this.stepSize
+    var sourceIndex = this.findIndexOfStepStartFromEnd( source.data, stepStart, this.resampling.unsampledCount)
+    var sampledIndex = this.findIndexOfStepStartFromEnd( this.data, stepStart)
+
+    // Remove the last points that need to be resampled.
+    this.data.splice( sampledIndex, length - sampledIndex)
+
+    if( this.data.length <= 2) {
+      saveLength = length
+      this.initialSample( source)
+      return this.data.length - saveLength
+    }
+
+    var a = this.data[this.data.length-1],
+        s = sampleUpdates( source.data, sourceIndex, a, this.stepSize, this.resampling.nextStep, this.access)
+
+    this.applyConstraintsBeforePushPoints(s.data)
+    pushedCount = s.data.length
+
+    this.data = this.data.concat( s.data)
+    if( this.extents && s.extents) {
+      this.extents.x.union(s.extents.x)
+      this.extents.y.union(s.extents.y)
+    } else {
+      this.extents = {
+        x: new trait.ExtentWithIndicesSorted( this.data, this.access.x),
+        y: new trait.ExtentWithIndices( this.data, this.access.y)
+      }
+    }
+
+
+    this.resampling.nextStep = s.nextStep
+    this.resampling.unsampledCount = 0
+
+    this.extendNextStepPastExtent()
+
+    return pushedCount
+  }
+
+  /**
+   * This source has more data. Consider resampling source now.
+   *
+   *  | .  .| .. | .. l   |NS n    Sample to nextStep
+   *  | .  .| .. |    l   |NS n    Sample to nextStep
+   *  | .  .| .. | .. l n |NS      Don't sample
+   *  | .  .| .. |    l n |NS      Don't sample
+   *
+   *  | - step boundary
+   *  |NS - nextStep
+   *  . - Point
+   *  l - Last point
+   *  n - New point
+   *
+   * @param count
+   */
+  Sampling.prototype.sourceUpdated = function( pushedCount) {
+    if( pushedCount <= 0)
+      return
+
+    var source = this.resampling.source,
+        thisPushedCount = 0
+
+    if( this.nextResolution.higher === source) {
+      this.resampling.unsampledCount += pushedCount
+
+      // if source's latest point is beyond our nextStep
+      if( source && source.extents && source.extents.x.values[1] >= this.resampling.nextStep) {
+        thisPushedCount = this.sampleUpdatesFromSource()
+      }
+
+    } else {
+      this.initialSample( this.nextResolution.higher)
+      thisPushedCount = this.data.length
+    }
+
+    if( thisPushedCount > 0) {
+      this.notify( 'update')
+      if( this.nextResolution.lower)
+        this.nextResolution.lower.sourceUpdated( thisPushedCount)
+    }
+
+  }
+
+
+  function _murtsDataStore() {
+    var access = {
+          x: function( d) { return d[0] },
+          y: function( d) { return d[1] }
+        },
+        constraints = {
+          size: 0, // max size for Sampling data array. Zero for no constraint
+          time: 0, // max time before last time in data array. Zero for no constraint
+          throttling: 0 // Minimum milliseconds between applying constraints.
+        },
+        samples = {}
+
+    function findHigherResolution( index) {
+      var i, r
+
+      for(i = index - 1; i >= 0; i-- ) {
+        r = resolutions[i]
+        if( samples.hasOwnProperty(r)) {
+          return samples[r]
+        }
+      }
+      return null
+    }
+    function findLowerResolution( index) {
+      var i, r
+
+      for(i = index + 1; i < resolutions.length; i++ ) {
+        r = resolutions[i]
+        if( samples.hasOwnProperty(r)) {
+          return samples[r]
+        }
+      }
+      return null
+    }
+
+    /**
+     * Put sample into linked list of higher and lower resolution samples
+     * @param sample
+     */
+    function linkSample( sample) {
+      var lower, higher,
+          index = resolutions.indexOf( sample.resolution)
+
+      lower = findLowerResolution( index)
+      if( lower) {
+        sample.nextResolution.lower = lower
+        lower.nextResolution.higher = sample
+      }
+
+      higher = findHigherResolution( index)
+      if( higher) {
+        sample.nextResolution.higher = higher
+        higher.nextResolution.lower = sample
+      }
+    }
+
+    /**
+     * Remove sample from linked list of higher and lower resolution samples
+     * @param sample
+     */
+    function unlinkSample( sample) {
+      var lower, higher,
+          index = resolutions.indexOf( sample.resolution)
+
+      lower = findLowerResolution( index)
+      higher = findHigherResolution( index)
+
+      if( higher)
+        higher.nextResolution.lower = lower
+      if( lower)
+        lower.nextResolution.higher = higher
+
+      sample.nextResolution.lower = null
+      sample.nextResolution.higher = null
+    }
+
+    /**
+     * MUltiple Resolution Time Series (murtsDataStore) data store.
+     *
+     * .x( accessor)
+     * .y( accessor)
+     * .push( newValue) single or array
+     * .on( 'push', callback)
+     * .get( scale, callback)
+     *
+     */
+
+    function murtsDataStore() {
+    }
+
+    /**
+     * The accessor for the time dimension
+     * @param _accessor
+     */
+    murtsDataStore.x = function ( _accessor) {
+      if( !arguments.length ) return access.x
+      access.x = _accessor
+      return this
+    }
+    murtsDataStore.y = function ( _accessor) {
+      if( !arguments.length ) return access.y
+      access.y = _accessor
+      return this
+    }
+
+    /**
+     * Constrain the size of all Sampling data arrays.
+     *
+     * @param _size
+     * @returns this if no arguments; otherwise, it returns the current size constraint.
+     */
+    murtsDataStore.constrainSize = function ( size) {
+      if( !arguments.length ) return constraints.size
+      if( size >= 0) {
+        constraints.size = size
+        for( var res in samples) {
+          samples[res].constrainSize( constraints.size)
+        }
+      }
+      return this
+    }
+
+    /**
+     * Constrain the time of all Sampling data arrays to be no older that the last point's time.
+     *
+     * @param _size
+     * @returns this if no arguments; otherwise, it returns the current size constraint.
+     */
+    murtsDataStore.constrainTime = function ( time) {
+      if( !arguments.length ) return constraints.time
+      if( time >= 0) {
+        constraints.time = time
+        for( var res in samples) {
+          samples[res].constrainTime( constraints.time)
+        }
+      }
+      return this
+    }
+
+    /**
+     * Constrain the time of all Sampling data arrays to be no older that the last point's time.
+     *
+     * @param _size
+     * @returns this if no arguments; otherwise, it returns the current size constraint.
+     */
+    murtsDataStore.constrainThrottling = function ( throttling) {
+      if( !arguments.length ) return constraints.throttling
+      if( throttling >= 0) {
+        constraints.throttling = throttling
+        for( var res in samples) {
+          samples[res].constrainThrottling( constraints.throttling)
+        }
+      }
+      return this
+    }
+
+
+    // TODO: remove sample from list of samples
+
+    function getSampling( resolution) {
+      var r = resolution || SOURCE
+      var c = samples[r]
+      if( c === undefined){
+        c = new Sampling( r, access, constraints)
+        samples[r] = c
+        linkSample( c)
+      }
+      return c
+    }
+
+    /**
+     *
+     * Push source and samples. Resample when?
+     *
+     * Push source. Each sample has a resample timer that executes at each step.
+     * It knows the last index of the source data that it sampled.
+     * Problem when data falls off left.
+     *
+     * @param data
+     * @param resolution
+     * @returns {murtsDataStore}
+     */
+    murtsDataStore.pushPoints = function( data, sampled, resolution) {
+      var sampling = getSampling( resolution)
+      sampling.pushPoints( data, sampled)
+      return this;
+    }
+
+
+    murtsDataStore.get = function( scale) {
+      var resolution = scale ? scale.resolution() : undefined,
+          sampling = getSampling( resolution)
+
+      if( sampling.data === undefined) {
+        // TODO: What if there is no source?
+        var index = resolutions.indexOf( sampling.resolution),
+            source = findHigherResolution( index)
+        if( source && source.data) {
+          sampling.initialSample( source)
+        } else {
+          sampling.data = []
+          if( sampling.resolution !== SOURCE) {
+            if( ! source)
+              console.error( 'murts.get findHigherResolution( ' + sampling.resolution + ') -- no source data found to sample from')
+            else
+              console.error( 'murts.get findHigherResolution( ' + sampling.resolution + ') -- no data found in source')
+          }
+        }
+      }
+
+      sampling.lastRead = Date.now()
+      return sampling;
+    }
+
+    murtsDataStore.removeOnUpdate = function( scale, onUpdate) {
+      var resolution = scale.resolution(),
+          sampling = getSampling(resolution)
+
+      sampling.removeOnUpdate( onUpdate)
+    }
+
+    murtsDataStore.reset = function() {
+      samples = {}
+      access = {
+        x: function( d) { return d[0] },
+        y: function( d) { return d[1] }
+      }
+    }
+
+    return murtsDataStore;
+
+  }
+
+
+
+  function collectStep( data, sourceIndex, stepSize, nextStep, sourceIndexLast, access) {
+    var d = data[ sourceIndex],  // may not be inside step (before timeStop). Calculate a new nextStep
+        x = access.x( d),
+        y = access.y( d),
+        extents = {
+          x: [x, x],
+          y: [y, y],
+          d: [d, d]
+        },
+        sum = { x: x, y: y, count: 1}
+
+    // If no data in current step, skip forward.
+    if( x >= nextStep) {
+      var jump = x - nextStep,
+          steps = Math.floor( jump / stepSize) + 1
+      nextStep = steps * stepSize + nextStep
+    }
+
+
+    var stillInStep = true
+    sourceIndex ++
+    while( stillInStep && sourceIndex < sourceIndexLast) {
+
+      d = data[ sourceIndex]
+      x = access.x(d)
+      stillInStep = x < nextStep
+
+      if( stillInStep) {
+        y = access.y(d)
+
+        sum.x += x
+        sum.y += y
+        sum.count ++
+
+        if( y < extents.y[0]) {
+          extents.x[0] = x
+          extents.y[0] = y
+          extents.d[0] = d
+        } else if( y > extents.y[1]) {
+          extents.x[1] = x
+          extents.y[1] = y
+          extents.d[1] = d
+        }
+
+        sourceIndex ++
+      }
+
+    }
+
+    return {
+      extents: extents,
+      ave: {
+        x: sum.x / sum.count,
+        y: sum.y / sum.count,
+        count: sum.count  // for debug or performance stats
+      },
+      sourceIndex: sourceIndex,
+      nextStep: nextStep
+    }
+  }
+
+
+  function findMaxAreaPointB( a, b, c, access) {
+    var areaUsingBMin, areaUsingBMax,
+        aX = access.x(a),
+        aY = access.y(a)
+    areaUsingBMin = Math.abs(
+        (aX - c.ave.x) * (b.extents.y[0] - aY) -
+        (aX - b.extents.x[0]) * (c.ave.y - aY)
+    ) * 0.5
+    areaUsingBMax = Math.abs(
+        (aX - c.ave.x) * (b.extents.y[1] - aY) -
+        (aX - b.extents.x[1]) * (c.ave.y - aY)
+    ) * 0.5
+
+    return areaUsingBMin > areaUsingBMax ? b.extents.d[0] : b.extents.d[1]
+  }
+
+  /**
+   * For now, let's sample everything at once. No tiling.
+   *
+   * For Largest Triangle Three Buckets algorithm see:
+   * Sveinn Steinarsson - Downsampling Time Series for Visual Representation
+   * http://skemman.is/stream/get/1946/15343/37285/3/SS_MSthesis.pdf
+   * https://github.com/sveinn-steinarsson/flot-downsample/blob/master/jquery.flot.downsample.js
+   *
+   * @param source Source data used for sampling
+   * @param stepSize Millisecond step used for sampling
+   * @param access Access functions for x and y
+   */
+  function sample( source, stepSize, access) {
+    var a, // a is the first "bucket"
+        nextStep,
+        sourceIndex = 0,
+        sampled = []
+
+    var startTimer = Date.now()
+    //console.log( 'murts.sample source.length: ' + source.length + ' start')
+
+    if( source.length === 0) {
+      //console.log('murts.sample source.length: ' + source.length + ' end  ' + (Date.now() - startTimer) + ' ms')
+      return {
+        data:    sampled,
+        nextStep: 0
+      }
+    }
+
+    // TODO: Find first data point within extent
+    //
+
+    // Always use the first point
+    a = source[sourceIndex++]
+
+    sampled[0] = a
+    nextStep = access.x( a) + stepSize
+    if( source.length < 3) {
+      if( source.length === 2)
+        sampled[1] = source[sourceIndex++]
+      //console.log( 'murts.sample source.length: ' + source.length + ' end  ' + (Date.now()-startTimer) + ' ms')
+      return {
+        data: sampled,
+        nextStep: nextStep,
+        extents: {
+          x: new trait.ExtentWithIndicesSorted( sampled, access.x),
+          y: new trait.ExtentWithIndices( sampled, access.y)
+        }
+      }
+    }
+
+    var s = sampleFromIndex( sampled, source, sourceIndex, a, stepSize, nextStep, access)
+
+    //console.log( 'murts.sample source.length: ' + source.length + ', sample.length: ' + s.data.length + ' end  ' + (Date.now()-startTimer) + ' ms')
+
+    return s
+  }
+
+
+  function sampleFromIndex( sampled, source, sourceIndex, a, stepSize, nextStep, access) {
+    var b, c,   // the three "buckets" (including 'a' which is passed in)
+        maxAreaPoint,
+        sourceIndexLast = source.length - 1,
+        extents = {
+          x: new trait.ExtentWithIndicesSorted( [a], access.x),
+          y: new trait.ExtentWithIndices( [a], access.y)
+        }
+
+    // Find the first b. At the end of the following for loop, c becomes the next b.
+    b = collectStep( source, sourceIndex, stepSize, nextStep, sourceIndexLast, access)
+    sourceIndex = b.sourceIndex
+
+
+    for( ; sourceIndex < sourceIndexLast; sourceIndex++) {
+
+      nextStep = b.nextStep + stepSize
+      c = collectStep( source, sourceIndex, stepSize, nextStep, sourceIndexLast, access)
+      sourceIndex = c.sourceIndex
+
+      // Now we have a, b, c
+      maxAreaPoint = findMaxAreaPointB( a, b, c, access)
+      extents.y.union( access.y( maxAreaPoint), sampled.length)
+      sampled[ sampled.length] = maxAreaPoint
+
+      a = maxAreaPoint
+      b = c
+    }
+
+    // sourceIndex is set to sourceIndexLast or sourceIndexLast + 1
+
+    // Process the last b using the last point as c.
+    var lastPoint = source[sourceIndexLast],
+        lastX = access.x( lastPoint),
+        lastY = access.y( lastPoint)
+
+    c = {
+      ave: {
+        x: lastX,
+        y: lastY,
+        count: 1  // for debug or performance stats
+      }
+    }
+    maxAreaPoint = findMaxAreaPointB( a, b, c, access)
+    extents.y.union( access.y( maxAreaPoint), sampled.length)
+    sampled[ sampled.length] = maxAreaPoint
+
+    // Always use last point
+    extents.y.union( lastY, sampled.length)
+    extents.x.max( lastX, sampled.length)
+    sampled[sampled.length] = lastPoint
+
+    return {
+      data: sampled,
+      extents: extents,
+      nextStep: nextStep // Start of next step. The last point may be before this.
+    }
+
+  }
+
+
+  /**
+   *
+   * @param source Source data used for sampling
+   * @param stepSize Millisecond step used for sampling
+   * @param access Access functions for x and y
+   */
+  function sampleUpdates( source, sourceIndex, a, stepSize, nextStep, access) {
+    var sampled = [],
+        updateCount = source.length - sourceIndex
+
+    var startTimer = Date.now()
+    //console.log( 'murts.sampleUdates source.length-start: ' + (updateCount) + ' start')
+
+    if( updateCount <= 1) {
+      var extents
+
+      if( updateCount === 1) {
+        sampled[0] = source[sourceIndex++]
+        extents = {
+          x: new trait.ExtentWithIndicesSorted( sampled, access.x),
+          y: new trait.ExtentWithIndices( sampled, access.y)
+        }
+      }
+
+      //console.log( 'murts.sampleUdates source.length-start: ' + updateCount + ' end  ' + (Date.now()-startTimer) + ' ms')
+
+      return {
+        data: sampled,
+        nextStep: nextStep,
+        extents: extents
+      }
+    }
+
+    // The first point, 'a' is already in the caller's sampled array.
+    var s = sampleFromIndex( sampled, source, sourceIndex, a, stepSize, nextStep, access)
+
+    //console.log( 'murts.sampleUdates source.length-start: ' + updateCount + ', sample.length: ' + s.data.length + ' end  ' + (Date.now()-startTimer) + ' ms')
+
+    return s
+  }
+
+  function isMurtsDataStore( obj) {
+    return typeof obj === 'function' && obj.toString().indexOf( 'function murtsDataStore(') === 0
+
+//    var arr = obj.toString().match(/function\s*(\w+)/)
+//    return arr && arr.length === 2 && arr[1] === 'murtsDataStore'
+  }
+
+  function getOrElse( obj, scale) {
+    return isMurtsDataStore( obj) ? obj.get( scale).data : obj
+  }
+
+  trait.murts = {
+    dataStore: _murtsDataStore,
+    utils: {
+           Sampling: Sampling,
+           sample: sample,
+           sampleUpdates: sampleUpdates,
+           mapResolution: mapResolutionFromStep,
+           isDataStore: isMurtsDataStore,
+           getOrElse: getOrElse
+    }
+  }
 
 }(d3, d3.trait));
 
@@ -1054,40 +2551,45 @@
    * @param isDataStacked  T: This is an area plot with access.y(d) and d.y0. F: Use access.y(d)
    * @returns Array of focus objects
    */
-  function getFocusItems( data, focusPoint, focusConfig, access, x, y, color, isDataStacked) {
+  function getFocusItems( filteredSeries, focusPoint, focusConfig, access, x, y, color, isDataStacked) {
     var foci = [],
         targetDomain = new d3.trait.Point(x.invert(focusPoint.x), y.invert(focusPoint.y)),
         bisectLeft = d3.bisector(access.x).left,
         getRangePoint = isDataStacked ? getRangePointStacked : getRangePointNormal
 
-    data.forEach(function(series, seriesIndex, array) {
-      var found, alterIndex,
-          data = access.seriesData(series),
-          // search the domain for the closest point in x
-          index = bisectLeft(data, targetDomain.x)
+    filteredSeries.forEach(function(series, seriesIndex, array) {
+      var found, alterIndex, index,
+          seriesData = trait.murts.utils.getOrElse( access.seriesData(series), x)
 
-      if( index >= data.length )
-        index = data.length - 1
-      found = getFocusItem(series, data, index, access, x, y, getRangePoint, focusPoint)
+      if( seriesData.length > 0) {
 
-      alterIndex = found.index - 1
-      if( alterIndex >= 0 ) {
-        var alter = getFocusItem(series, data, alterIndex, access, x, y, getRangePoint, focusPoint)
-        // console.log( "found x=" + access.x( found.item) + " y=" + access.y( found.item) + " d=" + found.distance + "  " + targetDomain.x + " " + targetDomain.y)
-        // console.log( "alter x=" + access.x( alter.item) + " y=" + access.y( alter.item) + " d=" + alter.distance + "  " + targetDomain.x + " " + targetDomain.y)
-        if( focusConfig.axis === 'x' ) {
-          if( alter.distanceX < found.distanceX )
-            found = alter
-        } else {
-          if( alter.distance < found.distance )
-            found = alter
+        // search the domain for the closest point in x
+        index = bisectLeft(seriesData, targetDomain.x)
+
+        if( index >= seriesData.length )
+          index = seriesData.length - 1
+        found = getFocusItem(series, seriesData, index, access, x, y, getRangePoint, focusPoint)
+
+        alterIndex = found.index - 1
+        if( alterIndex >= 0 ) {
+          var alter = getFocusItem(series, seriesData, alterIndex, access, x, y, getRangePoint, focusPoint)
+          // console.log( "found x=" + access.x( found.item) + " y=" + access.y( found.item) + " d=" + found.distance + "  " + targetDomain.x + " " + targetDomain.y)
+          // console.log( "alter x=" + access.x( alter.item) + " y=" + access.y( alter.item) + " d=" + alter.distance + "  " + targetDomain.x + " " + targetDomain.y)
+          if( focusConfig.axis === 'x' ) {
+            if( alter.distanceX < found.distanceX )
+              found = alter
+          } else {
+            if( alter.distance < found.distance )
+              found = alter
+          }
+        }
+
+        if( withinFocusDistance( found, focusConfig) ) {
+          found.color = color(series)
+          foci.push(found)
         }
       }
 
-      if( withinFocusDistance( found, focusConfig) ) {
-        found.color = color(series)
-        foci.push(found)
-      }
     })
 
     return foci
@@ -1419,32 +2921,57 @@
 
 (function(d3, trait) {
 
+  var accessDataY0 = function( d) { return d.y0}
+
   function minFromData(data, access, defaultValue) {
-    return minFromDataDo( data, access.series, access.data, defaultValue)
+    return minFromDataDo( data, access, access.value, defaultValue)
   }
   function minFromAreaData(data, access, defaultValue) {
-    return minFromDataDo( data, access.series, function( d) { return d.y0}, defaultValue)
+    return minFromDataDo( data, access, accessDataY0, defaultValue)
   }
-  function minFromDataDo( data, accessSeries, accessData, defaultValue) {
-    var min = d3.min(data, function(s) { return d3.min(accessSeries(s), accessData); })
+  function minFromDataDo( data, access, accessValue, defaultValue) {
+    var min = d3.min(data, function(s, i, ra) { return minFromMurtsOrArray( access.series(s, i, ra), access, accessValue) })
     if( !min )
       min = defaultValue ? defaultValue : 0
     return min
   }
 
   function maxFromData(data, access, defaultValue) {
-    return maxFromDataDo( data, access.series, access.data, defaultValue)
+    return maxFromDataDo( data, access, access.value, defaultValue)
   }
 
   function maxFromAreaData(data, access, defaultValue) {
-    return maxFromDataDo( data, access.series, function( d) { return d.y0 + access.data(d)}, defaultValue)
+    var accessY0PlusData = function( d) { return d.y0 + access.value(d)}
+    return maxFromDataDo( data, access, accessY0PlusData, defaultValue)
   }
-  function maxFromDataDo(data, accessSeries, accessData, defaultValue) {
-    var max = d3.max(data, function(s) { return d3.max(accessSeries(s), accessData); })
+  function maxFromDataDo(data, access, accessValue, defaultValue) {
+    var max = d3.max(data, function(s, i, ra) { return maxFromMurtsOrArray( access.series(s, i, ra), access, accessValue) })
     if( !max )
       max = defaultValue ? defaultValue : 0
     return max
   }
+
+  function minFromMurtsOrArray( series, access, accessValue) {
+    if( trait.murts.utils.isDataStore( series)) {
+      var sampling = series.get()
+      return sampling.extents === undefined ? undefined
+        : access.axisChar === 'x' ? sampling.extents.x.values[0]
+        : sampling.extents.y.values[0]
+    } else {
+      return d3.min( series, accessValue)
+    }
+  }
+  function maxFromMurtsOrArray( series, access, accessValue) {
+    if( trait.murts.utils.isDataStore( series)) {
+      var sampling = series.get()
+      return sampling.extents === undefined ? undefined
+        : access.axisChar === 'x' ? sampling.extents.x.values[1]
+        : sampling.extents.y.values[1]
+    } else {
+      return d3.max( series, accessValue)
+    }
+  }
+
 
 
   /**
@@ -1458,11 +2985,20 @@
    * @returns  The extent of all data in an array of the form [min,max]
    */
   function extentFromData(data, access, padding, defaultValue) {
-    var extents, min, max
-
     // Get array of extents for each series.
-    extents = data.map(function(s) { return d3.extent( access.series(s), access.data) })
-    return extentFromData2( extents, padding, defaultValue)
+    var extents = data.map(function(s) { return extentFromMurtsOrArray(access.series(s), access) })
+    return extentFromExtents( extents, padding, defaultValue)
+  }
+
+  function extentFromMurtsOrArray( series, access) {
+    if( trait.murts.utils.isDataStore( series)) {
+      var sampling = series.get()
+      return sampling.extents === undefined ? [undefined, undefined]
+        : access.axisChar === 'x' ? sampling.extents.x.values
+        : sampling.extents.y.values
+    } else {
+      return d3.extent( series, access.value)
+    }
   }
 
   function extentFromAreaData(data, access, padding, defaultValue) {
@@ -1470,15 +3006,15 @@
 
     // Get array of extents for each series.
     extents = data.map(function(s) {
-      var series = access.series(s)
+      var series = access.data( access.series(s))
       var extent = [
         d3.min( series, function( d) { return d.y0}),
-        d3.max( series, function( d) { return d.y0 + access.data(d)})
+        d3.max( series, function( d) { return d.y0 + access.value(d)})
       ]
       return extent
     })
 
-    return extentFromData2( extents, padding, defaultValue)
+    return extentFromExtents( extents, padding, defaultValue)
   }
 
   /**
@@ -1487,7 +3023,7 @@
    * @param defaultValue if no extents, use default if available.
    * @returns Extent array.
    */
-  function extentFromData2( extents, padding, defaultValue) {
+  function extentFromExtents( extents, padding, defaultValue) {
     var min, max
 
     min = d3.min(extents, function(e) { return e[0] }) // the minimums of each extent
@@ -2049,7 +3585,7 @@
           if( filteredData.length > 0)
             stackLayout( filteredData)
           access.series = access.seriesData
-          access.data = access.y
+          access.value = access.y
           var extent = trait.utils.extentFromAreaData( filteredData, access, domainPadding)
           yMinDomainExtentFromData( extent)
         } else {
@@ -2525,7 +4061,8 @@
   var chartGroupClipPathNextId = 1,
       debug = {
         layoutAxes: false,
-        resize: false
+        resize: false,
+        invalidate: false
       }
 
 
@@ -2631,19 +4168,45 @@
       }
     }
 
-    var ease = 'cubic-in-out'
-    var sizeFromElement = true
-    var size = new d3.trait.Size(),
-        chartSize = { attrWidth: null, attrHeight: null}
-    var width = 200
-    var height = 100
-    var chartWidth = width - margin.left - margin.right,
-        chartHeight = height - margin.top - margin.bottom,
-        colorIndexNext = 0,
-        colors = d3.scale.category10(),
-        colorsUsed = [],
-        externalListeners = {}  // subscribption listeners here or on each element.
+    function getColorsFunction() {
+      if( !_config.colors)
+        return d3.scale.category10()
+      else if( Array.isArray( _config.colors) )
+        return function( i) { return _config.colors[i]}
+      else
+        return _config.colors
+    }
 
+    var sizeFromElement = { width: true, height: true }
+
+    function initConfigSize() {
+      var s = new d3.trait.Size( 200, 100)
+
+      if( _config.size) {
+        if( _config.size.width) {
+          s.width = _config.size.width
+          sizeFromElement.width = false
+        }
+        if( _config.size.height) {
+          s.height = _config.size.height
+          sizeFromElement.height = false
+        }
+      }
+      return s
+    }
+
+    var ease = 'cubic-in-out'
+    var size = initConfigSize()
+    var chartWidth = size.width - margin.left - margin.right,
+        chartHeight = size.height - margin.top - margin.bottom,
+        colorIndexNext = 0,
+        colors = getColorsFunction(),
+        colorsUsed = [],
+        externalListeners = {},  // subscribption listeners here or on each element.
+        invalidate = {
+          lastTime: 0,
+          timer: undefined
+        }
 
     var select, duration = 0
     var selection
@@ -2693,15 +4256,15 @@
     }
 
 
-    function getDimension(sizeFromElement, dimension, elementOffsetDimension) {
-      if( !sizeFromElement )
+    function getDimension(dimensionFromElement, dimension, elementOffsetDimension) {
+      if( !dimensionFromElement )
         return dimension
       else
         return elementOffsetDimension;
     }
 
-    function getDimensionAttr(sizeFromElement, dimension, elementOffsetDimension, elementStyleDimension) {
-      if( !sizeFromElement )
+    function getDimensionAttr(dimensionFromElement, dimension, elementOffsetDimension, elementStyleDimension) {
+      if( !dimensionFromElement )
         return dimension
 
       if( elementStyleDimension.indexOf('%') >= 0 )
@@ -2710,26 +4273,18 @@
         return elementOffsetDimension;
     }
 
-    function getChartSizeAttrs(element, sizeFromElement, width, height) {
+    function getChartSizeAttrs(element, _sizeFromElement, _size) {
       var attrs = {}
 
-      attrs.width = getDimensionAttr(sizeFromElement, width, element.offsetWidth, element.style.width)
-      attrs.height = getDimensionAttr(sizeFromElement, height, element.offsetHeight, element.style.height)
+      attrs.width = getDimensionAttr( _sizeFromElement.width, _size.width, element.offsetWidth, element.style.width)
+      attrs.height = getDimensionAttr( _sizeFromElement.height, _size.height, element.offsetHeight, element.style.height)
       return attrs
     }
 
-    function getChartSize(element, sizeFromElement, width, height, margin) {
-      var size = new d3.trait.Size()
-
-      size.width = getDimension(sizeFromElement, width, element.offsetWidth) - margin.left - margin.right
-      size.height = getDimension(sizeFromElement, height, element.offsetHeight) - margin.top - margin.bottom
-      return size
-    }
-
-    function getSize(element, sizeFromElement, width, height) {
+    function getSize(element, _sizeFromElement, _size) {
       return new d3.trait.Size(
-        getDimension(sizeFromElement, width, element.offsetWidth),
-        getDimension(sizeFromElement, height, element.offsetHeight)
+        getDimension( _sizeFromElement.width, _size.width, element.offsetWidth),
+        getDimension( _sizeFromElement.height, _size.height, element.offsetHeight)
       )
     }
 
@@ -2737,9 +4292,8 @@
       var self = chartBase
       selection = _selection
       _selection.each(function(_data) {
-        var chartSize,
-            element = this, // the div element
-            sizeAttrs = getChartSizeAttrs(element, sizeFromElement, width, height)
+        var element = this, // the div element
+            sizeAttrs = getChartSizeAttrs(element, sizeFromElement, size)
 
         select = d3.select(element)
 
@@ -2751,9 +4305,7 @@
             .attr("height", sizeAttrs.height)
           element._svgDefs = element._svg.append("defs")
 
-          size = getSize(element, sizeFromElement, width, height)
-          width = size.width
-          height = size.height
+          size = getSize(element, sizeFromElement, size)
           chartWidth = size.width - margin.left - margin.right
           chartHeight = size.height - margin.top - margin.bottom
 
@@ -2802,11 +4354,11 @@
           })
         }
 
-        //console.log( "chartBase w=" + width + ", h=" + height + " cW=" + chartWidth + ", cH=" + chartHeight)
+        //console.log( "chartBase w=" + size.width + ", h=" + size.height + " cW=" + chartWidth + ", cH=" + chartHeight)
 
         element._svg.transition()
           .duration(duration)
-          .attr({width: width, height: height})
+          .attr({width: size.width, height: size.height})
         element._svg.select('.chart-group')
           .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
 
@@ -2986,8 +4538,8 @@
         chartWidth:  chartWidth,
         chartHeight: chartHeight
       }
-      chartWidth = Math.max( 0, width - margin.left - margin.right)
-      chartHeight = Math.max( 0, height - margin.top - margin.bottom)
+      chartWidth = Math.max( 0, size.width - margin.left - margin.right)
+      chartHeight = Math.max( 0, size.height - margin.top - margin.bottom)
       if( debug.resize)
         console.log( 'chartBase.updateChartSize() chartWidth ' + prev.chartWidth + '->' + chartWidth + ', chartHeight ' + prev.chartHeight + '->' + chartHeight + ' selection:' + (!!selection))
       if( prev.chartWidth !== chartWidth || prev.chartHeight !== chartHeight ) {
@@ -2999,12 +4551,12 @@
 
     function updateSize() {
       var prev = {
-        width:  width,
-        height: height
+        width:  size.width,
+        height: size.height
       }
-      width = chartWidth + margin.left + margin.right
-      height = chartHeight + margin.top + margin.bottom
-      if( prev.width !== width || prev.height !== height )
+      size.width = chartWidth + margin.left + margin.right
+      size.height = chartHeight + margin.top + margin.bottom
+      if( prev.width !== size.width || prev.height !== size.height )
         dispatch.chartResized()
     }
 
@@ -3012,21 +4564,23 @@
      * Remove everything that was added to element.
      */
     chartBase.remove = function() {
-      selection.each(function(_data) {
-        var element = this // the div element
+      if( selection) {
+        selection.each(function(_data) {
+          var element = this // the div element
 
-        if( element._svg ) {
-          element._svg.remove();
-          delete element._svg;
-          delete element._svgDefs;
-          delete element._container;
-          delete element._chartGroup;
-          delete element._chartGroupClipPath;
-          delete element._chartGroupClipPathRect;
-          delete element.__onFocusChangeListeners;
-          delete element.__onChartMouseOutListeners;
-        }
-      })
+          if( element._svg ) {
+            element._svg.remove();
+            delete element._svg;
+            delete element._svgDefs;
+            delete element._container;
+            delete element._chartGroup;
+            delete element._chartGroupClipPath;
+            delete element._chartGroupClipPathRect;
+            delete element.__onFocusChangeListeners;
+            delete element.__onChartMouseOutListeners;
+          }
+        })
+      }
 
     };
 
@@ -3058,7 +4612,7 @@
           }
           break;
         case 'right':
-          axisMargin = width - axes[0].rect.minX()
+          axisMargin = size.width - axes[0].rect.minX()
           if( margin.right < axisMargin ) {
             margin.right = axisMargin
             updatedMargin = true;
@@ -3073,7 +4627,7 @@
           break;
 
         case 'bottom':
-          axisMargin = height - axes[0].rect.minY()
+          axisMargin = size.height - axes[0].rect.minY()
           if( margin.bottom < axisMargin ) {
             margin.bottom = axisMargin
             updatedMargin = true;
@@ -3134,8 +4688,8 @@
           // shift the axes up against the right edge.
           updatedOrigin = updateAxesExtentsForChartMarginTop(axes)
           edge = axes[0].rect.minX()
-          if( edge > width - margin.right ) {
-            delta = width - margin.right - edge
+          if( edge > size.width - margin.right ) {
+            delta = size.width - margin.right - edge
             axes.forEach(function(axis) {
               axis.rect.origin.x += delta;
             })
@@ -3160,8 +4714,8 @@
           // If the chart's bottom margin is more than the axes height,
           // shift the axes up against the bottom edge.
           edge = axes[0].rect.minY()
-          if( edge > height - margin.bottom ) {
-            delta = height - margin.bottom - edge
+          if( edge > size.height - margin.bottom ) {
+            delta = size.height - margin.bottom - edge
             axes.forEach(function(axis) {
               axis.rect.origin.y += delta;
             })
@@ -3193,7 +4747,7 @@
     function relayoutAxes() {
       var axesWithLayoutInfo, key,
           updatedMargin = false,
-          rect = new d3.trait.Rect(0, 0, width, height),
+          rect = new d3.trait.Rect(0, 0, size.width, size.height),
           orients = [ 'left', 'right', 'top', 'bottom'],
           axesByOrient = {}
 
@@ -3219,7 +4773,7 @@
           rect = makeAxisRectWithProperAnchor(orient, widthOrHeight)
 
       if( debug.layoutAxes) {
-        console.log( 'layoutAxis( '+name+', ' + orient + ', ' + widthOrHeight + ') BEGIN width:' + width + ' height:' + height + ' margin l:' + margin.left + ' r:' + margin.right + ' t:' + margin.top + ' b:' + margin.bottom)
+        console.log( 'layoutAxis( '+name+', ' + orient + ', ' + widthOrHeight + ') BEGIN width:' + size.width + ' height:' + size.height + ' margin l:' + margin.left + ' r:' + margin.right + ' t:' + margin.top + ' b:' + margin.bottom)
         allAxesWithLayoutInfo.forEach( function(a){
           console.log( '   ' + a.name + ', ' + a.orient + ' origin:'+ a.rect.origin.x + ',' + a.rect.origin.y +' size:' + a.rect.size.width + ',' + a.rect.size.height + ' anchor:' + a.rect.anchor.x + ',' + a.rect.anchor.y)
         })
@@ -3234,7 +4788,7 @@
         relayoutAxes()
       }
       if( debug.layoutAxes) {
-        console.log( 'layoutAxis( '+name+', ' + orient + ', ' + widthOrHeight + ') END   width:' + width + ' height:' + height + ' margin l:' + margin.left + ' r:' + margin.right + ' t:' + margin.top + ' b:' + margin.bottom)
+        console.log( 'layoutAxis( '+name+', ' + orient + ', ' + widthOrHeight + ') END   width:' + size.width + ' height:' + size.height + ' margin l:' + margin.left + ' r:' + margin.right + ' t:' + margin.top + ' b:' + margin.bottom)
         allAxesWithLayoutInfo.forEach( function(a){
           console.log( '   ' + a.name + ', ' + a.orient + ' origin:'+ a.rect.origin.x + ',' + a.rect.origin.y +' size:' + a.rect.size.width + ',' + a.rect.size.height + ' anchor:' + a.rect.anchor.x + ',' + a.rect.anchor.y)
         })
@@ -3255,6 +4809,47 @@
      * @param duration
      */
     chartBase.update = function(type, duration) {
+    };
+
+    function invalidateTimerCancel() {
+      if( invalidate.timer === undefined)
+        return
+      clearTimeout( invalidate.timer)
+      invalidate.timer = undefined
+    }
+
+    function invalidateDoUpdate( type, duration) {
+      var now = Date.now()
+      if( debug.invalidate)
+        console.log( 'invalidateDoUpdate count: ' + invalidate.count + ', timeSince: ' + (now - invalidate.lastTime))
+      invalidate.count = 0
+      invalidate.lastTime = Date.now()
+      chartBase.update( type, duration)
+    }
+
+    chartBase.invalidate = function(type, duration) {
+      var now = Date.now()
+
+      if( type === 'domain') {
+        invalidateTimerCancel()
+        invalidateDoUpdate( type, duration)
+        return
+      }
+
+      if( invalidate.timer) {
+        invalidate.count ++
+      } else {
+        // If no activity for a while, update now.
+        if( now - invalidate.lastTime > 1000) {
+          invalidateDoUpdate( type, duration)
+        } else {
+          invalidate.count = 0
+          invalidate.timer = setTimeout( function() {
+            invalidate.timer = undefined
+            invalidateDoUpdate( type, duration)
+          }, 1000)
+        }
+      }
     };
 
     chartBase.select = function() {
@@ -3293,30 +4888,30 @@
     };
 
     chartBase.size = function(_s) {
-      if( !arguments.length ) return width;
+      if( !arguments.length ) return new d3.trait.Size( size.width, size.height);
       sizeFromElement = false
-      width = parseInt(_s.width, 10);
-      height = parseInt(_s.height, 10);
+      size.width = parseInt(_s.width, 10);
+      size.height = parseInt(_s.height, 10);
       if( debug.resize)
-        console.log( 'chartBase.size( weight=' + width + ', height=' + height + ')')
+        console.log( 'chartBase.size( weight=' + size.width + ', height=' + size.height + ')')
       updateChartSize()
       return this;
     };
     chartBase.width = function(_x) {
-      if( !arguments.length ) return width;
+      if( !arguments.length ) return size.width;
       sizeFromElement = false
-      width = parseInt(_x, 10);
+      size.width = parseInt(_x, 10);
       if( debug.resize)
-        console.log( 'chartBase.width( ' + width + ')')
+        console.log( 'chartBase.width( ' + size.width + ')')
       updateChartSize()
       return this;
     };
     chartBase.height = function(_x) {
-      if( !arguments.length ) return height;
+      if( !arguments.length ) return size.height;
       sizeFromElement = false
-      height = parseInt(_x, 10);
+      size.height = parseInt(_x, 10);
       if( debug.resize)
-        console.log( 'chartBase.height( ' + height + ')')
+        console.log( 'chartBase.height( ' + size.height + ')')
       updateChartSize()
       duration = 0;
       return this;
@@ -3569,18 +5164,18 @@
         return maxIndex + direction >= data.length ? data.length - 1 : maxIndex + direction
     }
 
-    function getDataInRange(data, scale, access) {
-      var domainMin, domainMax,
-        indexMin, indexMax,
-        endIndex = data.length - 1,
-        range = scale.range(),
-        rangeMax = d3.trait.utils.extentMax(range)
+    function getDataInRange(series, scale, access) {
+      var indexMin, indexMax, data,
+          range = scale.range(),
+          rangeMax = d3.trait.utils.extentMax(range),
+          domainMin = scale.invert(range[0]),
+          domainMax = scale.invert(rangeMax)
 
-      domainMin = scale.invert(range[0])
-      domainMax = scale.invert(rangeMax)
+      data = trait.murts.utils.getOrElse( series, scale)
+      //console.log( 'chartLine: getDataInRange: data.length: ' + data.length + ' res: ' + scale.resolution())
 
       indexMin = findClosestIndex(data, access, domainMin, -1)
-      indexMax = findClosestIndex(data, access, domainMax, 1, indexMin, endIndex)
+      indexMax = findClosestIndex(data, access, domainMax, 1, indexMin, data.length - 1)
       indexMax++ // because slice doesn't include max
 
       return data.slice(indexMin, indexMax)
@@ -3589,7 +5184,7 @@
     chartLine.update = function(type, duration) {
       this._super(type, duration)
 
-      var dur = duration || _super.duration()
+      var dur = duration === undefined ? _super.duration() : duration
       var attrD = function(d) {
         return line(getDataInRange(_config.seriesData(d), x1, _config.x1));
       }
@@ -3805,11 +5400,11 @@ trait.chart.line = _chartLine
 
     function brushed() {
       var extent = brush.empty() ? scale.domain() : brush.extent()
+      targetUpdate( extent, 'domain', 0)
+    }
+    function targetUpdate( extent, type, duration) {
       target[ targetAxis + "Domain"](extent)
-      //targetScale.domain( extent);
-      target.update("domain", 0)
-//        focus.select("path").attr("d", area);
-//        focus.select(".x.axis").call(xAxis);
+      target.update(type, duration)
     }
 
     brush.on("brush", brushed)
@@ -3839,8 +5434,52 @@ trait.chart.line = _chartLine
       })
     }
 
+    function extentProperties( extent, lastDomainMax) {
+      var props = {
+        min: d3.trait.utils.extentMin(extent),
+        max: d3.trait.utils.extentMax(extent)
+      }
+      if( props.max instanceof Date) {
+        var minMs = props.min.getTime(),
+            maxMs = props.max.getTime()
+        props.isDate = true
+        props.span = Math.abs( maxMs - minMs),
+        props.spanEpsilon = props.span * 0.025
+        props.isExtentMax = Math.abs( maxMs - lastDomainMax.getTime()) < props.spanEpsilon
+      } else {
+        props.isDate = false
+        props.span = Math.abs( props.max - props.min),
+        props.spanEpsilon = props.span * 0.025
+        props.isExtentMax = Math.abs( props.max - lastDomainMax) < props.spanEpsilon
+      }
+      return props
+    }
+
+    function getNewMin( props, newMax) {
+      if( newMax instanceof Date)
+        return new Date( newMax.getTime() - props.span)
+      else
+        return newMax - props.span
+    }
+
     controlBrush.update = function(type, duration) {
       this._super(type, duration)
+      if( ! brush.empty()) {
+        var extent = brush.extent(),
+            props = extentProperties(extent, lastDomainMax)
+        if( props.isExtentMax) {
+          var newMax = d3.trait.utils.extentMax(scale.domain()),
+              newMin = getNewMin( props, newMax)
+           brush.extent( [newMin, newMax])
+        } else {
+          brush.extent( extent)
+          extent = brush.extent()
+        }
+
+        targetUpdate( extent, 'trend', 250)
+      } else {
+        brushed()
+      }
       group.call( brush)
       lastDomainMax = d3.trait.utils.extentMax(scale.domain())
       return this;
@@ -5317,7 +6956,7 @@ trait.chart.line = _chartLine
     function topOrBottom() { return orient === "top" || orient === "bottom"}
 
     function marginStyle() {
-      var style, m = {left: 2, right: 2}
+      var style, m = {left: 10, right: 10}
       if( _config.legendMargin ) {
         m.left = _config.legendMargin.left || m.left
         m.right = _config.legendMargin.right || m.right
@@ -5332,6 +6971,9 @@ trait.chart.line = _chartLine
         style += "margin-top:" + m.top + "px;"
       if( m.bottom )
         style += "margin-bottom:" + m.bottom + "px;"
+
+      style += 'top:' + Math.max(0,_super.marginTop()-5) + 'px;'
+
       return style
     }
 
@@ -5367,10 +7009,15 @@ trait.chart.line = _chartLine
           // UPDATE
 
           // ENTER
-          legendTop.enter()
+          var lis = legendTop.enter()
             .append("li")
-            .attr("class", "legend-item")
+            .classed("legend-item", true)
             .style("border-bottom-color", self.color)
+
+          lis.append('span')
+              .classed('legend-mark', true)
+              .style('background-color', self.color)
+          lis.append('span')// If we don't append a span here, the text() call will overwrite span.legend-mark.
             .text(_config.seriesLabel)
 
           // also try: <li><span>• </span>Lorem ipsum</li> with css span { font-size: 20pt; }
@@ -5537,11 +7184,14 @@ trait.chart.line = _chartLine
 
   function getMillisFromDomain(domain) { return domain[ domain.length - 1].getTime() - domain[0].getTime() }
 
-  function makeAccessorsFromConfig(config, scaleName) {
+  function makeAccessorsFromConfig(config, scaleName, scale) {
     return {
       series: config.seriesData,
-      data:   config[scaleName],
-      scaleName: scaleName
+      data: function( s) {return trait.murts.utils.getOrElse( s, scale)},
+      value:   config[scaleName],
+      scaleName: scaleName,
+      axisChar: scaleName.charAt(0),
+      scale: scale
     }
   }
 
@@ -5661,13 +7311,14 @@ trait.chart.line = _chartLine
     if( domainConfig.domain )
       return domainConfig.domain
 
-    // TODO: This overrides trend. The two should work together.
+    // TODO: This overrides trend. The two should work together somehow.
     if( domainConfig.minDomainFromData) {
       if( trait.utils.isExtentExtended( domain, domainConfig.minDomainFromData))
         domain = trait.utils.extendExtent( domain, domainConfig.minDomainFromData)
       return domain
     }
 
+    data = trait.murts.utils.getOrElse( data)
 
     if( domainConfig.trend )
       domain = getDomainTrend(domainConfig, data, access, domainConfig.padding)
@@ -5795,9 +7446,9 @@ trait.chart.line = _chartLine
     var filteredData,
         scaleName = _config.axis,
         axisChar = scaleName.charAt(0),
-        access = makeAccessorsFromConfig(_config, scaleName),
-        domainConfig = makeDomainConfig(_config),
-        scale = d3.time.scale()
+        scale = d3.time.scale(),
+        access = makeAccessorsFromConfig(_config, scaleName, scale),
+        domainConfig = makeDomainConfig(_config)
       ;
 
     _super.minRangeMargin(scaleName, _config.minRangeMargin)
@@ -5860,9 +7511,9 @@ trait.chart.line = _chartLine
     var filteredData,
         scaleName = _config.axis,
         axisChar = scaleName.charAt(0),
-        access = makeAccessorsFromConfig(_config, scaleName),
-        domainConfig = makeDomainConfig(_config),
-        scale = d3.scale.linear()
+        scale = d3.scale.linear(),
+        access = makeAccessorsFromConfig(_config, scaleName, scale),
+        domainConfig = makeDomainConfig(_config)
 
     _super.minRangeMargin(_config.axis, _config.minRangeMargin)
 

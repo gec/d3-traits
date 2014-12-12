@@ -55,7 +55,7 @@ module.exports = function(grunt) {
           // (these files will be instrumented by Istanbul)
           //
           // For debug, comment this out!
-          'src/**/*.js': ['coverage']
+//          'src/**/*.js': ['coverage']
         },
         coverageReporter: {
           reporters: [
