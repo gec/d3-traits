@@ -941,6 +941,10 @@
       }
     }
 
+    murtsDataStore.isMurtsDataStore = function() {
+      return true
+    }
+
     return murtsDataStore;
 
   }
@@ -1187,7 +1191,7 @@
   }
 
   function isMurtsDataStore( obj) {
-    return typeof obj === 'function' && obj.toString().indexOf( 'function murtsDataStore(') === 0
+    return typeof obj === 'function' && obj.hasOwnProperty( 'isMurtsDataStore') && obj.isMurtsDataStore()
 
 //    var arr = obj.toString().match(/function\s*(\w+)/)
 //    return arr && arr.length === 2 && arr[1] === 'murtsDataStore'
