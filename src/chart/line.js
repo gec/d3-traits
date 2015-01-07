@@ -104,9 +104,11 @@
 
       attrD = line( seriesData)
 
-      if( indexMaxIsTheLastPoint && trend) {
+      if( attrD && indexMaxIsTheLastPoint && trend) {
         // Extend the line out to the right edge of the chart.
-        attrD += 'H' + rangeMax
+        var rightExtent = rangeMax * 1.1
+        rightExtent.toFixed()
+        attrD += 'H' + rightExtent
       }
 
       return attrD

@@ -84,7 +84,39 @@ describe('d3.trait.chart.line', function() {
     var path = seriesGroup.firstChild
     expect(path).toBeElement("path.line")
     path = d3.select( path)
-    expect( path.attr('d')).toEqual( 'M0,95H90V0H190V190H290')
+    expect( path.attr('d')).toEqual( 'M0,95H90V0H190V190H319')
+
+  });
+
+  it('should gracefully not draw trend line with no data', function() {
+
+    var traits =  d3.trait( d3.trait.chart.base, config )
+      .trait( d3.trait.scale.time, {axis: 'x1', domainMax: 290})
+      .trait( d3.trait.scale.linear, {axis: 'y1'})
+      .trait(d3.trait.chart.line, { interpolate: 'step-after', trend: true})
+
+    var data2 = [
+      []
+    ]
+
+    selection.datum( data2)
+    traits.call( selection)
+
+    var div = selection[0][0]
+    var chartGroup = div._chartGroup[0][0]
+
+    var chartInstanceGroup = chartGroup.firstChild
+    expect(chartInstanceGroup).toBeElement("g.chart-line")
+    expect(chartInstanceGroup.childElementCount).toBe(data.length)
+
+    var seriesGroup = chartInstanceGroup.firstChild
+    expect(seriesGroup).toBeElement("g.series")
+    expect(seriesGroup.childElementCount).toBe(1)
+
+    var path = seriesGroup.firstChild
+    expect(path).toBeElement("path.line")
+    path = d3.select( path)
+    expect( path.attr('d')).toBeNull()
 
   });
 
@@ -119,7 +151,7 @@ describe('d3.trait.chart.line', function() {
     var chartInstanceGroup = chartGroup.firstChild
     var seriesGroup = chartInstanceGroup.firstChild
     var path = d3.select( seriesGroup.firstChild)
-    expect( path.attr('d')).toEqual( 'M0,190H290')
+    expect( path.attr('d')).toEqual( 'M0,190H319')
 
   });
 

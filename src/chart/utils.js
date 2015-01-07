@@ -67,7 +67,7 @@
 
       var translateX = rangeTranslate(lastDomainMax, domain, scale)
 
-      if( translateX !== 0 ) {
+      if( translateX < 1.5 ) {
 
         series.attr("transform", null)
         series.selectAll("path")

@@ -164,7 +164,7 @@
         colorIndexNext = 0,
         colors = getColorsFunction(),
         colorsUsed = [],
-        externalListeners = {},  // subscribption listeners here or on each element.
+        externalListeners = {},  // subscription listeners here or on each element.
         invalidate = {
           lastTime: 0,
           timer: undefined
