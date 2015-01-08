@@ -625,20 +625,29 @@
     if( length <= 2) {
       saveLength = length
       this.initialSample( source)
-      return this.data.length - saveLength
+      return {
+        pushedCount: this.data.length,
+        poppedCount: saveLength,
+        initialSample: true
+      }
     }
 
     var stepStart = this.resampling.nextStep - this.stepSize
     var sourceIndex = this.findIndexOfStepStartFromEnd( source.data, stepStart, this.resampling.unsampledCount)
     var sampledIndex = this.findIndexOfStepStartFromEnd( this.data, stepStart)
+    var poppedCount = length - sampledIndex
 
     // Remove the last points that need to be resampled.
-    this.data.splice( sampledIndex, length - sampledIndex)
+    this.data.splice( sampledIndex, poppedCount)
 
     if( this.data.length <= 2) {
       saveLength = length
       this.initialSample( source)
-      return this.data.length - saveLength
+      return {
+        pushedCount: this.data.length,
+        poppedCount: saveLength,
+        initialSample: true
+      }
     }
 
     var a = this.data[this.data.length-1],
@@ -664,16 +673,21 @@
 
     this.extendNextStepPastExtent()
 
-    return pushedCount
+    return {
+      pushedCount: pushedCount,
+      poppedCount: poppedCount,
+      initialSample: false
+    }
   }
 
   /**
-   * This source has more data. Consider resampling source now.
+   * Our source has been updated. It could have recieved addition points, resampled, or both.
+   * We ALWAYS want the latest points even if they are not the complete step. We'll copy them from
+   * source for now. When we do have a complete step (by seeing a point that crosses the nextStep),
+   * then we resample.
    *
    *  | .  .| .. | .. l   |NS n    Sample to nextStep
-   *  | .  .| .. |    l   |NS n    Sample to nextStep
-   *  | .  .| .. | .. l n |NS      Don't sample
-   *  | .  .| .. |    l n |NS      Don't sample
+   *  | .  .| .. | .. l n |NS      Don't sample, just copy
    *
    *  | - step boundary
    *  |NS - nextStep
@@ -681,32 +695,59 @@
    *  l - Last point
    *  n - New point
    *
-   * @param count
+   * @param pushedCount The number of points the source just pushed
+   * @param poppedCount The source resampled. It popped this number of points before pushing the resampled points
+   * @param initialSample The source popped all points and performed an initial sampling. Popped and pushed counts are accurate.
    */
-  Sampling.prototype.sourceUpdated = function( pushedCount) {
-    if( pushedCount <= 0)
+  Sampling.prototype.sourceUpdated = function( pushedCount, poppedCount, initialSample) {
+    if( poppedCount === undefined)
+      poppedCount = 0
+    if( initialSample === undefined)
+      initialSample = false
+
+    if( poppedCount + pushedCount === 0)
       return
 
-    var source = this.resampling.source,
-        thisPushedCount = 0
+    var source = this.resampling.source
+    if( ! source) {
+      console.error( 'Sampling.sourceUpdated this.resampling.source is unknown: ' + source)
+      return
+    }
 
-    if( this.nextResolution.higher === source) {
-      this.resampling.unsampledCount += pushedCount
+    var update = {
+      pushedCount: pushedCount,
+      poppedCount: poppedCount,
+      initialSample: initialSample
+    }
 
-      // if source's latest point is beyond our nextStep
-      if( source && source.extents && source.extents.x.values[1] >= this.resampling.nextStep) {
-        thisPushedCount = this.sampleUpdatesFromSource()
+    if( this.nextResolution.higher === source && ! initialSample) {
+      this.resampling.unsampledCount += pushedCount - poppedCount
+
+      if( source.extents && source.extents.x.values[1] >= this.resampling.nextStep) {
+        // The source's latest point is beyond our nextStep
+        update = this.sampleUpdatesFromSource()
+      } else {
+        // The source's latest points are within our current step. We'll copy then for now and resample later.
+        var pushedData = source.data.slice( source.data.length - pushedCount)
+        if( poppedCount > 0) // if the source threw some away because of resampling, we need to follow suit
+          this.data.splice( this.data.length - poppedCount, poppedCount)
+        this.data = this.data.concat( pushedData)
+        this.extents.x.union(source.extents.x)
+        this.extents.y.union(source.extents.y)
       }
 
     } else {
+      // The source did a complete initial sampling or we have a new source resolution.
+      update.poppedCount = this.data.length
       this.initialSample( this.nextResolution.higher)
-      thisPushedCount = this.data.length
+      update.pushedCount = this.data.length
+      update.initialSample = true
     }
 
-    if( thisPushedCount > 0) {
+    if( update.poppedCount + update.pushedCount > 0) {
       this.notify( 'update')
       if( this.nextResolution.lower)
-        this.nextResolution.lower.sourceUpdated( thisPushedCount)
+        this.nextResolution.lower.sourceUpdated( update.pushedCount, update.poppedCount, update.initialSample)
     }
 
   }

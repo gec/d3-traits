@@ -338,6 +338,128 @@ describe('d3-traits.murts', function() {
     expect(sample1m.extents.y.values).toEqual( [10, 60])
   })
 
+  it('murts.dataStore should push unsampled data to all resolutions and resample when nextStep thresholds are crossed.', function() {
+    var data, sample1s, sample5s, sample1m,
+        murts = d3.trait.murts.dataStore(),
+        scale1s = d3.scale.linear().range( [0, 1]).domain( [0, 1000]),
+        scale5s = d3.scale.linear().range( [0, 1]).domain( [0, 5000]),
+        scale1m = d3.scale.linear().range( [0, 1]).domain( [0, 60000]),
+        d1sA = [    0,     0],
+        d1sB = [   10,    10],
+        d1sC = [   20,    20],
+        d5sA = [ 5000,  5000],
+        d5sB = [ 6000,  6000],
+        d1mA = [60000, 60000],
+        d1mB = [60010, 60010]
+
+    sample1s = murts.get()
+    sample5s = murts.get(scale5s)
+    sample1m = murts.get(scale1m)
+
+    murts.pushPoints( [d1sA])
+    // 1s
+    expect(sample1s.data.length).toBe( 1)
+    expect(sample1s.data).toEqual( [ d1sA ])
+    expect(sample1s.extents.x.values).toEqual( [0, 0])
+    expect(sample1s.extents.y.values).toEqual( [0, 0])
+    // 5s
+    expect(sample5s.data.length).toBe( 1)
+    expect(sample5s.data).toEqual( [ d1sA ])
+    expect(sample5s.extents.x.values).toEqual( [0, 0])
+    expect(sample5s.extents.y.values).toEqual( [0, 0])
+    // 1m
+    expect(sample1m.data.length).toBe( 1)
+    expect(sample1m.data).toEqual( [ d1sA ])
+    expect(sample1m.extents.x.values).toEqual( [0, 0])
+    expect(sample1m.extents.y.values).toEqual( [0, 0])
+
+    murts.pushPoints( [d1sB, d1sC])
+    // 1s
+    expect(sample1s.data.length).toBe( 3)
+    expect(sample1s.data).toEqual( [ d1sA, d1sB, d1sC ])
+    expect(sample1s.extents.x.values).toEqual( [0, d1sC[0]])
+    expect(sample1s.extents.y.values).toEqual( [0, d1sC[1]])
+    // 5s
+    expect(sample5s.data.length).toBe( 3)
+    expect(sample5s.data).toEqual( [ d1sA, d1sB, d1sC ])
+    expect(sample5s.extents.x.values).toEqual( [0, d1sC[0]])
+    expect(sample5s.extents.y.values).toEqual( [0, d1sC[1]])
+    // 1m
+    expect(sample1m.data.length).toBe( 3)
+    expect(sample1m.data).toEqual( [ d1sA, d1sB, d1sC ])
+    expect(sample1m.extents.x.values).toEqual( [0, d1sC[0]])
+    expect(sample1m.extents.y.values).toEqual( [0, d1sC[1]])
+
+    murts.pushPoints( [d5sA])
+    // 1s
+    expect(sample1s.data.length).toBe( 4)
+    expect(sample1s.data).toEqual( [ d1sA, d1sB, d1sC, d5sA ])
+    expect(sample1s.extents.x.values).toEqual( [0, d5sA[0]])
+    expect(sample1s.extents.y.values).toEqual( [0, d5sA[1]])
+    // 5s should resample
+    expect(sample5s.data.length).toBe( 3)
+    expect(sample5s.data).toEqual( [ d1sA, d1sC, d5sA ])
+    expect(sample5s.extents.x.values).toEqual( [0, d5sA[0]])
+    expect(sample5s.extents.y.values).toEqual( [0, d5sA[1]])
+    // 1m should retrieve 5s resampling
+    expect(sample1m.data.length).toBe( 3)
+    expect(sample1m.data).toEqual( [ d1sA, d1sC, d5sA ])
+    expect(sample1m.extents.x.values).toEqual( [0, d5sA[0]])
+    expect(sample1m.extents.y.values).toEqual( [0, d5sA[1]])
+
+    murts.pushPoints( [d5sB])
+    // 1s
+    expect(sample1s.data.length).toBe( 5)
+    expect(sample1s.data).toEqual( [ d1sA, d1sB, d1sC, d5sA, d5sB ])
+    expect(sample1s.extents.x.values).toEqual( [0, d5sB[0]])
+    expect(sample1s.extents.y.values).toEqual( [0, d5sB[1]])
+    // 5s should retrieve d5sB
+    expect(sample5s.data.length).toBe( 4)
+    expect(sample5s.data).toEqual( [ d1sA, d1sC, d5sA, d5sB ])
+    expect(sample5s.extents.x.values).toEqual( [0, d5sB[0]])
+    expect(sample5s.extents.y.values).toEqual( [0, d5sB[1]])
+    // 1m should retrieve 5s
+    expect(sample1m.data.length).toBe( 4)
+    expect(sample1m.data).toEqual( [ d1sA, d1sC, d5sA, d5sB ])
+    expect(sample1m.extents.x.values).toEqual( [0, d5sB[0]])
+    expect(sample1m.extents.y.values).toEqual( [0, d5sB[1]])
+
+    murts.pushPoints( [d1mA])
+    // 1s
+    expect(sample1s.data.length).toBe( 6)
+    expect(sample1s.data).toEqual( [ d1sA, d1sB, d1sC, d5sA, d5sB, d1mA ])
+    expect(sample1s.extents.x.values).toEqual( [0, d1mA[0]])
+    expect(sample1s.extents.y.values).toEqual( [0, d1mA[1]])
+    // 5s should resample
+    expect(sample5s.data.length).toBe( 4)
+    expect(sample5s.data).toEqual( [ d1sA, d1sC, d5sB, d1mA ])
+    expect(sample5s.extents.x.values).toEqual( [0, d1mA[0]])
+    expect(sample5s.extents.y.values).toEqual( [0, d1mA[1]])
+    // 1m should resample
+    expect(sample1m.data.length).toBe( 3)
+    expect(sample1m.data).toEqual( [ d1sA, d5sB, d1mA ])
+    expect(sample1m.extents.x.values).toEqual( [0, d1mA[0]])
+    expect(sample1m.extents.y.values).toEqual( [0, d1mA[1]])
+
+    murts.pushPoints( [d1mB])
+    // 1s
+    expect(sample1s.data.length).toBe( 7)
+    expect(sample1s.data).toEqual( [ d1sA, d1sB, d1sC, d5sA, d5sB, d1mA, d1mB ])
+    expect(sample1s.extents.x.values).toEqual( [0, d1mB[0]])
+    expect(sample1s.extents.y.values).toEqual( [0, d1mB[1]])
+    // 5s should retrieve
+    expect(sample5s.data.length).toBe( 5)
+    expect(sample5s.data).toEqual( [ d1sA, d1sC, d5sB, d1mA, d1mB ])
+    expect(sample5s.extents.x.values).toEqual( [0, d1mB[0]])
+    expect(sample5s.extents.y.values).toEqual( [0, d1mB[1]])
+    // 1m should retrieve
+    expect(sample1m.data.length).toBe( 4)
+    expect(sample1m.data).toEqual( [ d1sA, d5sB, d1mA, d1mB ])
+    expect(sample1m.extents.x.values).toEqual( [0, d1mB[0]])
+    expect(sample1m.extents.y.values).toEqual( [0, d1mB[1]])
+
+  })
+
   it('murts.dataStore should manage size constraints', function() {
     var data, sample1s, sample5s, sample1m,
         murts = d3.trait.murts.dataStore(),
