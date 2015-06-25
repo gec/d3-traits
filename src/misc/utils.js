@@ -105,10 +105,10 @@
 
     // Get array of extents for each series.
     extents = data.map(function(s) {
-      var series = access.data( access.series(s))
+      var series = access.series(s)
       var extent = [
         d3.min( series, function( d) { return d.y0}),
-        d3.max( series, function( d) { return d.y0 + access.value(d)})
+        d3.max( series, function( d) { return d.y0 + access.data(d)})
       ]
       return extent
     })

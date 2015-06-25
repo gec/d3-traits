@@ -127,8 +127,7 @@ describe('d3.trait.utils', function() {
         padding = 0,
         access2 = {
           series: function(d) { return d.series },
-          data:   function(d) { return d },
-          value:  function(d) { return d.y }
+          data:   function(d) { return d.y }
         }
 
     extent = d3.trait.utils.extentFromAreaData([ {series: [ {y0: 1, y: 1}, {y0: 1, y:2}, {y0: 1, y: 3}]} ], access2, padding)
