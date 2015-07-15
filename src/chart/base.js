@@ -159,8 +159,8 @@
 
     var ease = 'cubic-in-out'
     var size = initConfigSize()
-    var chartWidth = size.width - margin.left - margin.right,
-        chartHeight = size.height - margin.top - margin.bottom,
+    var chartWidth = Math.max( 0, size.width - margin.left - margin.right),
+        chartHeight = Math.max( 0, size.height - margin.top - margin.bottom),
         colorIndexNext = 0,
         colors = getColorsFunction(),
         colorsUsed = [],
@@ -250,6 +250,12 @@
       )
     }
 
+    function invalidateChartSize( element) {
+      size = getSize(element, sizeFromElement, size)
+      chartWidth = Math.max( 0, size.width - margin.left - margin.right)
+      chartHeight = Math.max( 0, size.height - margin.top - margin.bottom)
+    }
+
     function chartBase(_selection) {
       var self = chartBase
       selection = _selection
@@ -267,9 +273,7 @@
             .attr("height", sizeAttrs.height)
           element._svgDefs = element._svg.append("defs")
 
-          size = getSize(element, sizeFromElement, size)
-          chartWidth = size.width - margin.left - margin.right
-          chartHeight = size.height - margin.top - margin.bottom
+          invalidateChartSize( element)
 
           var clipId = null
           if( _config.clip )
@@ -314,6 +318,11 @@
               }
             }
           })
+
+        } else {
+
+          invalidateChartSize( element)
+          //console.log( "chartBase call w=" + size.width + ", h=" + size.height + " cW=" + chartWidth + ", cH=" + chartHeight)
         }
 
         //console.log( "chartBase w=" + size.width + ", h=" + size.height + " cW=" + chartWidth + ", cH=" + chartHeight)

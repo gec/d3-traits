@@ -1,4 +1,4 @@
-/*! d3-traits - v0.0.1 - 2015-06-24
+/*! d3-traits - v0.0.1 - 2015-07-15
 * https://github.com/gec/d3-traits
 * Copyright (c) 2015 d3-traits; Licensed ,  */
 (function(d3) {
@@ -4242,8 +4242,8 @@
 
     var ease = 'cubic-in-out'
     var size = initConfigSize()
-    var chartWidth = size.width - margin.left - margin.right,
-        chartHeight = size.height - margin.top - margin.bottom,
+    var chartWidth = Math.max( 0, size.width - margin.left - margin.right),
+        chartHeight = Math.max( 0, size.height - margin.top - margin.bottom),
         colorIndexNext = 0,
         colors = getColorsFunction(),
         colorsUsed = [],
@@ -4333,6 +4333,12 @@
       )
     }
 
+    function invalidateChartSize( element) {
+      size = getSize(element, sizeFromElement, size)
+      chartWidth = Math.max( 0, size.width - margin.left - margin.right)
+      chartHeight = Math.max( 0, size.height - margin.top - margin.bottom)
+    }
+
     function chartBase(_selection) {
       var self = chartBase
       selection = _selection
@@ -4350,9 +4356,7 @@
             .attr("height", sizeAttrs.height)
           element._svgDefs = element._svg.append("defs")
 
-          size = getSize(element, sizeFromElement, size)
-          chartWidth = size.width - margin.left - margin.right
-          chartHeight = size.height - margin.top - margin.bottom
+          invalidateChartSize( element)
 
           var clipId = null
           if( _config.clip )
@@ -4397,6 +4401,11 @@
               }
             }
           })
+
+        } else {
+
+          invalidateChartSize( element)
+          //console.log( "chartBase call w=" + size.width + ", h=" + size.height + " cW=" + chartWidth + ", cH=" + chartHeight)
         }
 
         //console.log( "chartBase w=" + size.width + ", h=" + size.height + " cW=" + chartWidth + ", cH=" + chartHeight)
