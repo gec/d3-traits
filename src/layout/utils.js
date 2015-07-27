@@ -312,6 +312,100 @@
     }
   }
 
+
+
+
+
+
+
+  function makeTargetSeries( series) {
+    var s = -1,
+        length = series.length,
+        target = []
+
+    while (++s < length) {
+      target[s] = []
+    }
+    return target
+  }
+  function seriesIndexOfMinNextX( iterators) {
+    var iter, minSeriesIndex, nextX,
+        s = -1,
+        length = iterators.length,
+        minValue = Number.MAX_VALUE
+
+    while( ++s < length) {
+      iter = iterators[s]
+      nextX = iter.peekNextX()
+      if( nextX !== undefined && nextX < minValue) {
+        minSeriesIndex = s
+        minValue = nextX
+      }
+    }
+    return minSeriesIndex
+  }
+
+  //function populateVerticalSliceAndAdvanceCursor( outSeries, series, cursors, access, minSeriesIndex, epsilon) {
+  //  var cursor, seriesData, point,
+  //      s = -1,
+  //      length = series.length,
+  //      xMin = cursors[minSeriesIndex].xNext,
+  //      outLength = outSeries[0].length
+  //
+  //  while( ++s < length) {
+  //    cursor = cursors[s]
+  //    seriesData = access.seriesData( series[s])
+  //
+  //    if( s === minSeriesIndex) {
+  //      point = nextPoint( cursor, seriesData, access)
+  //    } else {
+  //      point = nextPointOrInterpolate( cursor, seriesData, access, xMin, epsilon)
+  //    }
+  //
+  //    outSeries[s][outLength] = point
+  //  }
+  //}
+  //
+  //function mapSeriesToUniformX( series, access, epsilon) {
+  //  var cursors = makeCursors( series, access),
+  //      targetSeries = makeTargetSeries( series),
+  //      minSeriesIndex = seriesIndexOfMinNextX( series, cursors)
+  //
+  //  while( minSeriesIndex !== undefined) {
+  //    populateVerticalSliceAndAdvanceCursor( targetSeries, series, cursors, access, minSeriesIndex, epsilon)
+  //    minSeriesIndex = seriesIndexOfMinNextX( series, cursors)
+  //  }
+  //
+  //  return targetSeries
+  //}
+
+  function mapUniform( iterators) {
+    var length = iterators.length
+
+    if( !length)
+      return []
+
+    var s, index, indexOfMinNextX, nextX,
+        target = makeTargetSeries( iterators)
+
+    index = 0
+    indexOfMinNextX = seriesIndexOfMinNextX( iterators)
+    while( indexOfMinNextX !== undefined) {
+      nextX = iterators[indexOfMinNextX].peekNextX()
+      s = -1
+      while( ++s < length) {
+        target[s][index] = iterators[s].next( nextX)
+      }
+
+      indexOfMinNextX = seriesIndexOfMinNextX( iterators)
+      index++
+    }
+
+    return target;
+  }
+
+
+
   ///////////////////////////////////
   // Export to d3.trait
   //
@@ -322,10 +416,17 @@
   trait.layout.vertical = layoutVertical
   trait.layout.byOrientation = layoutByOrientation
   trait.layout.verticalAnchorLeftRight = layoutVerticalAnchorLeftRight
+  trait.layout.mapUniform = mapUniform,
   trait.layout.utils = {
     listNudgeUpFromBottom: listNudgeUpFromBottom,
     removeOverlapFromTop: removeOverlapFromTop,
-    listBalanceFromTop: listBalanceFromTop
+    listBalanceFromTop: listBalanceFromTop,
+    trendstack: {
+      makeTargetSeries: makeTargetSeries,
+      seriesIndexOfMinNextX: seriesIndexOfMinNextX
+      //populateVerticalSliceAndAdvanceCursor: populateVerticalSliceAndAdvanceCursor,
+      //mapSeriesToUniformX: mapSeriesToUniformX
+    }
   }
 
 }(d3, d3.trait));

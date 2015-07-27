@@ -38,7 +38,7 @@
       x: config[axes.x] || accessXDefault,
       y: config[axes.y] || accessYDefault,
       seriesData: config.seriesData || accessNull,
-      seriesName: config.seriesName || accessIndex
+      seriesLabel: config.seriesLabel || accessIndex
     }
   }
 

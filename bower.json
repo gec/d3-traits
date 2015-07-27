@@ -8,7 +8,7 @@
     "components"
   ],
   "devDependencies": {
-    "d3": "~3.4.11",
+    "d3": "~3.5.6",
     "moment": "~2.8.1"
   }
 }
