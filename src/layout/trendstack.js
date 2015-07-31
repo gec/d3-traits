@@ -26,6 +26,9 @@ function d3traits_layout_trendstack_makeCursors( series, points) {
 
 (function (d3, trait) {
 
+  function defaultIdentity(d) { return d }
+  function defaultX(d) { return d.x }
+  function defaultY(d) { return d.y }
   function defaultOutXY(d, x, y) { d.x = x; d.y = y}
   function defaultOut(d, x, y0, y) { d.x = x; d.y0 = y0; d.y = y}
 
@@ -44,10 +47,10 @@ function d3traits_layout_trendstack_makeCursors( series, points) {
     var data, current, index, nextX,
         epsilon = 0.01
 
-    var values = function(d) { return d },
+    var values = defaultIdentity,
         out = defaultOutXY,
-        x = function(d) { return d.x },
-        y = function(d) { return d.y }
+        x = defaultX,
+        y = defaultY
 
     function uniformIterator( _data) {
       data = _data
@@ -149,63 +152,115 @@ function d3traits_layout_trendstack_makeCursors( series, points) {
 
 
 
-  //trait.layout.mapUniform = function () {
-  //
-  //  var epsilon = 0.01,
-  //      makeTargetSeries = d3.trait.layout.utils.trendstack.makeTargetSeries,
-  //      seriesIndexOfMinNextX = d3.trait.layout.utils.trendstack.seriesIndexOfMinNextX
-  //
-  //  //var values = function(d) { return d },
-  //  //    out = defaultOutXY,
-  //  //    x = function(d) { return d.x },
-  //  //    y = function(d) { return d.y }
-  //  //
-  //  //function makeIterator( oneSeries) {
-  //  //  var iter = trait.layout.uniformIterator()
-  //  //    .epsilon( epsilon)
-  //  //    .values( values)
-  //  //    .x( x)
-  //  //    .y( y)
-  //  //    .out( out)
-  //  //
-  //  //  return iter( oneSeries)
-  //  //}
-  //  //
-  //  //function makeIterators( data) {
-  //  //  var iterators = [],
-  //  //      length = data.length,
-  //  //      s = -1
-  //  //  while( ++s < length)
-  //  //    iterators[s] = makeIterator( data[s])
-  //  //  return iterators
-  //  //}
-  //
-  //  function mapUniform( iterators) {
-  //    var length = iterators.length
-  //
-  //    if( !length)
-  //      return []
-  //
-  //    var s, index, indexOfMinNextX, nextX,
-  //        target = makeTargetSeries( iterators)
-  //
-  //    index = 0
-  //    while( indexOfMinNextX = seriesIndexOfMinNextX( iterators) !== undefined) {
-  //      nextX = iterators[indexOfMinNextX].peekNextX()
-  //      s = -1
-  //      while( ++s < length) {
-  //        target[s][index] = iterators[s].next( nextX)
-  //      }
-  //
-  //      index++
-  //    }
-  //
-  //    return target;
-  //  }
-  //
-  //  return mapUniform;
-  //
-  //} // end trait.layout.mapUniform
+
+
+  /**
+   * Iterate over a continuous series, always returning a point at the 240
+   * x value (between x and x + epsilon inclusive). The caller guarantees the
+   * supplied x is greater than or equal to the next point of the iterator.
+   *
+   * If the next point is greater thn x + epsilon, a new interpolated point is
+   * returned and the iterator is not advanced.
+   *
+   * @returns {uniformInterpolator}
+   */
+  trait.layout.uniformInterpolator = function () {
+
+    var data, current, index, nextX,
+        iterators = [],
+        epsilon = 0.01
+
+
+    var values = defaultIdentity,
+        out = defaultOutXY,
+        x = defaultX,
+        y = defaultY,
+        mapUniform = trait.layout.mapUniform
+
+    function applyAccessorsToIterator( iter) {
+      if( values !== defaultIdentity)
+        iter.values( values)
+      if( x !== defaultX)
+        iter.x( x)
+      if( y !== defaultY)
+        iter.y( y)
+      if( out !== defaultOut)
+        iter.out( out)
+    }
+
+    function initializeIterators( data) {
+      var s, iter
+
+      // Add iterators
+      s = iterators.length - 1
+      while( ++s < data.length) {
+        iter = trait.layout.uniformIterator()
+        applyAccessorsToIterator( iter)
+        iterators[s] = iter
+      }
+
+      // Remove extra iterators
+      var extra = data.length - iterators.length
+      if( extra > 0) {
+        iterators.splice( iterators.length, extra)
+      }
+    }
+
+    function uniformInterpolator( _data) {
+      data = _data
+      initializeIterators( data)
+
+      return mapUniform( iterators)
+    }
+
+    uniformInterpolator.values = function(x) {
+      if (!arguments.length) return values;
+      values = x;
+      var s = iterators.length
+      while( --s >= 0)
+        iterators[s].values( values)
+      return uniformInterpolator;
+    };
+
+    uniformInterpolator.x = function(z) {
+      if (!arguments.length) return x;
+      x = z;
+      var s = iterators.length
+      while( --s >= 0)
+        iterators[s].x( x)
+      return uniformInterpolator;
+    };
+
+    uniformInterpolator.y = function(z) {
+      if (!arguments.length) return y;
+      y = z;
+      var s = iterators.length
+      while( --s >= 0)
+        iterators[s].y( y)
+      return uniformInterpolator;
+    };
+
+    uniformInterpolator.out = function(z) {
+      if (!arguments.length) return out;
+      out = z;
+      var s = iterators.length
+      while( --s >= 0)
+        iterators[s].out( out)
+      return uniformInterpolator;
+    };
+
+    uniformInterpolator.epsilon = function(z) {
+      if (!arguments.length) return epsilon;
+      epsilon = z;
+      return uniformInterpolator;
+    };
+
+    return uniformInterpolator;
+
+  } // end trait.layout.uniformInterpolator
+
+
+
 
 
   trait.layout.trendstack = function () {

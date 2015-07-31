@@ -44,7 +44,7 @@
   function _chartArea(_super, _config) {
     // Store the group element here so we can have multiple area charts in one chart.
     // A second "area chart" might have a different y-axis, style or orientation.
-    var group, series, filteredData, lastDomainMax, stackLayout,
+    var group, series, filteredData, lastDomainMax, stackLayout, uniformInterpolator,
         axes = trait.config.axes( _config),
         access = trait.config.accessorsXY( _config, axes),
         x = _super[axes.x](),
@@ -57,6 +57,7 @@
         stacked = _config.stacked ? true : false,
         area = makeArea( stacked, access, x, y, interpolate, _super.chartHeight())
 
+
     function getSeriesData( d) {
       console.log( '******* getSeriesData( d) ' + access.seriesLabel(d))
       return trait.murts.utils.getOrElse( access.seriesData(d), x)
@@ -67,9 +68,16 @@
       return area(getSeriesData(d));
     }
 
+    if( unifyX) {
+      uniformInterpolator = trait.layout.uniformInterpolator()
+        .values( access.seriesData)
+        .x( access.x)
+        .y( access.y)
+    }
+
     if( stacked ) {
       stackLayout = d3.layout.stack()
-        .values( getSeriesData)
+        .values( getSeriesData)          TODO: new accessors
         .y( access.y);
     }
 
@@ -88,6 +96,8 @@
         }
 
         filteredData = _config.seriesFilter ? _data.filter(_config.seriesFilter) : _data
+        if( unifyX)
+          filteredData = uniformInterpolator( filteredData)
 
         console.log( '******* before stackLayout( filteredData)')
         if( stacked) {
