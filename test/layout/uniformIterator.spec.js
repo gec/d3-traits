@@ -1,12 +1,10 @@
-describe('d3-traits.layout.utils.trendstack', function() {
+describe('d3-traits.layout.uniformIterator', function() {
 
   var uniformIterator = d3.trait.layout.uniformIterator,
       mapUniform = d3.trait.layout.mapUniform,
       utils = d3.trait.layout.utils,
       makeTargetSeries                      = utils.trendstack.makeTargetSeries,
-      seriesIndexOfMinNextX                 = utils.trendstack.seriesIndexOfMinNextX,
-      populateVerticalSliceAndAdvanceCursor = utils.trendstack.populateVerticalSliceAndAdvanceCursor,
-      mapSeriesToUniformX                   = utils.trendstack.mapSeriesToUniformX
+      seriesIndexOfMinNextX                 = utils.trendstack.seriesIndexOfMinNextX
 
   var access  = d3.trait.config.accessorsXY( {}, {x: 'x', y: 'y'})
 
@@ -45,7 +43,7 @@ describe('d3-traits.layout.utils.trendstack', function() {
   });
 
   it('uniformIterator should iterate a non-empty series', function() {
-    var data, iter, cursors, series
+    var data, iter
 
     data = [ {x:1, y:2} ]
     iter = uniformIterator()
@@ -61,6 +59,28 @@ describe('d3-traits.layout.utils.trendstack', function() {
     expect( iter.peekNextX()).toBeUndefined()
     var point = iter.next(2)
     expect( point).toEqual( {x:2, y:2})
+
+  });
+
+  it('uniformIterator should iterate a series with date x values', function() {
+    var data, iter,
+        now = new Date(),
+        later = new Date( now.valueOf() + 1000)
+
+    data = [ {x:now, y:2} ]
+    iter = uniformIterator()
+      .epsilon(.01)
+    iter(data)
+    expect( iter.isNext()).toBeTruthy()
+    expect( iter.peekNextX()).toEqual(now)
+
+    var point = iter.next(now)
+    expect( point).toEqual( data[0])
+
+    expect( iter.isNext()).toBeFalsy()
+    expect( iter.peekNextX()).toBeUndefined()
+    var point = iter.next(later)
+    expect( point).toEqual( {x:later, y:2})
 
   });
 
@@ -159,6 +179,47 @@ describe('d3-traits.layout.utils.trendstack', function() {
     expect( target[0][3]).toEqual( {x: 7, y: 0})
     expect( target[1][3]).toEqual( {x: 7, y: 8})
     expect( target[2][3]).toEqual( {x: 7, y: 6})
+
+  });
+
+  it('mapUniform should map points to uniform X values within epsilon of 500 milliseconds', function() {
+    var series, iterators, target,
+        date0 = new Date( 0),
+        date1 = new Date( 1),
+        date1000 = new Date( 1000),
+        date2000 = new Date( 2000)
+
+    series = [
+      [                                                    ],
+      [ {x:date0, y:2},                   {x:date2000, y:8}],
+      [ {x:date1, y:4}, {x:date1000, y:6}                  ]
+    ]
+    iterators = series.map( function(s, i) {
+      return uniformIterator().epsilon(500)(s)
+    })
+
+    expect( iterators[0].epsilon()).toEqual( 500)
+    expect( iterators[1].epsilon()).toEqual( 500)
+    expect( iterators[2].epsilon()).toEqual( 500)
+
+    target = mapUniform( iterators)
+
+    expect( target[0].length).toEqual(3)
+    expect( target[1].length).toEqual(3)
+    expect( target[2].length).toEqual(3)
+
+
+    expect( target[0][0]).toEqual( {x: date0, y: 0})
+    expect( target[1][0]).toEqual( {x: date0, y: 2})
+    expect( target[2][0]).toEqual( {x: date1, y: 4})
+
+    expect( target[0][1]).toEqual( {x: date1000, y: 0})
+    expect( target[1][1]).toEqual( {x: date1000, y: 2})
+    expect( target[2][1]).toEqual( {x: date1000, y: 6})
+
+    expect( target[0][2]).toEqual( {x: date2000, y: 0})
+    expect( target[1][2]).toEqual( {x: date2000, y: 8})
+    expect( target[2][2]).toEqual( {x: date2000, y: 6})
 
   });
 

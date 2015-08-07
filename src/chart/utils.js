@@ -60,23 +60,29 @@
     // TODO: The scale.range() needs to be wider, so we draw the new line off the right
     // then translate it to the left with a transition animation.
 
-    var domain = scale.domain()
-    var domainMax = d3.trait.utils.extentMax(domain)
+    var domain = scale.domain(),
+        domainMax = d3.trait.utils.extentMax(domain),
+        updateEachSeriesPath = function( oneSeries)  {
+          var path = d3.select(this)
+            .attr("transform", null)
+            .selectAll("path")
+            .datum(oneSeries)
+            .attr("d", attrD)
+        }
 
     if( type === "trend" ) {
 
       var translateX = rangeTranslate(lastDomainMax, domain, scale)
 
       if( translateX < 1.5 ) {
+        series.each( updateEachSeriesPath)
 
-        series.attr("transform", null)
-        series.selectAll("path")
-          .attr("d", attrD)
-
-        // slide the line left
+        // slide the chart smoothly to the left
         if( duration === 0 || !duration ) {
+          console.log( 'updatePathWithTrend trend translateX: ' + translateX + ', transition none, duration: ' + duration)
           series.attr("transform", "translate(" + translateX + ")")
         } else {
+          console.log( 'updatePathWithTrend trend translateX: ' + translateX + ', transition yes,  duration: ' + duration)
           series.transition()
             .duration(duration)
             .ease("linear")
@@ -84,6 +90,7 @@
           //.each("end", tick);
         }
       } else {
+        console.log( 'updatePathWithTrend trend translateX: ' + translateX + ' < 1.5, so simplePathRedraw')
         simplePathRedraw(series, attrD)
       }
 

@@ -16,7 +16,15 @@
         "beforeEach": false,
         "waits": false,
         "waitsFor": false,
-        "runs": false
+        "runs": false,
+		"d3_identity": false,
+		"d3_layout_stackOrderDefault": false,
+		"d3_layout_stackOffsetZero": false,
+		"d3_layout_stackOut": false,
+		"d3_layout_stackX": false,
+		"d3_layout_stackY": false,
+		"d3_layout_stackOrders": false,
+		"d3_layout_stackOffsets": false
 	},
 	"asi": true,
     "node": true,
