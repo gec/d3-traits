@@ -26,13 +26,13 @@
       RESAMPLE_UNIFORM_X = 'uniform-x'
 
 
-  function makeArea( stacked, resample, access, x, y, interpolate) {
+  function makeArea( stacked, access, x, y, interpolate) {
     var area, rangeX, rangeY0, rangeY1
 
     rangeY0 = function(d) { return y(d.y0); }
-    rangeX = resample.interpolate === RESAMPLE_NONE ? function(d) { return x( access.x(d)); } : function(d) { return x(d.x); }
-    rangeY1 = stacked ? ( resample.interpolate === RESAMPLE_NONE ? function(d) { return y(d.y0 + access.y(d)); } : function(d) { return y(d.y0 + d.y); })
-                     : ( resample.interpolate === RESAMPLE_NONE ? function(d) { return y(access.y(d)); } : function(d) { return y(d.y); })
+    rangeX = function(d) { return x( access.actualX(d)); }
+    rangeY1 = stacked ? function(d) { return y(d.y0 + access.actualY(d)); }
+                      : function(d) { return y(access.actualY(d)); }
 
     area = d3.svg.area()
       .interpolate( interpolate || "linear")
@@ -41,20 +41,6 @@
 
     if( stacked)
       area.y0( rangeY0)
-
-    //if( stacked ) {
-    //  area = area
-    //    .x(rangeX)
-    //    .y0( rangeY0)
-    //    .y1(rangeY1)
-    //
-    //} else {
-    //
-    //  area = area
-    //    .x(rangeX)
-    //    .y1(rangeY1)
-    //  // y0 is set in _selection.each.
-    //}
 
     return area
   }
@@ -76,7 +62,7 @@
   function _chartArea(_super, _config) {
     // Store the group element here so we can have multiple area charts in one chart.
     // A second "area chart" might have a different y-axis, style or orientation.
-    var group, series, filteredData, lastDomainMax, stackLayout, uniformInterpolator,
+    var group, series, filteredData, area, lastDomainMax, stackLayout, uniformInterpolator,
         axes = trait.config.axes( _config),
         access = trait.config.accessorsXY( _config, axes),
         x = _super[axes.x](),
@@ -87,8 +73,10 @@
         interpolate = _config.interpolate || "linear",
         resample = configResample( _config.resample),
         stacked = _config.stacked === true,
-        area = makeArea( stacked, resample, access, x, y, interpolate, _super.chartHeight()),
         extentFromAreaDataAccess = {}
+
+    if( _config.stacked === 'true')
+      console.error( 'chart.area config stacked:\'true\' should not have quotes. Ignored.')
 
     function oneSeriesResampledData( d) {
       return d._resampledData
@@ -106,6 +94,7 @@
       access.actualX    = access.x
       access.actualY    = access.y
     }
+    area = makeArea( stacked, access, x, y, interpolate, _super.chartHeight()),
 
     // For resample.interpolate === RESAMPLE_UNIFORM_X, we resample the data and use that
     // for the stacked area chart. When calling extentFromAreaData and
@@ -160,6 +149,14 @@
       }
     }
 
+    function transitionEachSeriesPath( oneSeries)  {
+      var path = d3.select(this)
+        .selectAll('path')
+        .datum(oneSeries)
+        //.transition()//.duration( 0)
+          .attr("d", makeAreaAttrD)
+    }
+
     function chartArea(_selection) {
       var self = chartArea
 
@@ -192,10 +189,8 @@
           .data(filteredData)
 
         // UPDATE
-        series.selectAll("path")
-          .transition()
-          .duration(500)
-          .attr("d", makeAreaAttrD)
+        series.transition().duration( 500)
+          .each( transitionEachSeriesPath)
 
         // ENTER
         series.enter()
@@ -221,7 +216,8 @@
       if( stacked) {
         if( debug) console.log( '------- chartArea.update stackLayout( filteredData)')
         processFilteredData( filteredData)
-        stackLayout( filteredData);
+        if( filteredData.length > 0)
+          stackLayout( filteredData);
         series = group.selectAll(".series").data( filteredData)
         if( debug) console.log( '------- chartArea.update extentFromAreaData')
         var extent = trait.utils.extentFromAreaData( filteredData, extentFromAreaDataAccess, domainPadding)

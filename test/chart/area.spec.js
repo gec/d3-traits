@@ -1,11 +1,6 @@
 describe('d3.trait.chart.area', function() {
 
-  var chartDiv,
-      selection,
-      data = [
-        [{x: 1, y: 2}, {x: 2, y: 3}, {x: 5, y: 5}],
-        [{x: 1, y: 2}, {x: 2, y: 3}, {x: 5, y: 5}]
-      ],
+  var chartDiv, selection, data,
       access = {
         x: function(d) { return d.x; },
         y: function(d) { return d.y; },
@@ -59,6 +54,10 @@ describe('d3.trait.chart.area', function() {
   beforeEach(function() {
     chartDiv = affix('.chart-div[style="width: 10px; height: 10px"]')
     selection = d3.select(".chart-div")
+    data = [
+      [{x: 1, y: 2}, {x: 2, y: 3}, {x: 5, y: 5}],
+      [{x: 1, y: 2}, {x: 2, y: 3}, {x: 5, y: 5}]
+    ]
   })
 
 
@@ -134,6 +133,72 @@ describe('d3.trait.chart.area', function() {
     path = d3.select( path)
     expect( path.attr('d')).toEqual( makeStackedPath( data[1], 10, data[0], access))
 
+
+  });
+
+  it('should update stacked g.chart-area and path.area with new data', function() {
+
+    var traits, selectionDatum, div, chartGroup, chartInstanceGroup, seriesGroup, path,
+        domain = [0,10]
+
+    traits = d3.trait( d3.trait.chart.base, config )
+      .trait(d3.trait.scale.linear, {axis: 'x1', domain: domain})
+      .trait(d3.trait.scale.linear, {axis: 'y1'})
+      .trait(d3.trait.chart.area,   {stacked: true})
+    selectionDatum = selection.datum( data)
+    traits.call( selectionDatum)
+
+    data = [
+      [{x: 1, y: 5}, {x: 2, y: 4}, {x: 5, y: 2}],
+      [{x: 1, y: 5}, {x: 2, y: 4}, {x: 5, y: 2}]
+    ]
+
+    selectionDatum = selection.datum( data)
+    traits.call( selectionDatum)
+
+    div = selectionDatum[0][0]
+    chartGroup = div._chartGroup[0][0]
+    chartInstanceGroup = chartGroup.firstChild
+
+    // area 1
+    seriesGroup = chartInstanceGroup.firstChild
+    path = seriesGroup.firstChild
+    expect(path).toBeElement("path.area")
+    path = d3.select( path)
+    expect( path.attr('d')).toEqual( makePath( data[0], 10, access))
+
+
+    // stacked area 2
+    seriesGroup = chartInstanceGroup.children[1]
+    path = seriesGroup.firstChild
+    expect(path).toBeElement("path.area")
+    path = d3.select( path)
+    expect( path.attr('d')).toEqual( makeStackedPath( data[1], 10, data[0], access))
+
+    var i,
+        s = data.length
+    while( --s >= 0) {
+      i = data[s].length
+      while( --i >= 0)
+        data[s][i].y1 += 1
+    }
+
+    traits.update( "domain", 0)
+
+    // area 1
+    seriesGroup = chartInstanceGroup.firstChild
+    path = seriesGroup.firstChild
+    expect(path).toBeElement("path.area")
+    path = d3.select( path)
+    expect( path.attr('d')).toEqual( makePath( data[0], 10, access))
+
+
+    // stacked area 2
+    seriesGroup = chartInstanceGroup.children[1]
+    path = seriesGroup.firstChild
+    expect(path).toBeElement("path.area")
+    path = d3.select( path)
+    expect( path.attr('d')).toEqual( makeStackedPath( data[1], 10, data[0], access))
 
   });
 
