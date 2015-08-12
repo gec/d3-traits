@@ -30,10 +30,28 @@ describe('d3.trait.scale', function() {
     y1: accessY1
   }
 
+  var _element,
+      mockY1ExtendDomain = jasmine.createSpy('y1ExtendDomain')
+
+  function _mockChart(_super, _config) {
+    function mockChart(_selection) {
+      var self = mockChart
+
+      _selection.each(function(_data) {
+        _element = this
+      })
+    }
+    mockChart.y1ExtendDomain = mockY1ExtendDomain
+
+    return mockChart
+  }
+  var mockChart = _mockChart
+
 
   beforeEach(function() {
     chartDiv = affix('.chart-div[style="width: 300px; height: 200px"]')
     selection = d3.select(".chart-div")
+    mockY1ExtendDomain.calls.reset()
   })
 
   it('scale.ordinal.bars should setup domain and range', function() {
@@ -179,6 +197,68 @@ describe('d3.trait.scale', function() {
 
     expect(scale.domain()).toEqual([ min, max])
     expect(scale.range()).toEqual([190, 0])
+  });
+
+  it('scale.linear should ask child chart to extend domain and call y1 listener', function() {
+    var chart, scale,
+        min = 0,
+        max = 999,
+        extent = [0, 10],
+        y1Listener = jasmine.createSpy('y1Listener')
+
+    mockY1ExtendDomain.and.returnValue(extent)
+    selection.datum(data)
+    chart = d3.trait(d3.trait.chart.base, config)
+      .trait(d3.trait.scale.linear, {axis: 'y1'})
+      .trait(mockChart, {})
+      .y1AddListener( y1Listener)
+
+    // Domain is based on data, so won't call listener until the chart.call( selection) with data.
+    expect( y1Listener.calls.count()).toBe( 0)
+
+    chart.call(selection)
+    scale = chart.y1()
+
+    expect( y1Listener.calls.count()).toBe( 1)
+    expect( y1Listener.calls.first()).toEqual( {object: _element, args: [scale]})
+
+    expect( mockY1ExtendDomain.calls.count()).toBe( 1)
+    expect( mockY1ExtendDomain.calls.first()).toEqual( {object: chart._super, args: [[4, 6]]})
+    expect(scale.domain()).toEqual(extent)
+
+
+  });
+
+  it('scale.linear should ask child chart to extend domain', function() {
+    var chart, scale,
+        min = 0,
+        max = 999,
+        extent = [0, 10],
+        y1Listener = jasmine.createSpy('y1Listener')
+
+    mockY1ExtendDomain.and.returnValue(extent)
+    selection.datum(data)
+    chart = d3.trait(d3.trait.chart.base, config)
+      .trait(d3.trait.scale.linear, {axis: 'y1', domain: [min, max]})
+      .trait(mockChart, {})
+      .y1AddListener( y1Listener)
+
+    scale = chart.y1()
+
+    // Calls listener immediately upon add because the domain is defined in config as constant.
+    expect( y1Listener.calls.count()).toBe( 1)
+    expect( y1Listener.calls.first()).toEqual( {object: chart, args: [scale]})
+
+    chart.call(selection)
+
+    // Never calls listener again because the domain is defined in config as constant.
+    expect( y1Listener.calls.count()).toBe( 1)
+
+    // Never calls y1ExtendDomain because the domain is defined in config as constant.
+    expect( mockY1ExtendDomain.calls.count()).toBe( 0)
+
+    expect(scale.domain()).toEqual([min,max])
+
   });
 
 

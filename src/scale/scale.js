@@ -20,7 +20,11 @@
  */
 (function(d3, trait) {
 
-  var debug = false
+  var debug = true
+
+  var extentMax = trait.utils.extentMax,
+      isExtentExtended = trait.utils.isExtentExtended,
+      extendExtent = trait.utils.extendExtent
 
   var TRACKING_NONE = "none"
 
@@ -210,7 +214,7 @@
 // 7. extend range to newRangeMax
 // 8. save oldMax and domainTranslateLast
 //
-  function updateScale(scale, range, domainConfig, data, access) {
+  function updateScale(scale, range, externalScaleSet, listeners, domainConfig, data, access) {
     var min, max, dataDomain, oldDomain, oldMax, newRangeMax
 
     scale.range(range)
@@ -265,10 +269,38 @@
 
     } else {
       dataDomain = trait.utils.extentFromData(data, access, domainConfig.padding)
+
+      if( externalScaleSet.length) {
+        var unionDomain = domainFromExternalScaleSet.call( this, externalScaleSet, dataDomain)
+        if( unionDomain !== dataDomain) {
+          dataDomain = unionDomain
+          if( debug)
+            console.log( 'updateScale union updated domain:' + dataDomain)
+        }
+      }
+
       scale.domain(dataDomain)
+
+      if( listeners.length && ( dataDomain[0] !== oldDomain[0] || extentMax( dataDomain) !== extentMax( oldDomain)) )
+        notifyListeners.call( this, listeners, scale)
     }
 
   }
+
+
+  function notifyListeners( listeners, scale) {
+    if( ! listeners)
+      return
+
+    var i, listener
+
+    i = listeners.length
+    while( --i >= 0) {
+      listener = listeners[i]
+      listener.call( this, scale)
+    }
+  }
+
 
 
   function _scaleOrdinalBars(_super, _config) {
@@ -309,28 +341,63 @@
         axisChar = scaleName.charAt(0),
         scale = d3.time.scale(),
         access = makeAccessorsFromConfig(_config, scaleName, scale),
-        domainConfig = makeDomainConfig(_config)
-      ;
+        domainConfig = makeDomainConfig(_config),
+        extendDomainKey = scaleName + 'ExtendDomain',
+        addListenerKey = scaleName + 'AddListener',
+        removeListenerKey = scaleName + 'RemoveListener',
+        updateUnionKey = scaleName + 'UpdateUnion',
+        removeUnionKey = scaleName + 'RemoveUnion',
+        listeners = [],
+        externalScaleSet = [] // scales we're doing a union with
 
     _super.minRangeMargin(scaleName, _config.minRangeMargin)
+
+    // if domainConfig.domain is specified, it trumps other configs
+    // scale.domain never changes.
+    if( domainConfig.domain )
+      scale.domain(  domainConfig.domain)  // notify listeners on add
+    if( _config.nice )
+      scale.nice(_config.nice) // start and end on month. Ex Jan 1 00:00 to Feb 1 00:00
 
 
     function scaleTime(_selection) {
       var self = scaleTime
 
       _selection.each(function(_data, i, j) {
-        var currentDomain,
+        var range,
             element = this
 
         // TODO: store this in each selection?
         filteredData = _config.seriesFilter ? _data.filter(_config.seriesFilter) : _data
+        range = d3.trait.utils.getScaleRange(self, scaleName)
+        scale.range( range)
 
-        scale.domain(getDomain( scale.domain(), domainConfig, filteredData, access))
+        if( ! domainConfig.domain ) {
+          var domain, extendedDomain,
+              oldDomain = scale.domain()
 
-        // TODO: nice overlaps wth interval. Maybe it's one or the other?
-        if( _config.nice )
-          scale.nice(_config.nice) // start and end on month. Ex Jan 1 00:00 to Feb 1 00:00
-        scale.range(d3.trait.utils.getScaleRange(self, scaleName))
+          domain = getDomain( oldDomain, domainConfig, filteredData, access)
+          scale.domain( domain)
+
+          if( debug)
+            console.log( 'scaleTime.each ' + scaleName + ' range:' + range + ' domain:' + domain)
+
+          // TODO: nice overlaps wth interval. Maybe it's one or the other?
+          if( _config.nice )
+            scale.nice(_config.nice) // start and end on month. Ex Jan 1 00:00 to Feb 1 00:00
+
+          extendedDomain = scaleTime[extendDomainKey]( domain)
+          if( extendedDomain !== domain) {
+            domain = extendedDomain
+            scale.domain( domain)
+            if( debug)
+              console.log( 'scaleTime.each ' + extendDomainKey + ' updated domain:' + domain)
+          }
+
+          if( listeners.length && ( domain[0] !== oldDomain[0] || extentMax( domain) !== extentMax( oldDomain)) )
+            notifyListeners.call( this, listeners, scale)
+
+        }
       })
     }
 
@@ -342,6 +409,21 @@
       scale.domain(newDomain)
       // TODO: domain updated event?
     }
+    scaleTime[extendDomainKey] = function(domain) {
+      return domain
+    }
+    scaleTime[addListenerKey] = function( listener) {
+      listeners[listeners.length] = listener
+      if( domainConfig.domain )
+        listener.call(this, scale)
+      return this
+    }
+    scaleTime[removeListenerKey] = function( listener) {
+      var i = listeners.indexOf( listener)
+      if( i >= 0)
+        listeners.splice(i,1)
+      return this
+    }
     scaleTime.update = function(type, duration) {
 
       this._super(type, duration)
@@ -350,7 +432,7 @@
       // calculate newRangeMax below, then we'll extend the range to that.
       var range = d3.trait.utils.getScaleRange(_super, scaleName)
 
-      updateScale(scale, range, domainConfig, filteredData, access)
+      updateScale(scale, range, externalScaleSet, listeners, domainConfig, filteredData, access)
 
       return this;
     };
@@ -361,6 +443,71 @@
     return scaleTime;
   }
 
+  //function listenerDomain( listener) {
+  //  var d3Scale = listener.traits[listener.scaleName](),
+  //      domain = d3Scale.domain()
+  //  return domain
+  //}
+  //
+  //function findExtendedDomain(  listeners, minOriginal, maxOriginal) {
+  //  var i, listener, minExt, maxExt,
+  //      min     = minOriginal,
+  //      max     = maxOriginal,
+  //      outlier = false
+  //
+  //  i = listeners.length
+  //  while( --i >= 0 ) {
+  //    listener = listeners[i]
+  //    listener.extent = listenerDomain(listener)
+  //    minExt = listener.extent[0]
+  //    maxExt = extentMax(listener.extent)
+  //    if( min < minExt ) {
+  //      min = minExt
+  //      outlier = true
+  //    }
+  //    if( max > maxExt ) {
+  //      max = maxExt
+  //      outlier = true
+  //    }
+  //  }
+  //
+  //  return outlier ? [min, max] : undefined
+  //}
+  //
+  //function scaleUnion( listeners, domain) {
+  //  if( ! listeners)
+  //    return
+  //
+  //  var extendedDomain = findExtendedDomain( listeners, domain[0], extentMax( domain))
+  //
+  //  if( extendedDomain) {
+  //    var i, listener, externalDomain
+  //
+  //    i = listeners.length
+  //    while( --i >= 0) {
+  //      listener = listeners[i]
+  //      if( isExtentExtended( listener.extent, extendedDomain)) {
+  //        externalDomain = listener.traits[listener.scaleName + 'ExternalDomain']
+  //        externalDomain( extendedDomain)
+  //      }
+  //    }
+  //
+  //  }
+  //
+  //  return extendedDomain
+  //}
+
+  function domainFromExternalScaleSet( externalScaleSet, domain) {
+    var s,
+        i = externalScaleSet.length
+
+    while( --i >= 0) {
+      s = externalScaleSet[i]
+      extendExtent( domain, s.domain())
+    }
+
+    return domain
+  }
 
   /**
    * Each time this trait is stacked it produces an addition yScale (ex: y1, y2, ... y10)
@@ -374,25 +521,67 @@
         axisChar = scaleName.charAt(0),
         scale = d3.scale.linear(),
         access = makeAccessorsFromConfig(_config, scaleName, scale),
-        domainConfig = makeDomainConfig(_config)
+        domainConfig = makeDomainConfig(_config),
+        extendDomainKey = scaleName + 'ExtendDomain',
+        addListenerKey = scaleName + 'AddListener',
+        removeListenerKey = scaleName + 'RemoveListener',
+        updateUnionKey = scaleName + 'UpdateUnion',
+        removeUnionKey = scaleName + 'RemoveUnion',
+        listeners = [],
+        externalScaleSet = [] // scales we're doing a union with
 
     _super.minRangeMargin(_config.axis, _config.minRangeMargin)
 
+    // if domainConfig.domain is specified, it trumps other configs
+    // scale.domain never changes.
+    if( domainConfig.domain )
+      scale.domain(  domainConfig.domain)  // notify listeners on add
 
     function scaleLinear(_selection) {
       var self = scaleLinear
 
       _selection.each(function(_data) {
-        var extents, min, max,
+        var range,
             element = this
 
         filteredData = _config.seriesFilter ? _data.filter(_config.seriesFilter) : _data
-        var domain = getDomain( scale.domain(), domainConfig, filteredData, access)
-        scale.domain( domain)
-        var range = d3.trait.utils.getScaleRange(self, scaleName)
+        range = d3.trait.utils.getScaleRange(self, scaleName)
         scale.range(range)
-        if( debug)
-          console.log( 'scaleLinear.each ' + scaleName + ' range:' + range + ' domain:' + domain)
+
+        if( ! domainConfig.domain ) {
+          var domain, extendedDomain, unionDomain,
+              oldDomain = scale.domain()
+
+          domain = getDomain( oldDomain, domainConfig, filteredData, access)
+          scale.domain( domain)
+
+          if( debug)
+            console.log( 'scaleLinear.each ' + scaleName + ' range:' + range + ' domain:' + domain)
+
+          extendedDomain = scaleLinear[extendDomainKey]( domain)
+          if( extendedDomain !== domain) {
+            domain = extendedDomain
+            scale.domain( domain)
+            if( debug)
+              console.log( 'scaleLinear.each ' + extendDomainKey + ' updated domain:' + domain)
+          }
+
+          if( externalScaleSet.length) {
+            unionDomain = domainFromExternalScaleSet.call( this, externalScaleSet, domain)
+            if( unionDomain !== domain) {
+              domain = unionDomain
+              scale.domain( domain)
+              if( debug)
+                console.log( 'scaleLinear.each ' + scaleName + ' union updated domain:' + domain)
+            }
+          }
+
+
+          if( listeners.length && ( domain[0] !== oldDomain[0] || extentMax( domain) !== extentMax( oldDomain)) )
+            notifyListeners.call( this, listeners, scale)
+        }
+
+        //scaleUnion( listeners, data, domain, self, scale, self[extendDomainKey])
       })
     }
 
@@ -403,6 +592,35 @@
       domainConfig.domain = newDomain
       scale.domain(newDomain)
       // TODO: domain updated event?
+    }
+    scaleLinear[extendDomainKey] = function(domain) {
+      return domain
+    }
+    scaleLinear[addListenerKey] = function( listener) {
+      listeners[listeners.length] = listener
+      if( domainConfig.domain )
+        listener.call(this, scale)
+      return this
+    }
+    scaleLinear[removeListenerKey] = function( listener) {
+      var i = listeners.indexOf( listener)
+      if( i >= 0)
+        listeners.splice(i,1)
+      return this
+    }
+    scaleLinear[updateUnionKey] = function( scale) {
+      var i = externalScaleSet.indexOf( scale)
+      if( i < 0)
+        externalScaleSet[externalScaleSet.length] = scale
+      scaleLinear.update( scaleName, 0)
+      return this
+    }
+    scaleLinear[removeUnionKey] = function( scale) {
+      var i = externalScaleSet.indexOf( scale)
+      if( i >= 0)
+        externalScaleSet.splice(i,1)
+      scaleLinear.update( scaleName, 0)
+      return this
     }
     scaleLinear[scaleName + 'MinDomainExtent'] = function(minDomain) {
       if( !arguments.length ) return domainConfig.minDomain
@@ -441,6 +659,7 @@
         }
       }
     }
+
     scaleLinear.update = function(type, duration) {
       this._super(type, duration)
       var range = d3.trait.utils.getScaleRange(_super, scaleName)
@@ -449,7 +668,7 @@
 
       // reset the minimum domain from visible data, so later traits can grow the min domain as needed.
       delete domainConfig.minDomainFromData;
-      updateScale(scale, range, domainConfig, filteredData, access)
+      updateScale(scale, range, externalScaleSet, listeners, domainConfig, filteredData, access)
       if( debug)
         console.log( 'scaleLinear.update2 ' + scaleName + ' range:' + range + ' domain:' + scale.domain())
 
