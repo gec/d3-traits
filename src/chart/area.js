@@ -76,7 +76,7 @@
   function _chartArea(_super, _config) {
     // Store the group element here so we can have multiple area charts in one chart.
     // A second "area chart" might have a different y-axis, style or orientation.
-    var group, series, filteredData, seriesData, lastDomainMax, stackLayout, uniformInterpolator,
+    var group, series, filteredData, lastDomainMax, stackLayout, uniformInterpolator,
         axes = trait.config.axes( _config),
         access = trait.config.accessorsXY( _config, axes),
         x = _super[axes.x](),
@@ -90,20 +90,32 @@
         area = makeArea( stacked, resample, access, x, y, interpolate, _super.chartHeight()),
         extentFromAreaDataAccess = {}
 
-    extentFromAreaDataAccess.series = function( d) {return d}
-    extentFromAreaDataAccess.data = resample.interpolate === RESAMPLE_NONE ? access.y : function( d) {return d.y}
+    function oneSeriesResampledData( d) {
+      return d._resampledData
+    }
+    function oneSeriesData( d) {
+      if( debug) console.log( '******* oneSeriesData( d) ' + access.seriesLabel(d))
+      return trait.murts.utils.getOrElse( access.seriesData(d), x)
+    }
+    if( resample.interpolate === RESAMPLE_UNIFORM_X) {
+      access.actualValues = oneSeriesResampledData
+      access.actualX    = function( d) {return d.x}
+      access.actualY    = function( d) {return d.y}
+    } else {
+      access.actualValues = oneSeriesData
+      access.actualX    = access.x
+      access.actualY    = access.y
+    }
 
     // For resample.interpolate === RESAMPLE_UNIFORM_X, we resample the data and use that
     // for the stacked area chart. When calling extentFromAreaData and
     // getFocusItems, we use the original series (less data). That way, the
     // library user doesn't have to provide an out() method in the config.
     // Stack layout uses the default accessor for values.
+    //
+    extentFromAreaDataAccess.series = oneSeriesData
+    extentFromAreaDataAccess.data = access.y
 
-
-    function oneSeriesData( d) {
-      if( debug) console.log( '******* oneSeriesData( d) ' + access.seriesLabel(d))
-      return trait.murts.utils.getOrElse( access.seriesData(d), x)
-    }
 
     // Return simple array of series data.
     function getSeriesData( filteredData) {
@@ -115,13 +127,12 @@
 
     function makeAreaAttrD( d) {
       if( debug) console.log( '******* makeAreaAttrD( d)')
-      //return area(getSeriesData(d));
-      return area(d);
+      var data = access.actualValues( d)
+      return area(data);
     }
 
     if( resample.interpolate === RESAMPLE_UNIFORM_X) {
       uniformInterpolator = trait.layout.uniformInterpolator()
-        //.values( access.seriesData)
         .x( access.x)
         .y( access.y)
         //.out( resample.out)  // TODO: use out. Currently, we're hiding the data from the user.
@@ -131,15 +142,23 @@
 
     if( stacked ) {
       stackLayout = d3.layout.stack()
-
-      if( resample.interpolate === RESAMPLE_NONE)
-        stackLayout
-          .x( access.x)
-          .y( access.y);
-      // else the output of resample is default accessors.
+        .values( access.actualValues)
+        .x( access.actualX)
+        .y( access.actualY)
     }
 
     var dispatch = d3.dispatch('customHover');
+
+    function processFilteredData( data) {
+      if( resample.interpolate === RESAMPLE_UNIFORM_X) {
+        var i,
+            resampledData = data.map( oneSeriesData)
+
+        resampledData = uniformInterpolator( resampledData)
+        for( i = 0; i < data.length; i++)
+          data[i]._resampledData = resampledData[i]
+      }
+    }
 
     function chartArea(_selection) {
       var self = chartArea
@@ -154,15 +173,15 @@
         }
 
         filteredData = _config.seriesFilter ? _data.filter(_config.seriesFilter) : _data
-        seriesData = getSeriesData( filteredData)
+        processFilteredData( filteredData)
 
-        if( debug) console.log( '******* before stackLayout( seriesData)')
+        if( debug) console.log( '******* before stackLayout( filteredData)')
         if( stacked) {
-          if( seriesData.length > 0) {
-            if( debug) console.log( '******* stackLayout( seriesData)')
-            stackLayout( seriesData)
+          if( filteredData.length > 0) {
+            if( debug) console.log( '******* stackLayout( filteredData)')
+            stackLayout( filteredData)
           }
-          var extent = trait.utils.extentFromAreaData( seriesData, extentFromAreaDataAccess, domainPadding)
+          var extent = trait.utils.extentFromAreaData( filteredData, extentFromAreaDataAccess, domainPadding)
           yMinDomainExtentFromData( extent)
         } else {
           area.y0(self.chartHeight())
@@ -170,7 +189,7 @@
 
         // DATA JOIN
         series = group.selectAll(".series")
-          .data(seriesData)
+          .data(filteredData)
 
         // UPDATE
         series.selectAll("path")
@@ -201,11 +220,11 @@
 
       if( stacked) {
         if( debug) console.log( '------- chartArea.update stackLayout( filteredData)')
-        seriesData = getSeriesData( filteredData)
-        stackLayout( seriesData);
-        series = group.selectAll(".series").data( seriesData)
+        processFilteredData( filteredData)
+        stackLayout( filteredData);
+        series = group.selectAll(".series").data( filteredData)
         if( debug) console.log( '------- chartArea.update extentFromAreaData')
-        var extent = trait.utils.extentFromAreaData( seriesData, extentFromAreaDataAccess, domainPadding)
+        var extent = trait.utils.extentFromAreaData( filteredData, extentFromAreaDataAccess, domainPadding)
         if( debug) console.log( '------- chartArea.update yMinDomainExtentFromData')
         yMinDomainExtentFromData( extent)
       }
