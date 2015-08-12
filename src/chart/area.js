@@ -20,6 +20,8 @@
  */
 (function(d3, trait) {
 
+  var debug = false
+
   var RESAMPLE_NONE = 'none',
       RESAMPLE_UNIFORM_X = 'uniform-x'
 
@@ -99,7 +101,7 @@
 
 
     function oneSeriesData( d) {
-      console.log( '******* oneSeriesData( d) ' + access.seriesLabel(d))
+      if( debug) console.log( '******* oneSeriesData( d) ' + access.seriesLabel(d))
       return trait.murts.utils.getOrElse( access.seriesData(d), x)
     }
 
@@ -112,7 +114,7 @@
     }
 
     function makeAreaAttrD( d) {
-      console.log( '******* makeAreaAttrD( d)')
+      if( debug) console.log( '******* makeAreaAttrD( d)')
       //return area(getSeriesData(d));
       return area(d);
     }
@@ -145,7 +147,7 @@
       _selection.each(function(_data) {
         var element = this
 
-        console.log( '******* begin selection.each')
+        if( debug) console.log( '******* begin selection.each')
         if( !group ) {
           var classes = _config.chartClass ? "chart-area " + _config.chartClass : 'chart-area'
           group = this._chartGroup.append('g').classed(classes, true);
@@ -154,10 +156,10 @@
         filteredData = _config.seriesFilter ? _data.filter(_config.seriesFilter) : _data
         seriesData = getSeriesData( filteredData)
 
-        console.log( '******* before stackLayout( seriesData)')
+        if( debug) console.log( '******* before stackLayout( seriesData)')
         if( stacked) {
           if( seriesData.length > 0) {
-            console.log( '******* stackLayout( seriesData)')
+            if( debug) console.log( '******* stackLayout( seriesData)')
             stackLayout( seriesData)
           }
           var extent = trait.utils.extentFromAreaData( seriesData, extentFromAreaDataAccess, domainPadding)
@@ -186,29 +188,29 @@
           .style("fill", self.color);
 
         lastDomainMax = d3.trait.utils.extentMax(x.domain())
-        console.log( '******* end selection.each')
+        if( debug) console.log( '******* end selection.each')
 
       })
     }
 
     chartArea.update = function(type, duration) {
       this._super(type, duration)
-      console.log( '------- chartArea.update begin')
+      if( debug) console.log( '------- chartArea.update begin')
 
       var dur = duration || _super.duration()
 
       if( stacked) {
-        console.log( '------- chartArea.update stackLayout( filteredData)')
+        if( debug) console.log( '------- chartArea.update stackLayout( filteredData)')
         seriesData = getSeriesData( filteredData)
         stackLayout( seriesData);
         series = group.selectAll(".series").data( seriesData)
-        console.log( '------- chartArea.update extentFromAreaData')
+        if( debug) console.log( '------- chartArea.update extentFromAreaData')
         var extent = trait.utils.extentFromAreaData( seriesData, extentFromAreaDataAccess, domainPadding)
-        console.log( '------- chartArea.update yMinDomainExtentFromData')
+        if( debug) console.log( '------- chartArea.update yMinDomainExtentFromData')
         yMinDomainExtentFromData( extent)
       }
 
-      console.log( '------- chartArea.update updatePathWithTrend')
+      if( debug) console.log( '------- chartArea.update updatePathWithTrend')
       lastDomainMax = trait.chart.utils.updatePathWithTrend(type, dur, x, series, makeAreaAttrD, lastDomainMax)
 
       return this;

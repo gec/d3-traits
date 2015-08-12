@@ -19,6 +19,7 @@
  * Author: Flint O'Brien
  */
 (function(d3, trait) {
+  var debug = false
 
   function rangeTranslate(lastDomainMax, domain, scale) {
     if( !lastDomainMax )
@@ -79,10 +80,10 @@
 
         // slide the chart smoothly to the left
         if( duration === 0 || !duration ) {
-          console.log( 'updatePathWithTrend trend translateX: ' + translateX + ', transition none, duration: ' + duration)
+          if( debug) console.log( 'updatePathWithTrend trend translateX: ' + translateX + ', transition none, duration: ' + duration)
           series.attr("transform", "translate(" + translateX + ")")
         } else {
-          console.log( 'updatePathWithTrend trend translateX: ' + translateX + ', transition yes,  duration: ' + duration)
+          if( debug) console.log( 'updatePathWithTrend trend translateX: ' + translateX + ', transition yes,  duration: ' + duration)
           series.transition()
             .duration(duration)
             .ease("linear")
@@ -90,7 +91,7 @@
           //.each("end", tick);
         }
       } else {
-        console.log( 'updatePathWithTrend trend translateX: ' + translateX + ' < 1.5, so simplePathRedraw')
+        if( debug) console.log( 'updatePathWithTrend trend translateX: ' + translateX + ' < 1.5, so simplePathRedraw')
         simplePathRedraw(series, attrD)
       }
 
