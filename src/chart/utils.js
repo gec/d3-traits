@@ -75,7 +75,7 @@
 
       var translateX = rangeTranslate(lastDomainMax, domain, scale)
 
-      if( translateX < 1.5 ) {
+      if( translateX < -1.5 ) {
         series.each( updateEachSeriesPath)
 
         // slide the chart smoothly to the left
