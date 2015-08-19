@@ -20,7 +20,7 @@
  */
 (function(d3, trait) {
 
-  var debug = true
+  var debug = false
 
   var extentMax = trait.utils.extentMax,
       isExtentExtended = trait.utils.isExtentExtended,

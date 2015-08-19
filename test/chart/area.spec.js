@@ -25,11 +25,17 @@ describe('d3.trait.chart.area', function() {
     if( n === 2)
       return 1.9999999999999996
 
+    if( n === -2)
+      return -1.9999999999999996
+
     if( n === 5.833333333333333)
       return 5.833333333333332
 
     if( n === 1.666666666666666)
       return 1.6666666666666663
+
+    if( n === 6.666666666666667)
+      return 6.666666666666668
 
     return n
   }
@@ -278,7 +284,8 @@ console.log( '--------------------------------- area.spec.js update domain')
 
   it('should update stacked resample g.chart-area and path.area', function() {
 
-    var traits, selectionDatum, div, chartGroup, chartInstanceGroup, seriesGroup, path,
+    var traits, scale, selectionDatum, div, chartGroup, chartInstanceGroup, seriesGroup, path,
+        min = 0,
         domain = [0,10],
         access2 = {
           x: function(d) { return d.x1; },
@@ -296,14 +303,17 @@ console.log( '--------------------------------- area.spec.js update domain')
           [{x1: 1, y1: 2}, {x1: 2, y1: 3}, {x1: 5, y1: 5}]
         ]
 
-    scaleY.domain(domain) // constant
+    scaleY.domain([min,10]) // min to stacked data max
 
     traits = d3.trait( d3.trait.chart.base, config2 )
       .trait(d3.trait.scale.linear, {axis: 'x1', domain: domain})
-      .trait(d3.trait.scale.linear, {axis: 'y1', domain: domain})
+      .trait(d3.trait.scale.linear, {axis: 'y1', domain: {min: 0}})
       .trait(d3.trait.chart.area,   {stacked: true, resample: {interpolate: 'uniform-x'}})
     selectionDatum = selection.datum( data2)
     traits.call( selectionDatum)
+
+    scale = traits.y1()
+    expect(scale.domain()).toEqual(scaleY.domain())
 
     div = selection[0][0]
     chartGroup = div._chartGroup[0][0]
@@ -331,10 +341,12 @@ console.log( '--------------------------------- area.spec.js update domain')
     while( --s >= 0) {
       i = data2[s].length
       while( --i >= 0)
-        data2[s][i].y1 -= 1
+        data2[s][i].y1 += 1
     }
+    scaleY.domain([min,12]) // min to stacked data max
 
     traits.update( 'trend', 0)
+    expect(scale.domain()).toEqual( scaleY.domain())
 
     seriesGroup = chartInstanceGroup.firstChild
     path = seriesGroup.firstChild
