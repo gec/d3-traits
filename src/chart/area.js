@@ -20,7 +20,7 @@
  */
 (function(d3, trait) {
 
-  var debug = false
+  var debug = true
 
   var RESAMPLE_NONE = 'none',
       RESAMPLE_UNIFORM_X = 'uniform-x'
@@ -67,13 +67,16 @@
         access = trait.config.accessorsXY( _config, axes),
         x = _super[axes.x](),
         y = _super[axes.y](),
+        yExtendDomainKey = axes.y + 'ExtendDomain',
+        yExtendDomainKeyCalled = false,
         domainPadding = d3.trait.utils.configFloat(_config.domainPadding, 0),
-        yMinDomainExtentFromData = _super[axes.y + 'MinDomainExtentFromData'],
+        //yMinDomainExtentFromData = _super[axes.y + 'MinDomainExtentFromData'],
         focusConfig = d3.trait.focus.utils.makeConfig(_config),
         interpolate = _config.interpolate || "linear",
         resample = configResample( _config.resample),
         stacked = _config.stacked === true,
-        extentFromAreaDataAccess = {}
+        extentFromAreaDataAccess = {},
+        seriesFilter = _config.seriesFilter ? function( s) {return s.filter(_config.seriesFilter)} : function( s) { return s}
 
     if( _config.stacked === 'true')
       console.error( 'chart.area config stacked:\'true\' should not have quotes. Ignored.')
@@ -81,9 +84,10 @@
     function oneSeriesResampledData( d) {
       return d._resampledData
     }
-    function oneSeriesData( d) {
-      if( debug) console.log( '******* oneSeriesData( d) ' + access.seriesLabel(d))
-      return trait.murts.utils.getOrElse( access.seriesData(d), x)
+    function oneSeriesData( d, i) {
+      //if( debug) console.log( '******* oneSeriesData( d) ' + access.seriesLabel(d, i) + ' ' + JSON.stringify( trait.murts.utils.getOrElse( access.seriesData(d, i), x)))
+      if( debug) console.log( '******* oneSeriesData( d) ' + access.seriesLabel(d, i))
+      return trait.murts.utils.getOrElse( access.seriesData(d, i), x)
     }
     if( resample.interpolate === RESAMPLE_UNIFORM_X) {
       access.actualValues = oneSeriesResampledData
@@ -114,9 +118,9 @@
       return data
     }
 
-    function makeAreaAttrD( d) {
+    function makeAreaAttrD( d, i) {
       if( debug) console.log( '******* makeAreaAttrD( d)')
-      var data = access.actualValues( d)
+      var data = access.actualValues( d, i)
       return area(data);
     }
 
@@ -169,18 +173,22 @@
           group = this._chartGroup.append('g').classed(classes, true);
         }
 
-        filteredData = _config.seriesFilter ? _data.filter(_config.seriesFilter) : _data
-        processFilteredData( filteredData)
+        filteredData = seriesFilter( _data)
 
         if( debug) console.log( '******* before stackLayout( filteredData)')
         if( stacked) {
-          if( filteredData.length > 0) {
+          // This is done in chartArea[yExtendDomainKey]
+
+          if( filteredData.length > 0 && ! yExtendDomainKeyCalled) {
             if( debug) console.log( '******* stackLayout( filteredData)')
+            processFilteredData( filteredData)
             stackLayout( filteredData)
           }
-          var extent = trait.utils.extentFromAreaData( filteredData, extentFromAreaDataAccess, domainPadding)
-          yMinDomainExtentFromData( extent)
+          yExtendDomainKeyCalled = false
+          //var extent = trait.utils.extentFromAreaData( filteredData, extentFromAreaDataAccess, domainPadding)
+          ////yMinDomainExtentFromData( extent)
         } else {
+          processFilteredData( filteredData)
           area.y0(self.chartHeight())
         }
 
@@ -207,6 +215,39 @@
       })
     }
 
+    /**
+     * When called from selection.each it passes us data. When called from .update, we
+     * use our previous data.
+     *
+     * @param domain {[]} The current domain extent from the scale
+     * @param data {[]} The data series or undefined.
+     * @returns {Array}
+     */
+    chartArea[yExtendDomainKey] = function( domain, data) {
+      domain = this._super( domain, data)
+      yExtendDomainKeyCalled = true
+
+      if( debug) console.log( 'chartArea.' + yExtendDomainKey + ': begin')
+      if( ! stacked)
+        return domain
+
+      if( data)
+        filteredData = seriesFilter( data)
+
+      if( filteredData.length === 0)
+        return domain
+
+      if( debug) console.log( 'chartArea.' + yExtendDomainKey + ': before processFilteredData')
+      processFilteredData( filteredData)
+      if( debug) console.log( 'chartArea.' + yExtendDomainKey + ': before stackLayout')
+      stackLayout( filteredData)
+      var extent = trait.utils.extentFromAreaData( filteredData, extentFromAreaDataAccess, domainPadding)
+      if( debug) console.log( 'chartArea.' + yExtendDomainKey + ': domain: ' + JSON.stringify(domain) + ' data extent: ' + JSON.stringify( extent))
+      trait.utils.extendExtent( domain, extent)
+
+      return domain
+    }
+
     chartArea.update = function(type, duration) {
       this._super(type, duration)
       if( debug) console.log( '------- chartArea.update begin')
@@ -221,8 +262,8 @@
         series = group.selectAll(".series").data( filteredData)
         if( debug) console.log( '------- chartArea.update extentFromAreaData')
         var extent = trait.utils.extentFromAreaData( filteredData, extentFromAreaDataAccess, domainPadding)
-        if( debug) console.log( '------- chartArea.update yMinDomainExtentFromData')
-        yMinDomainExtentFromData( extent)
+        //if( debug) console.log( '------- chartArea.update yMinDomainExtentFromData')
+        //yMinDomainExtentFromData( extent)
       }
 
       if( debug) console.log( '------- chartArea.update updatePathWithTrend')

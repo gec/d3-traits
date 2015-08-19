@@ -73,82 +73,82 @@ describe('trend performance', function() {
       jasmine.DEFAULT_TIMEOUT_INTERVAL = 50 * 60 * 1000;
     });
 
-    it("should handle chart updates with reasonable frame rate", function(done) {
-      selection.datum(data)
-      brushSelection.datum(data)
-      var chart = d3.trait(d3.trait.chart.base, config)
-        .trait(d3.trait.scale.time, {axis: 'x1'})
-        .trait(d3.trait.scale.linear, {axis: 'y1'})
-        .trait(d3.trait.axis.time.month, {axis: 'x1', gridLines: true})
-        .trait(d3.trait.axis.linear, {axis: 'y1', gridLines: true})
-        .trait(d3.trait.chart.line)
-        .call(selection)
-
-      var brush = makeBrushTraits( chart)
-      brush.call( brushSelection)
-
-      var div = selection[0][0]
-      var chartGroup = div._chartGroup[0][0]
-
-      var chartInstanceGroup = chartGroup.firstChild
-      expect(chartInstanceGroup).toBeElement("g.chart-line")
-      expect(chartInstanceGroup.childElementCount).toBe(data.length)
-
-      var seriesGroup = chartInstanceGroup.firstChild
-      expect(seriesGroup).toBeElement("g.series")
-      expect(seriesGroup.childElementCount).toBe(1)
-
-      var path = seriesGroup.firstChild
-      expect(path).toBeElement("path.line")
-
-      var frameRateDone = false,
-          now = Date.now(),
-          timerTotal = new FrameRateTimer( now),
-          timerOneSecond = new FrameRateTimer( now),
-          timings = []
-
-      console.log( 'now = ' + now)
-      function animationFrame() {
-        if( ! frameRateDone) {
-          var now = Date.now()
-
-          timerTotal.frame( now)
-          timerOneSecond.frame( now)
-          if( timerOneSecond.elapsed() >= 1000) {
-            timings.push( timerOneSecond.rate())
-            timerOneSecond.reset( now)
-          }
-          requestAnimationFrame(animationFrame)
-        }
-      }
-      requestAnimationFrame(animationFrame)
-
-      function startUpdates() {
-
-        var intervalId = setInterval( function() {
-          var series = data[0],
-              length = series.length,
-              last = series[ length-1],
-              rate = timings.length > 0 ? timings[timings.length-1] : '-'
-
-          console.log( 'interval ' + last.y + ', timerOneSecond.rate: ' + rate )
-          if( length < dataCount + 2) {
-            series.push( {date: last.date+500, y: last.y+1+Math.random()})
-//            chart.update( "trend")
-            brush.update( "trend")
-          } else {
-            clearInterval( intervalId)
-            frameRateDone = true
-            console.log( 'Framerates = ' + timings)
-            console.log( 'Framerate Average = ' + timerTotal.rate())
-            done()
-          }
-        }, 500)
-      }
-
-      setTimeout( startUpdates, 1000)
-
-    });
+//    it("should handle chart updates with reasonable frame rate", function(done) {
+//      selection.datum(data)
+//      brushSelection.datum(data)
+//      var chart = d3.trait(d3.trait.chart.base, config)
+//        .trait(d3.trait.scale.time, {axis: 'x1'})
+//        .trait(d3.trait.scale.linear, {axis: 'y1'})
+//        .trait(d3.trait.axis.time.month, {axis: 'x1', gridLines: true})
+//        .trait(d3.trait.axis.linear, {axis: 'y1', gridLines: true})
+//        .trait(d3.trait.chart.line)
+//        .call(selection)
+//
+//      var brush = makeBrushTraits( chart)
+//      brush.call( brushSelection)
+//
+//      var div = selection[0][0]
+//      var chartGroup = div._chartGroup[0][0]
+//
+//      var chartInstanceGroup = chartGroup.firstChild
+//      expect(chartInstanceGroup).toBeElement("g.chart-line")
+//      expect(chartInstanceGroup.childElementCount).toBe(data.length)
+//
+//      var seriesGroup = chartInstanceGroup.firstChild
+//      expect(seriesGroup).toBeElement("g.series")
+//      expect(seriesGroup.childElementCount).toBe(1)
+//
+//      var path = seriesGroup.firstChild
+//      expect(path).toBeElement("path.line")
+//
+//      var frameRateDone = false,
+//          now = Date.now(),
+//          timerTotal = new FrameRateTimer( now),
+//          timerOneSecond = new FrameRateTimer( now),
+//          timings = []
+//
+//      console.log( 'now = ' + now)
+//      function animationFrame() {
+//        if( ! frameRateDone) {
+//          var now = Date.now()
+//
+//          timerTotal.frame( now)
+//          timerOneSecond.frame( now)
+//          if( timerOneSecond.elapsed() >= 1000) {
+//            timings.push( timerOneSecond.rate())
+//            timerOneSecond.reset( now)
+//          }
+//          requestAnimationFrame(animationFrame)
+//        }
+//      }
+//      requestAnimationFrame(animationFrame)
+//
+//      function startUpdates() {
+//
+//        var intervalId = setInterval( function() {
+//          var series = data[0],
+//              length = series.length,
+//              last = series[ length-1],
+//              rate = timings.length > 0 ? timings[timings.length-1] : '-'
+//
+//          console.log( 'interval ' + last.y + ', timerOneSecond.rate: ' + rate )
+//          if( length < dataCount + 2) {
+//            series.push( {date: last.date+500, y: last.y+1+Math.random()})
+////            chart.update( "trend")
+//            brush.update( "trend")
+//          } else {
+//            clearInterval( intervalId)
+//            frameRateDone = true
+//            console.log( 'Framerates = ' + timings)
+//            console.log( 'Framerate Average = ' + timerTotal.rate())
+//            done()
+//          }
+//        }, 500)
+//      }
+//
+//      setTimeout( startUpdates, 1000)
+//
+//    });
 
     afterEach(function() {
       jasmine.DEFAULT_TIMEOUT_INTERVAL = originalTimeout;

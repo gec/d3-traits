@@ -34,6 +34,19 @@
 // Force domain to follow latest date in data (i.e. domain max = _data.max().
   var TRACKING_DOMAIN_MAX = "domain-max"
 
+  var DOMAIN_CONFIG = {
+    DATA: 0,
+    MIN: 1,
+    MAX: 2,
+    DOMAIN: 3,
+    TREND: 4
+  }
+  var DOMAIN_CONFIG_NAMES = []
+  DOMAIN_CONFIG_NAMES[DOMAIN_CONFIG.DATA] = 'DATA'
+  DOMAIN_CONFIG_NAMES[DOMAIN_CONFIG.MIN] = 'MIN'
+  DOMAIN_CONFIG_NAMES[DOMAIN_CONFIG.MAX] = 'MAX'
+  DOMAIN_CONFIG_NAMES[DOMAIN_CONFIG.DOMAIN] = 'DOMAIN'
+  DOMAIN_CONFIG_NAMES[DOMAIN_CONFIG.TREND] = 'TREND'
 
   var timeIntervals = [
     d3.time.second,
@@ -61,29 +74,51 @@
   }
 
   /**
-   * domainMin or domainMax overrides domain.
    *
    * padding 0.1 is 10%
    *
    * @param config
-   * @returns domain config { trend, domain, domainMin, domainMax, padding }
+   * @returns {object} domain config { trend, domain, min, max, padding }
    */
   function makeDomainConfig(config) {
-    var dMin = d3.trait.utils.configFloat(config.domainMin, null),
-        dMax = d3.trait.utils.configFloat(config.domainMax, null),
-        dc = {
-          trend: config.trend,
+    var dc = {
           padding: d3.trait.utils.configFloat(config.domainPadding, 0)
         }
 
-    if( dMin !== null && dMax !== null ) {
-      dc.domain = [dMin, dMax]
-    } else if( dMin !== null || dMax != null ) {
-      dc.domainMin = dMin
-      dc.domainMax = dMax
+    if( config.hasOwnProperty( 'trend')) {
+
+      dc.type = DOMAIN_CONFIG.TREND
+      dc.trend = config.trend
+
+    } else if (config.hasOwnProperty( 'domain')) {
+
+      if( Array.isArray( config.domain)) {
+        dc.type = DOMAIN_CONFIG.DOMAIN
+        dc.domain = config.domain
+      } else if( typeof config.domain === 'object') {
+        var dMin = d3.trait.utils.configFloat(config.domain.min, null),
+            dMax = d3.trait.utils.configFloat(config.domain.max, null)
+        if( dMin !== null && dMax !== null ) {
+          dc.type = DOMAIN_CONFIG.DOMAIN
+          dc.domain = [dMin, dMax]
+        } else if( dMin !== null) {
+          dc.type = DOMAIN_CONFIG.MIN
+          dc.min = dMin
+        } else if( dMax !== null) {
+          dc.type = DOMAIN_CONFIG.MAX
+          dc.max = dMax
+        } else {
+          dc.type = DOMAIN_CONFIG.DATA
+          console.error( 'makeDomainConfig: Unrecognized domain specification: ' + JSON.stringify( config.domain))
+        }
+      } else
+        dc.type = DOMAIN_CONFIG.DATA
+      // TODO: Could also specify domain config as a function
+
     } else {
-      dc.domain = config.domain
+      dc.type = DOMAIN_CONFIG.DATA
     }
+
     return dc
   }
 
@@ -160,39 +195,55 @@
     return domain
   }
 
+  function constrainDomainMinOrMax( domain, domainConfig) {
+    switch( domainConfig.type) {
+      case DOMAIN_CONFIG.MIN: domain[0] = domainConfig.min; break;
+      case DOMAIN_CONFIG.MAX: domain[domain.length-1] = domainConfig.max; break;
+      default:
+    }
+  }
+
   /**
-   *
-   *
    *
    * @param domainConfig Config object with domain, interval, tracking
    * @param data The chart data
    * @param access object containing series, data
    * @returns {*}
    */
-  function getDomain( domain, domainConfig, data, access) {
-    var min, max, dataDomain
+  function getDomain( domainConfig, data, access) {
+    //var min, max, dataDomain
 
-    // if domainConfig.domain is specified, it trumps other configs
-    if( domainConfig.domain )
-      return domainConfig.domain
+    //// if domainConfig.domain is specified, it trumps other configs
+    //if( domainConfig.type === DOMAIN_CONFIG.DOMAIN)
+    //  return domainConfig.domain
 
-    // TODO: This overrides trend. The two should work together somehow.
-    if( domainConfig.minDomainFromData) {
-      if( trait.utils.isExtentExtended( domain, domainConfig.minDomainFromData))
-        domain = trait.utils.extendExtent( domain, domainConfig.minDomainFromData)
-      return domain
-    }
+    //// TODO: This overrides trend. The two should work together somehow.
+    //if( domainConfig.minDomainFromData) {
+    //  if( trait.utils.isExtentExtended( domain, domainConfig.minDomainFromData))
+    //    domain = trait.utils.extendExtent( domain, domainConfig.minDomainFromData)
+    //  return domain
+    //}
+
+    var domain = [0,1]
 
     data = trait.murts.utils.getOrElse( data)
 
-    if( domainConfig.trend )
-      domain = getDomainTrend(domainConfig, data, access, domainConfig.padding)
-    else if( domainConfig.domainMin != null )
-      domain = [domainConfig.domainMin, trait.utils.maxFromData(data, access)]
-    else if( domainConfig.domainMax != null )
-      domain = [trait.utils.minFromData(data, access), domainConfig.domainMax]
-    else
-      domain = trait.utils.extentFromData(data, access, domainConfig.padding)
+    switch( domainConfig.type) {
+      case DOMAIN_CONFIG.DOMAIN: domain = domainConfig.domain; break;
+      case DOMAIN_CONFIG.TREND: domain = getDomainTrend(domainConfig, data, access, domainConfig.padding); break;
+      case DOMAIN_CONFIG.MIN: domain = [domainConfig.min, trait.utils.maxFromData(data, access)]; break;
+      case DOMAIN_CONFIG.MAX: domain = [trait.utils.minFromData(data, access), domainConfig.max]; break;
+      case DOMAIN_CONFIG.DATA: domain = trait.utils.extentFromData(data, access, domainConfig.padding); break;
+      default: console.error( "scale getDomain - Unknown domainConfig.type: " + domainConfig.type)
+    }
+    //if( domainConfig.trend )
+    //  domain = getDomainTrend(domainConfig, data, access, domainConfig.padding)
+    //else if( domainConfig.min != null )
+    //  domain = [domainConfig.min, trait.utils.maxFromData(data, access)]
+    //else if( domainConfig.max != null )
+    //  domain = [trait.utils.minFromData(data, access), domainConfig.max]
+    //else
+    //  domain = trait.utils.extentFromData(data, access, domainConfig.padding)
 
     return domain
   }
@@ -214,13 +265,13 @@
 // 7. extend range to newRangeMax
 // 8. save oldMax and domainTranslateLast
 //
-  function updateScale(scale, range, externalScaleSet, listeners, domainConfig, data, access) {
+  function updateScale(scale, scaleName, range, externalScaleSet, extendDomainFn, listeners, domainConfig, data, access) {
     var min, max, dataDomain, oldDomain, oldMax, newRangeMax
 
     scale.range(range)
 
     // if domainConfig.domain is specified, it trumps other configs
-    if( domainConfig.domain ) {
+    if( domainConfig.type === DOMAIN_CONFIG.DOMAIN ) {
       scale.domain(domainConfig.domain)
       return
     }
@@ -228,7 +279,7 @@
     oldDomain = scale.domain()
     oldMax = oldDomain[ oldDomain.length - 1]
 
-    if( domainConfig.trend ) {
+    if( domainConfig.type === DOMAIN_CONFIG.TREND ) {
       var trend = domainConfig.trend
 
       if( trend.track === TRACKING_CURRENT_TIME ) {
@@ -250,14 +301,13 @@
           // Reset domain with oldMax to get rid of the part not visible.
           min = getTrendMin(oldMax, trend.domain)
           scale.domain([min, oldMax])
-          //console.log( "updateScale domain [min, oldMax]: " + pd( min) + " " + pd( oldMax))
-
           newRangeMax = scale(max)
+          //console.log( "updateScale' + scaleName + ' domain [min, oldMax]: " + pd( min) + " " + pd( oldMax))
 
           // Expand the domain to the right with the new max.
           min = getTrendMin(max, trend.domain)
           scale.domain([min, max])
-          //console.log( "updateScale domain [min,    max]: " + pd(min) + " " + pd( max) + " end")
+          //console.log( "updateScale' + scaleName + ' domain [min,    max]: " + pd(min) + " " + pd( max) + " end")
           // Expand the range to the right, so we can scroll it slowly to the left.
           scale.range([range[0], newRangeMax])
 
@@ -268,16 +318,29 @@
       }
 
     } else {
-      dataDomain = trait.utils.extentFromData(data, access, domainConfig.padding)
+      dataDomain = getDomain( domainConfig, data, access)
+      if( debug)
+        console.log( 'updateScale ' + scaleName + ': domainConfig.type: ' + DOMAIN_CONFIG_NAMES[domainConfig.type] + ' domain: ' + JSON.stringify( dataDomain))
+
+      var extendedDomain = extendDomainFn( [dataDomain[0], extentMax(dataDomain)])
+      if( isExtentExtended( dataDomain, extendedDomain)) {
+        extendExtent( dataDomain, extendedDomain)
+        scale.domain( dataDomain)
+        if( debug)
+          console.log( 'updateScale' + scaleName + ': child trait extended domain: ' + JSON.stringify( dataDomain))
+      }
+
 
       if( externalScaleSet.length) {
         var unionDomain = domainFromExternalScaleSet.call( this, externalScaleSet, dataDomain)
-        if( unionDomain !== dataDomain) {
-          dataDomain = unionDomain
+        if( isExtentExtended( dataDomain, unionDomain)) {
+          extendExtent( dataDomain, unionDomain)
           if( debug)
-            console.log( 'updateScale union updated domain:' + dataDomain)
+            console.log( 'updateScale' + scaleName + ' union updated domain:' + dataDomain)
         }
       }
+
+      constrainDomainMinOrMax( dataDomain, domainConfig)
 
       scale.domain(dataDomain)
 
@@ -354,7 +417,7 @@
 
     // if domainConfig.domain is specified, it trumps other configs
     // scale.domain never changes.
-    if( domainConfig.domain )
+    if( domainConfig.type === DOMAIN_CONFIG.DOMAIN )
       scale.domain(  domainConfig.domain)  // notify listeners on add
     if( _config.nice )
       scale.nice(_config.nice) // start and end on month. Ex Jan 1 00:00 to Feb 1 00:00
@@ -372,11 +435,11 @@
         range = d3.trait.utils.getScaleRange(self, scaleName)
         scale.range( range)
 
-        if( ! domainConfig.domain ) {
+        if( domainConfig.type !== DOMAIN_CONFIG.DOMAIN ) {
           var domain, extendedDomain,
               oldDomain = scale.domain()
 
-          domain = getDomain( oldDomain, domainConfig, filteredData, access)
+          domain = getDomain( domainConfig, filteredData, access)
           scale.domain( domain)
 
           if( debug)
@@ -386,7 +449,7 @@
           if( _config.nice )
             scale.nice(_config.nice) // start and end on month. Ex Jan 1 00:00 to Feb 1 00:00
 
-          extendedDomain = scaleTime[extendDomainKey]( domain)
+          extendedDomain = scaleTime[extendDomainKey]( domain, _data)
           if( extendedDomain !== domain) {
             domain = extendedDomain
             scale.domain( domain)
@@ -409,7 +472,7 @@
       scale.domain(newDomain)
       // TODO: domain updated event?
     }
-    scaleTime[extendDomainKey] = function(domain) {
+    scaleTime[extendDomainKey] = function(domain, data) {
       return domain
     }
     scaleTime[addListenerKey] = function( listener) {
@@ -432,7 +495,7 @@
       // calculate newRangeMax below, then we'll extend the range to that.
       var range = d3.trait.utils.getScaleRange(_super, scaleName)
 
-      updateScale(scale, range, externalScaleSet, listeners, domainConfig, filteredData, access)
+      updateScale(scale, scaleName, range, externalScaleSet, scaleTime[extendDomainKey], listeners, domainConfig, filteredData, access)
 
       return this;
     };
@@ -534,7 +597,7 @@
 
     // if domainConfig.domain is specified, it trumps other configs
     // scale.domain never changes.
-    if( domainConfig.domain )
+    if( domainConfig.type === DOMAIN_CONFIG.DOMAIN )
       scale.domain(  domainConfig.domain)  // notify listeners on add
 
     function scaleLinear(_selection) {
@@ -548,19 +611,20 @@
         range = d3.trait.utils.getScaleRange(self, scaleName)
         scale.range(range)
 
-        if( ! domainConfig.domain ) {
+        if( domainConfig.type !== DOMAIN_CONFIG.DOMAIN ) {
           var domain, extendedDomain, unionDomain,
               oldDomain = scale.domain()
 
-          domain = getDomain( oldDomain, domainConfig, filteredData, access)
+          domain = getDomain( domainConfig, filteredData, access)
           scale.domain( domain)
 
           if( debug)
             console.log( 'scaleLinear.each ' + scaleName + ' range:' + range + ' domain:' + domain)
 
-          extendedDomain = scaleLinear[extendDomainKey]( domain)
-          if( extendedDomain !== domain) {
-            domain = extendedDomain
+          extendedDomain = scaleLinear[extendDomainKey]( [domain[0], extentMax(domain)], _data)
+          if( isExtentExtended( domain, extendedDomain)) {
+            extendExtent( domain, extendedDomain)
+            constrainDomainMinOrMax( domain, domainConfig)
             scale.domain( domain)
             if( debug)
               console.log( 'scaleLinear.each ' + extendDomainKey + ' updated domain:' + domain)
@@ -568,6 +632,7 @@
 
           if( externalScaleSet.length) {
             unionDomain = domainFromExternalScaleSet.call( this, externalScaleSet, domain)
+            // This overrides config domain min/max.
             if( unionDomain !== domain) {
               domain = unionDomain
               scale.domain( domain)
@@ -593,7 +658,7 @@
       scale.domain(newDomain)
       // TODO: domain updated event?
     }
-    scaleLinear[extendDomainKey] = function(domain) {
+    scaleLinear[extendDomainKey] = function( domain, data) {
       return domain
     }
     scaleLinear[addListenerKey] = function( listener) {
@@ -644,31 +709,34 @@
      * @param minDomain
      * @returns {*|minDomainFromData}
      */
-    scaleLinear[scaleName + 'MinDomainExtentFromData'] = function(minDomain) {
-      if( !arguments.length ) return domainConfig.minDomainFromData
-
-      // Is new extend greater than current extent?
-      if( trait.utils.isExtentExtended( domainConfig.minDomainFromData, minDomain)) {
-        domainConfig.minDomainFromData = trait.utils.extendExtent( domainConfig.minDomainFromData, minDomain)
-
-        var domain = scale.domain()
-        if( trait.utils.isExtentExtended( domain, domainConfig.minDomainFromData)) {
-          domain = trait.utils.extendExtent( domain, domainConfig.minDomainFromData)
-          scale.domain( domain)
-          // TODO: domain updated event?
-        }
-      }
-    }
+    //scaleLinear[scaleName + 'MinDomainExtentFromData'] = function(minDomain) {
+    //  if( !arguments.length ) return domainConfig.minDomainFromData
+    //
+    //  // Is new extend greater than current extent?
+    //  if( trait.utils.isExtentExtended( domainConfig.minDomainFromData, minDomain)) {
+    //    domainConfig.minDomainFromData = trait.utils.extendExtent( domainConfig.minDomainFromData, minDomain)
+    //
+    //    var domain = scale.domain()
+    //    if( trait.utils.isExtentExtended( domain, domainConfig.minDomainFromData)) {
+    //      domain = trait.utils.extendExtent( domain, domainConfig.minDomainFromData)
+    //      scale.domain( domain)
+    //      // TODO: domain updated event?
+    //    }
+    //  }
+    //}
 
     scaleLinear.update = function(type, duration) {
       this._super(type, duration)
+      if( ! filteredData)
+        return this
+
       var range = d3.trait.utils.getScaleRange(_super, scaleName)
       if( debug)
         console.log( 'scaleLinear.update1 ' + scaleName + ' range:' + range + ' domain:' + scale.domain());
 
       // reset the minimum domain from visible data, so later traits can grow the min domain as needed.
-      delete domainConfig.minDomainFromData;
-      updateScale(scale, range, externalScaleSet, listeners, domainConfig, filteredData, access)
+      //delete domainConfig.minDomainFromData;
+      updateScale(scale, scaleName, range, externalScaleSet, scaleLinear[extendDomainKey], listeners, domainConfig, filteredData, access)
       if( debug)
         console.log( 'scaleLinear.update2 ' + scaleName + ' range:' + range + ' domain:' + scale.domain())
 

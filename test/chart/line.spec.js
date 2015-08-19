@@ -55,7 +55,8 @@ describe('d3.trait.chart.line', function() {
   it('should create trend line extending to right edge of chart', function() {
 
     var traits =  d3.trait( d3.trait.chart.base, config )
-      .trait( d3.trait.scale.time, {axis: 'x1', domainMax: 290})
+      .trait( d3.trait.scale.time, {axis: 'x1', domain: { max: 290}})
+      .trait( d3.trait.scale.time, {axis: 'x1', domain: { max: 290}})
       .trait( d3.trait.scale.linear, {axis: 'y1'})
       .trait(d3.trait.chart.line, { interpolate: 'step-after', trend: true})
 
@@ -91,7 +92,7 @@ describe('d3.trait.chart.line', function() {
   it('should gracefully not draw trend line with no data', function() {
 
     var traits =  d3.trait( d3.trait.chart.base, config )
-      .trait( d3.trait.scale.time, {axis: 'x1', domainMax: 290})
+      .trait( d3.trait.scale.time, {axis: 'x1', domain: {max: 290}})
       .trait( d3.trait.scale.linear, {axis: 'y1'})
       .trait(d3.trait.chart.line, { interpolate: 'step-after', trend: true})
 
