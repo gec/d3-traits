@@ -20,7 +20,7 @@
  */
 (function(d3, trait) {
 
-  var debug = true
+  var debug = false
 
   var RESAMPLE_NONE = 'none',
       RESAMPLE_UNIFORM_X = 'uniform-x'
@@ -98,16 +98,10 @@
       access.actualX    = access.x
       access.actualY    = access.y
     }
-    area = makeArea( stacked, access, x, y, interpolate, _super.chartHeight()),
+    extentFromAreaDataAccess.series = access.actualValues
+    extentFromAreaDataAccess.data = access.actualY
 
-    // For resample.interpolate === RESAMPLE_UNIFORM_X, we resample the data and use that
-    // for the stacked area chart. When calling extentFromAreaData and
-    // getFocusItems, we use the original series (less data). That way, the
-    // library user doesn't have to provide an out() method in the config.
-    // Stack layout uses the default accessor for values.
-    //
-    extentFromAreaDataAccess.series = oneSeriesData
-    extentFromAreaDataAccess.data = access.y
+    area = makeArea( stacked, access, x, y, interpolate, _super.chartHeight()),
 
 
     // Return simple array of series data.
