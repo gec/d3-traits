@@ -84,6 +84,23 @@ describe('d3.trait.scale.linear', function() {
     expect(scale.range()).toEqual([0, 290])
   });
 
+  it('should configure domain with manual', function() {
+    var chart, scale,
+        min = 0,
+        max = d3.max(data[0], accessY1)
+
+    selection.datum(data)
+    chart = d3.trait(d3.trait.chart.base, config)
+      .trait(d3.trait.scale.linear, {axis: 'y1', domain: 'manual'})
+      .call(selection)
+
+    scale = chart.y1()
+    expect(scale).toBeDefined()
+
+    expect(scale.domain()).toEqual([ 0, 1])
+    expect(scale.range()).toEqual([190, 0])
+  });
+
   it('should configure domain with min', function() {
     var chart, scale,
         min = 0,
@@ -270,6 +287,33 @@ describe('d3.trait.scale.linear', function() {
     mockY1ExtendDomain.and.returnValue(extent)
     chart.update( 'domain', 0)
     expect(scale.domain()).toEqual([min,extent[1]])
+
+  });
+
+  it('should not update domain set to manual', function() {
+    var chart, scale, externalScale, domain,
+        min = 5,
+        max = d3.max(data[0], accessY1),
+        extent = [0, 10]
+
+    mockY1ExtendDomain.and.returnValue(extent)
+    selection.datum(data)
+    chart = d3.trait(d3.trait.chart.base, config)
+      .trait(d3.trait.scale.linear, {axis: 'y1', domain: 'manual'})
+      .trait(mockChart, {})
+
+    chart.y1Domain( [-1,2])
+    domain = chart.y1Domain()
+    expect(domain).toEqual([-1, 2])
+
+    chart.call(selection)
+    scale = chart.y1()
+
+    expect(scale.domain()).toEqual([-1, 2])
+
+
+    chart.update( 'domain', 0)
+    expect(scale.domain()).toEqual([-1,2])
 
   });
 
