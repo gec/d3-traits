@@ -754,16 +754,22 @@
 
 
   function _murtsDataStore() {
-    var access = {
-          x: function( d) { return d[0] },
-          y: function( d) { return d[1] }
-        },
-        constraints = {
-          size: 0, // max size for Sampling data array. Zero for no constraint
-          time: 0, // max time before last time in data array. Zero for no constraint
-          throttling: 0 // Minimum milliseconds between applying constraints.
-        },
-        samples = {}
+    var access, constraints, samples
+
+    initialize()
+
+    function initialize() {
+      access = {
+        x: function( d) { return d[0] },
+        y: function( d) { return d[1] }
+      }
+      constraints = {
+        size: 0, // max size for Sampling data array. Zero for no constraint
+        time: 0, // max time before last time in data array. Zero for no constraint
+        throttling: 0 // Minimum milliseconds between applying constraints.
+      }
+      samples = {}
+    }
 
     function findHigherResolution( index) {
       var i, r
@@ -974,13 +980,7 @@
       sampling.removeOnUpdate( onUpdate)
     }
 
-    murtsDataStore.reset = function() {
-      samples = {}
-      access = {
-        x: function( d) { return d[0] },
-        y: function( d) { return d[1] }
-      }
-    }
+    murtsDataStore.reset = initialize
 
     murtsDataStore.isMurtsDataStore = function() {
       return true
