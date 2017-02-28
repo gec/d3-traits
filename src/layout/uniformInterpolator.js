@@ -153,11 +153,11 @@
 
 
   /**
-   * Iterate over a continuous series, always returning a point at the 240
+   * Iterate over a continuous series, always returning a point at the
    * x value (between x and x + epsilon inclusive). The caller guarantees the
    * supplied x is greater than or equal to the next point of the iterator.
    *
-   * If the next point is greater thn x + epsilon, a new interpolated point is
+   * If the next point is greater than x + epsilon, a new interpolated point is
    * returned and the iterator is not advanced.
    *
    * @returns {uniformInterpolator}

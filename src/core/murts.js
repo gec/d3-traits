@@ -756,8 +756,6 @@
   function _murtsDataStore() {
     var access, constraints, samples
 
-    initialize()
-
     function initialize() {
       access = {
         x: function( d) { return d[0] },
@@ -770,6 +768,8 @@
       }
       samples = {}
     }
+
+    initialize()
 
     function findHigherResolution( index) {
       var i, r
@@ -867,7 +867,7 @@
     /**
      * Constrain the size of all Sampling data arrays.
      *
-     * @param _size
+     * @param size
      * @returns this if no arguments; otherwise, it returns the current size constraint.
      */
     murtsDataStore.constrainSize = function ( size) {
@@ -884,7 +884,7 @@
     /**
      * Constrain the time of all Sampling data arrays to be no older that the last point's time.
      *
-     * @param _size
+     * @param time
      * @returns this if no arguments; otherwise, it returns the current size constraint.
      */
     murtsDataStore.constrainTime = function ( time) {
@@ -901,7 +901,7 @@
     /**
      * Constrain the time of all Sampling data arrays to be no older that the last point's time.
      *
-     * @param _size
+     * @param throttling
      * @returns this if no arguments; otherwise, it returns the current size constraint.
      */
     murtsDataStore.constrainThrottling = function ( throttling) {
@@ -938,6 +938,7 @@
      * Problem when data falls off left.
      *
      * @param data
+     * @param sampled
      * @param resolution
      * @returns {murtsDataStore}
      */

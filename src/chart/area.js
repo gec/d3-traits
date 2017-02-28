@@ -23,7 +23,7 @@
   var debug = false
 
   var RESAMPLE_NONE = 'none',
-      RESAMPLE_UNIFORM_X = 'uniform-x'
+      RESAMPLE_UNIFORM_X = 'uniform-x' // stacked chart needs x values to align in each series.
 
 
   function makeArea( stacked, access, x, y, interpolate) {
@@ -45,11 +45,12 @@
     return area
   }
 
+  // Stacked chart needs x values to align in each series. We can resample to achieve this.
   function configResample( resample) {
     if( typeof( resample) === 'object') {
       return {
         interpolate: resample.interpolate || RESAMPLE_NONE,
-        out: resample.out,       // TODO: not useing resample.out yet.
+        out: resample.out,       // TODO: not using resample.out yet.
         epsilon: resample.epsilon
       }
     } else {

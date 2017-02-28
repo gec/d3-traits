@@ -243,7 +243,7 @@ console.log( '--------------------------------- area.spec.js update domain')
         config2 = {
           x1:         access2.x,
           y1:         access2.y,
-          seriesData: accessSeriesData,
+          seriesData: access.seriesData,
           margin: {top: 0, right: 0, bottom: 0, left: 0}
         },
         data2 = [
@@ -295,7 +295,7 @@ console.log( '--------------------------------- area.spec.js update domain')
         config2 = {
           x1:         access2.x,
           y1:         access2.y,
-          seriesData: accessSeriesData,
+          seriesData: access.seriesData,
           margin: {top: 0, right: 0, bottom: 0, left: 0}
         },
         data2 = [
