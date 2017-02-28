@@ -2,14 +2,15 @@ describe('d3.trait.chart.utils', function() {
 
   var c, scale, data,
       chartWidth = 100,
+      scale = {},
       accessX1 = function(d) { return d.x; },
-      accessY1 = function(d) { return d.y; }
-  accessSeriesData = function(s) { return s}
-  config = {
-    x1:         accessX1,
-    y1:         accessY1,
-    seriesData: accessSeriesData
-  }
+      accessY1 = function(d) { return d.y;},
+      accessSeriesData = function(s) { return s},
+      config = {
+        x1:         accessX1,
+        y1:         accessY1,
+        seriesData: accessSeriesData
+      }
 
 
   beforeEach(function() {
@@ -37,13 +38,14 @@ describe('d3.trait.chart.utils', function() {
 
   it('barConfig should return default config', function() {
 
-    c = d3.trait.chart.barUtils.barConfig({})
+    c = d3.trait.chart.barUtils.barConfig({},scale)
     expect(c).toEqual({
       width:         'auto',
       gap:           0.1,
       outerGap:      .1,
       justification: 'center',
-      insets:        'inset-range'
+      insets:        'inset-range',
+      stacked:       false
     })
   });
 
@@ -55,13 +57,14 @@ describe('d3.trait.chart.utils', function() {
       outerGap:      0.7,
       justification: 'left',
       insets:        'extend-domain'
-    })
+    }, scale)
     expect(c).toEqual({
       width:         10,
       gap:           0.5,
       outerGap:      0.7,
       justification: 'left',
-      insets:        'extend-domain'
+      insets:        'extend-domain',
+      stacked:       false
     })
 
     // if outerGap is not specified, it's the same as gap.
@@ -70,13 +73,14 @@ describe('d3.trait.chart.utils', function() {
       gap:           0.5,
       justification: 'left',
       insets:        'extend-domain'
-    })
+    }, scale)
     expect(c).toEqual({
       width:         10,
       gap:           0.5,
       outerGap:      0.5,
       justification: 'left',
-      insets:        'extend-domain'
+      insets:        'extend-domain',
+      stacked:       false
     })
 
   });

@@ -26,13 +26,20 @@
 
 
   /**
-   * extentTicks: T: ticks on each extent. Overrides ticks.
-   * ticks: Approximate number of ticks
    * @param config
-   * @returns { width:, gap:, justification, insets:}
+   * @param scale - The x-scale. If the scale is ordinal with rangeBand, then justification is left by default.
+   * @returns { width:, gap:, justification, insets:, stacked:}
    */
-  function barConfig(config) {
-    var gap = d3.trait.utils.configFloat(config.gap, 0.1),
+  function barConfig(config, scale) {
+
+    if( config.stacked === 'true')
+      console.error( 'chart.bar config stacked:\'true\' should not have quotes. Ignored.')
+
+    var justification = config.justification !== undefined ? config.justification
+          : scale !== null && typeof scale === 'function' && scale.rangeBand ? 'left'
+          : 'center',
+        defaultGap = scale.rangeBand ? 0 : 0.1,
+        gap = d3.trait.utils.configFloat(config.gap, defaultGap),
         outerGap = d3.trait.utils.configFloat(config.outerGap, gap),
         c = {
           width:         config.width || 'auto',
@@ -40,10 +47,12 @@
           gap:           gap,
           // outerGap can be 0 to greater than 1
           outerGap:      outerGap,
-          justification: config.justification || 'center',
+          justification: justification,
           //insets: 'none' 'extend-domain', 'inset-range', {top: 0, right: 0, bottom: 0, left: 0}
-          insets:        config.insets || INSETS_INSET_RANGE
+          insets:        config.insets || INSETS_INSET_RANGE,
+          stacked: config.stacked === true
         }
+
     return c
   }
 
@@ -82,11 +91,11 @@
     // y - pos: same. neg:
     //
     return {
-      x:      function(d) { return x1(access.x(d)) + barDimensions.offset; },
-      y:      function(d) { return y(  Math.max(access.y(d),0) ); },
+      x:      function(d,i) { return x1(access.x(d,i)) + barDimensions.offset; },
+      y:      function(d,i) { return y(  Math.max(access.y(d,i),0) ); },
       width:  barDimensions.width,
-      height: function(d) { return y(0) - y( Math.abs( access.y(d))); }
-//      height: function(d) { return chartHeight - y( Math.abs( access.y(d))); }
+      height: function(d,i) { return y(0) - y( Math.abs( access.y(d,i))); }
+//      height: function(d) { return chartHeight - y( Math.abs( access.y(d,i))); }
     }
   }
 
@@ -148,7 +157,7 @@
    *   Calculate the first and last bar outer edges plus a nice "inset" and scale that down
    *   to fit in the pixels available (current range).
    */
-  function getBarDimensions(filteredData, seriesData, accessor, c, scale, chartWidth) {
+  function getBarDimensions(filteredData, accessSeriesData, accessor, c, scale, chartWidth) {
 
     // minimum scale distance between any two adjacent bars visible within the current domain.
     var width,
@@ -164,16 +173,16 @@
     } else {
       var scaleDomain = scale.domain(),
           // Find the data indices (across all series) for what's visible with current domain.
-          indicesExtents = filteredData.map(function(s) { return trait.chart.utils.dataIndicesExtentForDomainExtent(seriesData(s), accessor, scaleDomain) }),
+          indicesExtents = filteredData.map(function(s) { return trait.chart.utils.dataIndicesExtentForDomainExtent(accessSeriesData(s), accessor, scaleDomain) }),
           // Get the minimum distance between bar centers across all data in all series
-          minDistanceX = d3.min(filteredData, function(s, i) { return trait.chart.utils.minDistanceBetween(seriesData(s), indicesExtents[i], accessor, scale) })
+          minDistanceX = d3.min(filteredData, function(s, i) { return trait.chart.utils.minDistanceBetween(accessSeriesData(s), indicesExtents[i], accessor, scale) })
 
       width = c.width === 'auto' ? Math.max(1, Math.floor(minDistanceX * (1 - c.gap))) : c.width
       gap = Math.round(width * c.gap)
       outerGap = Math.floor(width * c.outerGap)
 
       // Get the minimun distance between bar centers across all data in all series
-      var rangeExtent = rangeExtentOfBarsAndOuterGap(filteredData, indicesExtents, seriesData, accessor, scale, width, gap, outerGap, c.justification),
+      var rangeExtent = rangeExtentOfBarsAndOuterGap(filteredData, indicesExtents, accessSeriesData, accessor, scale, width, gap, outerGap, c.justification),
           min = rangeExtent[0],
           max = rangeExtent[1]
       //console.log( "minDistanceX: " + minDistanceX + " width: " + width + " rangeExtent: " + rangeExtent)
@@ -192,7 +201,7 @@
           }
 
           if( c.insets === INSETS_INSET_RANGE ) {
-            rangeExtent = rangeExtentOfBarsAndOuterGap(filteredData, indicesExtents, seriesData, accessor, scale, width, gap, outerGap, c.justification)
+            rangeExtent = rangeExtentOfBarsAndOuterGap(filteredData, indicesExtents, accessSeriesData, accessor, scale, width, gap, outerGap, c.justification)
             min = rangeExtent[0]
             max = rangeExtent[1]
 
@@ -270,17 +279,23 @@
   function _chartBar(_super, _config) {
     // Store the group element here so we can have multiple bar charts in one chart.
     // A second "bar chart" might have a different y-axis, style or orientation.
-    var group, series, filteredData, bars, barDimensions, lastDomainMax,
+    var group, series, filteredData, bars, barDimensions, lastDomainMax, stackLayout,
         axes = trait.config.axes( _config),
         access = trait.config.accessorsXY( _config, axes),
         x1 = _super[axes.x](),
         y = _super[axes.y](),
-        barCount = _config.barCount,
         dispatch = d3.dispatch('customHover'),
-        c = barConfig(_config),
+        c = barConfig(_config, x1),
         focusConfig = d3.trait.focus.utils.makeConfig(_config),
         x1IsRangeBand = typeof x1.rangeBand === "function"
 
+
+    if( c.stacked) {
+      stackLayout = d3.layout.stack()
+        .values( access.seriesData)
+        .x( access.x)
+        .y( access.y)
+    }
 
     function chartBar(_selection) {
       var self = chartBar
