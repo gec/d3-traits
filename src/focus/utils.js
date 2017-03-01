@@ -33,18 +33,18 @@
   }
 
 
-  function getRangePointNormal( item, access, x, y) {
-    return new d3.trait.Point(x(access.x(item)), y(access.y(item)))
+  function getRangePointNormal( item, index, access, x, y) {
+    return new d3.trait.Point(x(access.x(item, index)), y(access.y(item)))
   }
 
-  function getRangePointStacked( item, access, x, y) {
-    return new d3.trait.Point(x(access.x(item)), y(item.y0 + access.y(item)))
+  function getRangePointStacked( item, index, access, x, y) {
+    return new d3.trait.Point(x(access.x(item, index)), y(item.y0 + access.y(item)))
   }
 
   function getFocusItem(series, data, index, access, x, y, getRangePoint, focusPoint) {
     var dist, distX,
         item = data[index],
-        rangePoint = getRangePoint( item, access, x, y)
+        rangePoint = getRangePoint( item, index, access, x, y)
     dist = rangePoint.distance( focusPoint)
     distX = rangePoint.distanceX( focusPoint)
     return {

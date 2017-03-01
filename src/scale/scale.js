@@ -380,6 +380,15 @@
         axisChar = scaleName.charAt(0), // x | y
         scale = d3.scale.ordinal()
 
+    if( typeof scale.invert !== 'function') {
+      scale.invert = function( rangeValue) {
+        var i = 0
+        while( scale(i) < rangeValue)
+          i++
+        return i
+      }
+    }
+
     function scaleOrdinalBars(_selection) {
       var self = scaleOrdinalBars
 
