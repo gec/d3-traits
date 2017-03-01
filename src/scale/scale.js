@@ -374,9 +374,10 @@
 
   function _scaleOrdinalBars(_super, _config) {
     var filteredData,
+        axes = trait.config.axes( _config),
+        access = trait.config.accessorsXY( _config, axes),
         scaleName = _config.axis,
         axisChar = scaleName.charAt(0), // x | y
-        accessData = _config[scaleName],
         scale = d3.scale.ordinal()
 
     function scaleOrdinalBars(_selection) {
@@ -392,7 +393,7 @@
         scale.rangeRoundBands([0, rangeMax], 0.1)
 
         // Use the first series for the ordinals. TODO: should we merge the series ordinals?
-        ordinals = filteredData[0].map(accessData)
+        ordinals = access.seriesData(filteredData[0]).map(access.x)
         scale.domain(ordinals);
       })
     }

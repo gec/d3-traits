@@ -255,16 +255,16 @@
   }
 
   // Modified from http://bl.ocks.org/micahstubbs/a40254b6cb914018ff81
-  function stackLayoutPositiveAndNegativeValues(seriesData, access) {
-    var di = seriesData[0].length
+  function stackLayoutPositiveAndNegativeValues(data, access) {
+    var di = access.seriesData(data[0]).length
     while (di--) {
       var d, si, y,
-          length = seriesData.length,
+          length = data.length,
           positiveBase = 0,
           negativeBase = 0
 
       for( si = 0; si < length; si++) {
-        d = access.seriesData(seriesData[si])
+        d = access.seriesData(data[si])
         d = d[di]
         y = access.y(d)
         d.size = Math.abs(y)
@@ -277,11 +277,11 @@
         }
       }
     }
-    seriesData.extent = d3.extent(
+    data.extent = d3.extent(
       d3.merge(
         d3.merge(
-          seriesData.map(function(e) {
-            return e.map(function(f) { return [f.y0,f.y0-f.size] })
+          data.map(function(e) {
+            return access.seriesData(e).map(function(f) { return [f.y0,f.y0-f.size] })
           })
         )
       )
@@ -398,7 +398,7 @@
           .data(access.seriesData)
 
         function barColorFromSeries( d, i, seriesIndex) {
-          return self.color( access.seriesData(filteredData[seriesIndex]))
+          return self.color( filteredData[seriesIndex])
         }
         // ENTER
         bars.enter().append('rect')
