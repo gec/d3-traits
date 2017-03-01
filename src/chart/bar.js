@@ -20,6 +20,8 @@
  */
 (function(d3, trait) {
 
+  var debug = false
+
   var INSETS_NONE = 'none',          // Don't adjust insets
       INSETS_EXTEND_DOMAIN = 'extend-domain', // Extend the domain extents so bars are completely visible
       INSETS_INSET_RANGE = 'inset-range'    // Inset the scales range so bars are completely visible
@@ -80,21 +82,36 @@
    * @param y
    * @returns {{x: x, y: y, width: *, height: height}}
    */
-  function barAttr(access, barDimensions, chartHeight, x1, y) {
+  function barAttr(access, barDimensions, chartHeight, x1, y, stacked) {
     // NOTE: for transition from enter, use  y(0) for y: and height:
     // x is middle of bar.
     // y is top of bar. Remember, the scale range is flipped for y.
     // height - chartHeight - y OR y0 - y for stacked.
+    function xxx( d, i) {
+      return x1(access.x(d,i)) + barDimensions.offset;
+    }
 
+    function getY( d, i) {
+      return y(Math.max(access.y(d,i),0))
+    }
+    function getYStacked( d, i) {
+      return y(d.y0)
+    }
+    function getHeight( d, i) {
+      return y(0) - y( Math.abs(access.y(d,i)))
+    }
+    function getHeightStacked( d, i) {
+      return y(0) - y(d.size)
+    }
     // For pos/neg bars:
     // x - same
     // y - pos: same. neg:
     //
     return {
-      x:      function(d,i) { return x1(access.x(d,i)) + barDimensions.offset; },
-      y:      function(d,i) { return y(  Math.max(access.y(d,i),0) ); },
+      x:      xxx, //function(d,i) { return x1(access.x(d,i)) + barDimensions.offset; },
+      y:      stacked ? getYStacked : getY,
       width:  barDimensions.width,
-      height: function(d,i) { return y(0) - y( Math.abs( access.y(d,i))); }
+      height: stacked ? getHeightStacked : getHeight //function(d,i) { return y(0) - y( Math.abs( access.y(d,i))); }
 //      height: function(d) { return chartHeight - y( Math.abs( access.y(d,i))); }
     }
   }
@@ -237,6 +254,40 @@
     }
   }
 
+  // Modified from http://bl.ocks.org/micahstubbs/a40254b6cb914018ff81
+  function stackLayoutPositiveAndNegativeValues(seriesData, access) {
+    var di = seriesData[0].length
+    while (di--) {
+      var d, si, y,
+          length = seriesData.length,
+          positiveBase = 0,
+          negativeBase = 0
+
+      for( si = 0; si < length; si++) {
+        d = access.seriesData(seriesData[si])
+        d = d[di]
+        y = access.y(d)
+        d.size = Math.abs(y)
+        if (y < 0) {
+          d.y0 = negativeBase
+          negativeBase -= d.size
+        } else
+        {
+          d.y0 = positiveBase = positiveBase + d.size
+        }
+      }
+    }
+    seriesData.extent = d3.extent(
+      d3.merge(
+        d3.merge(
+          seriesData.map(function(e) {
+            return e.map(function(f) { return [f.y0,f.y0-f.size] })
+          })
+        )
+      )
+    )
+  }
+
 
   /**
    *
@@ -279,23 +330,25 @@
   function _chartBar(_super, _config) {
     // Store the group element here so we can have multiple bar charts in one chart.
     // A second "bar chart" might have a different y-axis, style or orientation.
-    var group, series, filteredData, bars, barDimensions, lastDomainMax, stackLayout,
+    var group, series, filteredData, bars, barDimensions, lastDomainMax, // stackLayout,
         axes = trait.config.axes( _config),
         access = trait.config.accessorsXY( _config, axes),
         x1 = _super[axes.x](),
         y = _super[axes.y](),
+        yExtendDomainKey = axes.y + 'ExtendDomain',
         dispatch = d3.dispatch('customHover'),
         c = barConfig(_config, x1),
         focusConfig = d3.trait.focus.utils.makeConfig(_config),
-        x1IsRangeBand = typeof x1.rangeBand === "function"
+        x1IsRangeBand = typeof x1.rangeBand === "function",
+        seriesFilter = _config.seriesFilter ? function( s) {return s.filter(_config.seriesFilter)} : function( s) { return s}
 
 
-    if( c.stacked) {
-      stackLayout = d3.layout.stack()
-        .values( access.seriesData)
-        .x( access.x)
-        .y( access.y)
-    }
+    //if( c.stacked) {
+    //  stackLayout = d3.layout.stack()
+    //    .values( access.seriesData)
+    //    .x( access.x)
+    //    .y( access.y)
+    //}
 
     function chartBar(_selection) {
       var self = chartBar
@@ -304,7 +357,7 @@
         var element = this,
             chartWidth = _super.chartWidth()
 
-        filteredData = _config.seriesFilter ? _data.filter(_config.seriesFilter) : _data
+        filteredData = seriesFilter(_data)
 
         barDimensions = getBarDimensions(filteredData, access.seriesData, access.x, c, x1, chartWidth)
 
@@ -324,6 +377,9 @@
           group = this._chartGroup.append('g').classed(classes, true);
         }
 
+        if(c.stacked)
+          stackLayoutPositiveAndNegativeValues( filteredData, access)
+
         // DATA JOIN
         series = group.selectAll(".series")
           .data(filteredData)
@@ -341,16 +397,20 @@
         bars = series.selectAll("rect")
           .data(access.seriesData)
 
+        function barColorFromSeries( d, i, seriesIndex) {
+          return self.color( access.seriesData(filteredData[seriesIndex]))
+        }
         // ENTER
         bars.enter().append('rect')
           .classed('bar', true)
-          .attr(barAttr(access, barDimensions, self.chartHeight(), x1, y))
+          .attr(barAttr(access, barDimensions, self.chartHeight(), x1, y, c.stacked))
+          .style("fill", barColorFromSeries)
           .on('mouseover', dispatch.customHover);
 
         // UPDATE
         bars.transition()
           .duration(0).delay(0).ease(self.ease())
-          .attr(barAttr(access, barDimensions, self.chartHeight(), x1, y));
+          .attr(barAttr(access, barDimensions, self.chartHeight(), x1, y, c.stacked));
 
         // EXIT
         bars.exit()
@@ -361,6 +421,33 @@
         lastDomainMax = d3.trait.utils.extentMax(x1.domain())
 
       })
+    }
+
+    /**
+     * When called from selection.each it passes us data. When called from .update, we
+     * use our previous data.
+     *
+     * @param domain {[]} The current domain extent from the scale
+     * @param data {[]} The data series or undefined.
+     * @returns {Array}
+     */
+    chartBar[yExtendDomainKey] = function( domain, data) {
+      domain = this._super( domain, data)
+
+      if( debug) console.log( 'chartBar.' + yExtendDomainKey + ': begin')
+      if( ! c.stacked)
+        return domain
+
+      if( data)
+        filteredData = seriesFilter( data)
+
+      if( filteredData.length === 0)
+        return domain
+
+      if( debug) console.log( 'chartBar.' + yExtendDomainKey + ': before stackLayout')
+      stackLayoutPositiveAndNegativeValues( filteredData, access)
+
+      return filteredData.extent
     }
 
     chartBar.update = function(type, duration) {
@@ -374,7 +461,7 @@
 
       // redraw the line and no transform
       series.attr("transform", null)
-      bars.attr(barAttr(access, barDimensions, _super.chartHeight(), x1, y));
+      bars.attr(barAttr(access, barDimensions, _super.chartHeight(), x1, y, c.stacked));
 
       bars = series.selectAll("rect")
         .data(access.seriesData)
@@ -382,7 +469,7 @@
       // ENTER
       bars.enter().append('rect')
         .classed('bar', true)
-        .attr(barAttr(access, barDimensions, _super.chartHeight(), x1, y))
+        .attr(barAttr(access, barDimensions, _super.chartHeight(), x1, y, c.stacked))
 
       bars.exit()
         .transition()
