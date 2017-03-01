@@ -22,7 +22,9 @@
 
 
   /**
+   * Legend box with multiple rows of labels. Each label preceded by a colored circle.
    * Implementation inspired by: http://bl.ocks.org/ZJONSSON/3918369
+   *
    *
    * @param _super
    * @param _config

@@ -20,6 +20,18 @@
  */
 (function(d3, trait) {
 
+
+  /**
+   * Legend on top or bottom that is a single row of colored circles with a label after each circle.
+   *
+   * Example:
+   *    @ label1   @ label2
+   *
+   * @param _super
+   * @param _config
+   * @returns {legendSeries}
+   * @private
+   */
   function _legendSeries(_super, _config) {
     // Store the group element here so we can have multiple line charts in one chart.
     // A second "line chart" might have a different y-axis, style or orientation.

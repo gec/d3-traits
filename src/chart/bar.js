@@ -111,7 +111,7 @@
       x:      xxx, //function(d,i) { return x1(access.x(d,i)) + barDimensions.offset; },
       y:      stacked ? getYStacked : getY,
       width:  barDimensions.width,
-      height: stacked ? getHeightStacked : getHeight //function(d,i) { return y(0) - y( Math.abs( access.y(d,i))); }
+      height: stacked ? getHeightStacked : getHeight
 //      height: function(d) { return chartHeight - y( Math.abs( access.y(d,i))); }
     }
   }
@@ -498,7 +498,7 @@
 
     chartBar.getFocusItems = function(focusPoint) {
       var foci = this._super(focusPoint),
-          myFoci = trait.focus.utils.getFocusItems( filteredData, focusPoint, focusConfig, access, x1, y, chartBar.color, false) // t: isStacked
+          myFoci = trait.focus.utils.getFocusItems( filteredData, focusPoint, focusConfig, access, x1, y, chartBar.color, c.stacked)
 
       foci = foci.concat( myFoci)
       return foci

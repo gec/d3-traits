@@ -561,6 +561,7 @@
   d3.trait.chart = { utils: {} }
   d3.trait.control = {}
   d3.trait.focus = {}
+  d3.trait.label = {}
   d3.trait.layout = {}
   d3.trait.legend = {}
   d3.trait.scale = {}
