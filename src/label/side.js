@@ -107,6 +107,39 @@
 //    }
 //  }
 
+  function stackLayoutPositiveAndNegativeValues(data, access) {
+    var di = access.seriesData(data[0]).length
+    while (di--) {
+      var d, si, y,
+          length = data.length,
+          positiveBase = 0,
+          negativeBase = 0
+
+      for( si = 0; si < length; si++) {
+        d = access.seriesData(data[si])
+        d = d[di]
+        y = access.y(d)
+        d.size = Math.abs(y)
+        if (y < 0) {
+          d.y0 = negativeBase
+          negativeBase -= d.size
+        } else
+        {
+          d.y0 = positiveBase = positiveBase + d.size
+        }
+      }
+    }
+    data.extent = d3.extent(
+      d3.merge(
+        d3.merge(
+          data.map(function(e) {
+            return access.seriesData(e).map(function(f) { return [f.y0,f.y0-f.size] })
+          })
+        )
+      )
+    )
+  }
+
 
   /**
    *
@@ -158,29 +191,29 @@
         c = labelConfig(_config, x1),
         seriesFilter = _config.seriesFilter ? function( s) {return s.filter(_config.seriesFilter)} : function( s) { return s}
 
-    function getLastDataPointInSeries( data, si) {
+    function getSeriesEndpoint( data, si) {
       var seriesData = access.seriesData( data, si),
           di = seriesData.length - 1,
           d = seriesData[di]
-      return { index: di, data: d}
+      return { d: d, di: di}
     }
-    function getCenterYNormal( data, si) {
-      var d = getLastDataPointInSeries( data, si),
-          yy = access.y(d.data, d.index),
-          theY = y(Math.max(yy,0)),
-          height = y(0) - y( Math.abs(yy))
-      return theY + (height / 2.0)
+    function getCenterY( d, di) {
+      var yValue = access.y(d, di),
+          yPositive = y(Math.max(yValue,0)),
+          height = y(0) - y( Math.abs(yValue))
+      return yPositive + (height / 2.0)
     }
-    function getCenterYStacked( data, si) {
-      var d = getLastDataPointInSeries( data, si),
-          heightDiv2 = (y(0) - y(d.data.size)) / 2.0
-      return y(d.data.y0) + heightDiv2
+    function getCenterYStacked( d, di) {
+      var halfHeight = (y(0) - y(d.size)) / 2.0
+      return y(d.y0) + halfHeight
     }
-    function getLastValueY( data, si) {
-      var d = getLastDataPointInSeries( data, si)
-      return access.y(d.data, d.index)
+    var getSeriesEndCenterY = c.stacked ? function( data, si) { var last =  getSeriesEndpoint(data, si); return getCenterYStacked( last.d, last.di)}
+      : function( data, si) { var last =  getSeriesEndpoint(data, si); return getCenterY( last.d, last.di)}
+
+    function getSeriesEndY( data, si) {
+      var last = getSeriesEndpoint( data, si)
+      return access.y(last.d, last.di)
     }
-    var getCenterY = c.stacked ? getCenterYStacked : getCenterYNormal
 
     //if( c.stacked) {
     //  stackLayout = d3.layout.stack()
@@ -206,86 +239,88 @@
         // DATA JOIN
         series = group.selectAll(".series")
           .data(filteredData)
-        {
-          // UPDATE
 
-          // ENTER
-          var seriesEnter = series.enter()
-            .append("g")
-            .attr("class", "series")
-            .style("fill", self.color);
+        // ENTER
+        var seriesEnter = series.enter()
+          .append("g")
+          .attr("class", "series")
+          .style("fill", self.color);
 
-          //series.append( 'rect')
-          //  .attr( 'x', self.chartWidth() - 18)
-          //  .attr( 'y', getCenterY)
-          //  .attr("width", 18)
-          //  .attr("height", 18)
-          //  .style("fill", self.color)
+        //series.append( 'rect')
+        //  .attr( 'x', self.chartWidth() - 18)
+        //  .attr( 'y', getSeriesEndCenterY)
+        //  .attr("width", 18)
+        //  .attr("height", 18)
+        //  .style("fill", self.color)
 
-          seriesEnter.append("text")
-            .attr("x", self.chartWidth() + self.marginLeft() + 5)
-            .attr("y", getCenterY)
-            .attr("dy", ".35em")
-            .style("text-anchor", "end")
-            .text(getLastValueY)
-          seriesEnter.append("text")
-            .attr("x", self.chartWidth() + self.marginLeft() + 15)
-            .attr("y", getCenterY)
-            .attr("dy", ".35em")
-            .style("text-anchor", "start")
-            .text(_config.seriesLabel)
+        seriesEnter.append("text")
+          .attr("class", "value")
+          .attr("x", self.chartWidth() + self.marginLeft() + 5)
+          .attr("y", getSeriesEndCenterY)
+          .attr("dy", ".35em")
+          .style("text-anchor", "end")
+          .text(getSeriesEndY)
+        seriesEnter.append("text")
+          .attr("class", "label")
+          .attr("x", self.chartWidth() + self.marginLeft() + 15)
+          .attr("y", getSeriesEndCenterY)
+          .attr("dy", ".35em")
+          .style("text-anchor", "start")
+          .text(_config.seriesLabel)
 
 
-        }
 
       })
     }
 
-    //labelSide.update = function(type, duration) {
-    //  this._super(type, duration)
-    //
-    //  // TODO: The x1.range() needs to be wider, so we draw the new line off the right
-    //  // then translate it to the left with a transition animation.
-    //
-    //  var domainMax = d3.trait.utils.extentMax(x1.domain())
-    //  var translateX = x1(lastDomainMax) - x1(domainMax)
-    //
-    //  // redraw the line and no transform
-    //  series.attr("transform", null)
-    //  bars.attr(barAttr(access, barDimensions, _super.chartHeight(), x1, y, c.stacked));
-    //
-    //  bars = series.selectAll("rect")
-    //    .data(access.seriesData)
-    //
-    //  // ENTER
-    //  bars.enter().append('rect')
-    //    .classed('bar', true)
-    //    .attr(barAttr(access, barDimensions, _super.chartHeight(), x1, y, c.stacked))
-    //
-    //  bars.exit()
-    //    .transition()
-    //    .style({opacity: 0})
-    //    .remove();
-    //
-    //
-    //  // slide the bars left
-    //  if( duration === 0 ) {
-    //    series.attr("transform", "translate(" + translateX + ")")
-    //  } else {
-    //
-    //    series.transition()
-    //      .duration(duration || _super.duration())
-    //      .ease("linear")
-    //      .attr("transform", "translate(" + translateX + ")")
-    //    //.each("end", tick);
-    //  }
-    //
-    //  lastDomainMax = d3.trait.utils.extentMax(x1.domain())
-    //
-    //  // Could pop the data off the front (off the left side of chart)
-    //
-    //  return this;
-    //};
+    labelSide.update = function(type, duration) {
+      this._super(type, duration)
+      var self = labelSide
+
+      // DATA JOIN
+      series = group.selectAll(".series")
+        .data(filteredData)
+
+      // EXIT
+      series.exit()
+        .remove()
+
+      // ENTER
+      var seriesEnter = series.enter()
+        .append("g")
+        .attr("class", "series")
+        .style("fill", self.color);
+
+      seriesEnter.append("text")
+        .attr("class", "value")
+        .attr("x", self.chartWidth() + self.marginLeft() + 5)
+        .attr("y", getSeriesEndCenterY)
+        .attr("dy", ".35em")
+        .style("text-anchor", "end")
+        .text(getSeriesEndY)
+      seriesEnter.append("text")
+        .attr("class", "label")
+        .attr("x", self.chartWidth() + self.marginLeft() + 15)
+        .attr("y", getSeriesEndCenterY)
+        .attr("dy", ".35em")
+        .style("text-anchor", "start")
+        .text(_config.seriesLabel)
+
+
+      // UPDATE
+      // Select will apply data to the text element (selectAll does not).
+      series.select('text.value')
+        .attr("x", self.chartWidth() + self.marginLeft() + 5)
+        .attr("y", getSeriesEndCenterY)
+        .text(getSeriesEndY)
+
+      series.select('text.label')
+        .attr("x", self.chartWidth() + self.marginLeft() + 15)
+        .attr("y", getSeriesEndCenterY)
+        .text(_config.seriesLabel) // I suppose the label could change.
+
+      return this;
+    };
 
 
     return labelSide;
