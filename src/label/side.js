@@ -30,114 +30,33 @@
   function labelConfig(config, scale) {
 
     if( config.stacked === 'true')
-      console.error( 'chart.bar config stacked:\'true\' should not have quotes. Ignored.')
+      console.error( 'label.side config stacked:\'true\' should not have quotes. Ignored.')
 
-    var defaultGap = scale.rangeBand ? 0 : 0.1,
-        gap = d3.trait.utils.configFloat(config.gap, defaultGap),
-        outerGap = d3.trait.utils.configFloat(config.outerGap, gap),
-        c = {
-          width:         config.width || 'auto',
-          // gap is percentage of bar width (0-1)
-          gap:           gap,
-          // outerGap can be 0 to greater than 1
-          outerGap:      outerGap,
+    var c = {
+          width:  config.width || 'auto',
           orient: config.orient || 'right',
-          //insets: 'none' 'extend-domain', 'inset-range', {top: 0, right: 0, bottom: 0, left: 0}
-          stacked: config.stacked === true
+          labelOffset: config.labelOffset || 10,
+          gutter: config.gutter || 10,
+          lineHeight: config.lineHeight || 10,
+          stacked: config.stacked === true,
+          formatY: config.formatY
         }
 
     return c
   }
 
 
-  /**
-   *
-   *  Domain                 Range
-   *   5     +-----------    0
-   *   4                     1
-   *   3   y  ___            2
-   *   2     |***|           3
-   *   1     |***|           4
-   *   0  y0 +-----------+   5 chartHeight
-   *  -1           |***| y0  6
-   *  -2           |***|     7
-   *  -3            ---  y   8 chartHeight
-   *
-   *  y = y < 0 ? y0 : y same as Math.max( y, y0)
-   *  h = y(0) - y( abs(y-y0))
-   *
-   * @param access
-   * @param barDimensions
-   * @param chartHeight
-   * @param x1
-   * @param y
-   * @returns {{x: x, y: y, width: *, height: height}}
-   */
-//  function barAttr(access, barDimensions, chartHeight, x1, y, stacked) {
-//    // NOTE: for transition from enter, use  y(0) for y: and height:
-//    // x is middle of bar.
-//    // y is top of bar. Remember, the scale range is flipped for y.
-//    // height - chartHeight - y OR y0 - y for stacked.
-//    function xxx( d, i) {
-//      return x1(access.x(d,i)) + barDimensions.offset;
-//    }
-//
-//    function getY( d, i) {
-//      return y(Math.max(access.y(d,i),0))
-//    }
-//    function getYStacked( d, i) {
-//      return y(d.y0)
-//    }
-//    function getHeight( d, i) {
-//      return y(0) - y( Math.abs(access.y(d,i)))
-//    }
-//    function getHeightStacked( d, i) {
-//      return y(0) - y(d.size)
-//    }
-//    // For pos/neg bars:
-//    // x - same
-//    // y - pos: same. neg:
-//    //
-//    return {
-//      x:      xxx, //function(d,i) { return x1(access.x(d,i)) + barDimensions.offset; },
-//      y:      stacked ? getYStacked : getY,
-//      width:  barDimensions.width,
-//      height: stacked ? getHeightStacked : getHeight //function(d,i) { return y(0) - y( Math.abs( access.y(d,i))); }
-////      height: function(d) { return chartHeight - y( Math.abs( access.y(d,i))); }
-//    }
-//  }
+  function layoutLabelsNoOverlap(data, access, getSeriesEndpoint, getY, chartRect, textHeight, padding) {
 
-  function stackLayoutPositiveAndNegativeValues(data, access) {
-    var di = access.seriesData(data[0]).length
-    while (di--) {
-      var d, si, y,
-          length = data.length,
-          positiveBase = 0,
-          negativeBase = 0
+    var i,
+        ends = data.map( function( s, i) { return getSeriesEndpoint(s, i)})
 
-      for( si = 0; si < length; si++) {
-        d = access.seriesData(data[si])
-        d = d[di]
-        y = access.y(d)
-        d.size = Math.abs(y)
-        if (y < 0) {
-          d.y0 = negativeBase
-          negativeBase -= d.size
-        } else
-        {
-          d.y0 = positiveBase = positiveBase + d.size
-        }
-      }
+    function makeRect( d, i) {
+      return new trait.Rect( 0, getY(d, i), 0, textHeight + padding, 0, 1) // 1 anchor on bottom.
     }
-    data.extent = d3.extent(
-      d3.merge(
-        d3.merge(
-          data.map(function(e) {
-            return access.seriesData(e).map(function(f) { return [f.y0,f.y0-f.size] })
-          })
-        )
-      )
-    )
+    var justDs = ends.map( function( lastOrFirst) { lastOrFirst.d.rect = makeRect( lastOrFirst.d, lastOrFirst.di); return lastOrFirst.d })
+
+    trait.layout.vertical( justDs, chartRect)
   }
 
 
@@ -192,10 +111,14 @@
         seriesFilter = _config.seriesFilter ? function( s) {return s.filter(_config.seriesFilter)} : function( s) { return s}
 
     function getSeriesEndpoint( data, si) {
-      var seriesData = access.seriesData( data, si),
-          di = seriesData.length - 1,
-          d = seriesData[di]
-      return { d: d, di: di}
+      var di,
+          seriesData = access.seriesData( data, si)
+      switch( c.orient) {
+        case 'left': di = 0; break;
+        case 'right': di = seriesData.length - 1; break;
+        default: di = seriesData.length - 1; break;
+      }
+      return { d: seriesData[di], di: di}
     }
     function getCenterY( d, di) {
       var yValue = access.y(d, di),
@@ -207,12 +130,54 @@
       var halfHeight = (y(0) - y(d.size)) / 2.0
       return y(d.y0) + halfHeight
     }
-    var getSeriesEndCenterY = c.stacked ? function( data, si) { var last =  getSeriesEndpoint(data, si); return getCenterYStacked( last.d, last.di)}
-      : function( data, si) { var last =  getSeriesEndpoint(data, si); return getCenterY( last.d, last.di)}
+
+    var getY = c.stacked ? getCenterYStacked : getCenterY
+
+    //function getSeriesEndCenterY( data, si) {
+    //  var last =  getSeriesEndpoint(data, si);
+    //  return getY( last.d, last.di)
+    //}
+    function getSeriesEndRectY( data, si) {
+      var last =  getSeriesEndpoint(data, si);
+      return last.d.rect.origin.y
+    }
 
     function getSeriesEndY( data, si) {
-      var last = getSeriesEndpoint( data, si)
-      return access.y(last.d, last.di)
+      var last = getSeriesEndpoint( data, si),
+          value = access.y(last.d, last.di)
+      if(c.formatY)
+        value = c.formatY( value)
+      return value
+    }
+
+    function getAttrs( chartWidth, marginLeft, c ) {
+      if(c.orient === 'left') {
+        // TODO: left x needs to subtract text width for value.x. Use 3 * lineHeight for now.
+        var left = marginLeft - c.labelOffset - 2 * c.lineHeight
+        return {
+          value:  {
+            x: left,
+            anchor: 'start'
+          },
+          label: {
+            x: left - c.gutter,
+            anchor: 'end'
+          }
+        }
+      } else {
+        // TODO: right label.x needs to add text value width for label.x.  Use 3 * lineHeight for now.
+        var right = chartWidth + marginLeft + c.labelOffset + 1 * c.lineHeight
+        return {
+          value: {
+            x: right,
+            anchor: 'end'
+          },
+          label: {
+            x: right + c.gutter,
+            anchor: 'start'
+          }
+        }
+      }
     }
 
     //if( c.stacked) {
@@ -236,6 +201,8 @@
           group = this._container.append('g').classed(classes, true);
         }
 
+        layoutLabelsNoOverlap( filteredData, access, getSeriesEndpoint, getY, self.chartRect(), 10, 2)
+
         // DATA JOIN
         series = group.selectAll(".series")
           .data(filteredData)
@@ -253,19 +220,21 @@
         //  .attr("height", 18)
         //  .style("fill", self.color)
 
+        var attr = getAttrs( chartWidth, self.marginLeft(), c)
+
         seriesEnter.append("text")
           .attr("class", "value")
-          .attr("x", self.chartWidth() + self.marginLeft() + 5)
-          .attr("y", getSeriesEndCenterY)
+          .attr("x", attr.value.x)
+          .attr("y", getSeriesEndRectY)
           .attr("dy", ".35em")
-          .style("text-anchor", "end")
+          .style("text-anchor", attr.value.anchor)
           .text(getSeriesEndY)
         seriesEnter.append("text")
           .attr("class", "label")
-          .attr("x", self.chartWidth() + self.marginLeft() + 15)
-          .attr("y", getSeriesEndCenterY)
+          .attr("x", attr.label.x)
+          .attr("y", getSeriesEndRectY)
           .attr("dy", ".35em")
-          .style("text-anchor", "start")
+          .style("text-anchor", attr.label.anchor)
           .text(_config.seriesLabel)
 
 
@@ -276,6 +245,9 @@
     labelSide.update = function(type, duration) {
       this._super(type, duration)
       var self = labelSide
+
+      layoutLabelsNoOverlap( filteredData, access, getSeriesEndpoint, getY, self.chartRect(), 10, 2)
+      var attr = getAttrs( self.chartWidth(), self.marginLeft(), c)
 
       // DATA JOIN
       series = group.selectAll(".series")
@@ -293,17 +265,17 @@
 
       seriesEnter.append("text")
         .attr("class", "value")
-        .attr("x", self.chartWidth() + self.marginLeft() + 5)
-        .attr("y", getSeriesEndCenterY)
+        .attr("x", attr.value.x)
+        .attr("y", getSeriesEndRectY)
         .attr("dy", ".35em")
-        .style("text-anchor", "end")
+        .style("text-anchor", attr.value.anchor)
         .text(getSeriesEndY)
       seriesEnter.append("text")
         .attr("class", "label")
-        .attr("x", self.chartWidth() + self.marginLeft() + 15)
-        .attr("y", getSeriesEndCenterY)
+        .attr("x", attr.label.x)
+        .attr("y", getSeriesEndRectY)
         .attr("dy", ".35em")
-        .style("text-anchor", "start")
+        .style("text-anchor", attr.label.anchor)
         .text(_config.seriesLabel)
 
 
@@ -311,12 +283,12 @@
       // Select will apply data to the text element (selectAll does not).
       series.select('text.value')
         .attr("x", self.chartWidth() + self.marginLeft() + 5)
-        .attr("y", getSeriesEndCenterY)
+        .attr("y", getSeriesEndRectY)
         .text(getSeriesEndY)
 
       series.select('text.label')
         .attr("x", self.chartWidth() + self.marginLeft() + 15)
-        .attr("y", getSeriesEndCenterY)
+        .attr("y", getSeriesEndRectY)
         .text(_config.seriesLabel) // I suppose the label could change.
 
       return this;

@@ -103,7 +103,7 @@
   // There is no overlap
   //
   function listBalanceFromTop(itemsWithRect, inRect, originalYs) {
-    var r, itemSpaceOnTop, item,
+    var r, itemSpaceOnTop, item, yOffset,
         index = 0,
         spanStart = 0,
         spanCount = 0,
@@ -118,8 +118,10 @@
       item = itemsWithRect[ index]
       r = item.rect
       itemSpaceOnTop = index === 0 ? r.roomOnTop(inRect) : r.spaceOnTop(last.rect)
+      yOffset = r.origin.y - originalYs[index]
+      yOffsetAve = spanCount > 0 ? yOffsetSum / spanCount : yOffsetSum
 
-      if( itemSpaceOnTop > 0 ) {
+      if( itemSpaceOnTop > 0 || (spanCount > 0 && yOffsetAve > 0 && yOffset <= 0)) {
         // end of last span or start of new span
 
         if( spanCount > 0 ) {

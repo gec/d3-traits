@@ -113,9 +113,15 @@
    * Rect is a rectangle with origin, and size. The origin is in relation to the anchor.
    * The anchor defaults to top left (0,0). Center left is (0,0.5). Bottom right is (1,1).
    *
-   * Top left coordinate is 0.
+   * Constructors:
+   *    Rect()
+   *    Rect( originPoint, size)
+   *    Rect( originPoint, size, anchorPoint)
+   *    Rect( originX, originY, width, height)
+   *    Rect( originX, originY, width, height)
+   *    Rect( originX, originY, width, height, anchorX, anchorY)
    *
-   * Rects can also have a margin. TBD.
+   * Top left coordinate is 0.
    */
   function Rect(x, y, w, h, ax, ay) {
     switch( arguments.length ) {
