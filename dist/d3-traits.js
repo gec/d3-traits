@@ -1,4 +1,4 @@
-/*! d3-traits - v0.0.1 - 2017-03-02
+/*! d3-traits - v0.0.1 - 2017-03-10
 * https://github.com/gec/d3-traits
 * Copyright (c) 2017 d3-traits; Licensed ,  */
 (function(d3) {
@@ -1414,8 +1414,12 @@
    * Sampling is a time-series data store for a single resolution. It may be sampled data
    * or raw source data.
    *
-   * @param resolution
-   * @param access
+   * @param {string} resolution One of '1s', '5s', '15s', '30s', '1m', '5m', '15m', '30m', '1h', '6h', '12h', '1d', '1w', '1mo', '1y'
+   * @param {Object} access
+   * @param {Object} constraints Constrain the sample size and throttle how frequent constraints are applied
+   * @param {int}    constraints.size Constrain the sample size based on max number of points. Zero for no constraint. Defaults to 0.
+   * @param {number}    constraints.time Trim data based on max millisecond time before last time in data array. Zero for no constraint. Defaults to 0.
+   * @param {number}    constraints.throttling Minimum millisecond delay between applying constraints. Zero for no constraint. Defaults to 0.
    * @param data      Data or undefined
    * @param sampled   True if data is sampled data
    * @constructor
@@ -2044,9 +2048,10 @@
     }
 
     /**
-     * Constrain the time of all Sampling data arrays to be no older that the last point's time.
+     * Throttle how often constraints are applied. For example, if we get updates every 100 milliseconds, only
+     * trim the data size every 1000 milliseconds.
      *
-     * @param throttling
+     * @param {number} throttling - Don't apply constraints more often than specified milliseconds
      * @returns this if no arguments; otherwise, it returns the current size constraint.
      */
     murtsDataStore.constrainThrottling = function ( throttling) {
@@ -3513,9 +3518,6 @@
             .append("path")
             .attr("class", makeLineClass)
             .attr("d", makeLinePath)
-
-          line.attr("class", "axis-line")
-            .attr("d", makeLinePath)
         }
 
 
@@ -3533,11 +3535,20 @@
 
       if( duration === 0 ) {
         group.call(axis);
+        // The line values are the same, but the axis scale might have changed and the lines may need to move.
+        if(c.lines && Array.isArray(c.lines))
+          group.selectAll('path.' + AxisLineClass).attr("d", makeLinePath)
       } else {
         group.transition()
           .duration(duration || _super.duration())
           .ease("linear")
           .call(axis);
+        // The line values are the same, but the axis scale might have changed and the lines may need to move.
+        if(c.lines && Array.isArray(c.lines)) {
+          group.selectAll('path.' + AxisLineClass)
+            .duration(duration || _super.duration())
+            .attr("d", makeLinePath)
+        }
       }
 
       return this;
@@ -4124,6 +4135,8 @@
 
     if( scale.rangeBand ) {
       width = c.width === 'auto' ? scale.rangeBand() : c.width
+      if( debug)
+        console.log( 'getBarDimmensions scale.rangeBand width ' + width + ', domain ' + JSON.stringify(scale.domain()) + ', range ' + JSON.stringify(scale.range()))
       // gap isn't known with range bands
     } else {
       var scaleDomain = scale.domain(),
@@ -4295,6 +4308,9 @@
         var element = this,
             chartWidth = _super.chartWidth()
 
+        if( debug)
+          console.log( 'chartBar._selection.each begin -------------------------------')
+
         filteredData = seriesFilter(_data)
 
         barDimensions = getBarDimensions(filteredData, access.seriesData, access.x, c, x1, chartWidth)
@@ -4371,6 +4387,8 @@
      */
     chartBar[yExtendDomainKey] = function( domain, data) {
       domain = this._super( domain, data)
+      if( debug)
+        console.log( 'chartBar[yExtendDomainKey] begin ********************************')
 
       if( debug) console.log( 'chartBar.' + yExtendDomainKey + ': begin')
       if( ! c.stacked)
@@ -4390,19 +4408,31 @@
 
     chartBar.update = function(type, duration) {
       this._super(type, duration)
+      if( debug)
+        console.log( 'chartBar.update begin ++++++++++++++++++++++++++++++++')
+
+      var chartWidth = _super.chartWidth()
 
       // TODO: The x1.range() needs to be wider, so we draw the new line off the right
       // then translate it to the left with a transition animation.
 
+      if( debug)
+        console.log( 'chartBar.update x1.domain ' + JSON.stringify(x1.domain()) + ', range ' + JSON.stringify(x1.range()))
       var domainMax = d3.trait.utils.extentMax(x1.domain())
-      var translateX = x1(lastDomainMax) - x1(domainMax)
+      var translateX = lastDomainMax !== undefined && domainMax !== undefined ? x1(lastDomainMax) - x1(domainMax) : 0
+
+      // I don't think we need this because chartBar[yExtendDomainKey] calls stackLayout..
+      //stackLayoutPositiveAndNegativeValues( filteredData, access)
+      barDimensions = getBarDimensions(filteredData, access.seriesData, access.x, c, x1, chartWidth)
 
       // redraw the line and no transform
       series.attr("transform", null)
-      bars.attr(barAttr(access, barDimensions, _super.chartHeight(), x1, y, c.stacked));
 
       bars = series.selectAll("rect")
         .data(access.seriesData)
+
+      // UPDATE
+      bars.attr(barAttr(access, barDimensions, _super.chartHeight(), x1, y, c.stacked));
 
       // ENTER
       bars.enter().append('rect')
@@ -4410,7 +4440,7 @@
         .attr(barAttr(access, barDimensions, _super.chartHeight(), x1, y, c.stacked))
 
       bars.exit()
-        .transition()
+        .transition().duration(duration)
         .style({opacity: 0})
         .remove();
 
@@ -5219,7 +5249,7 @@
     /**
      *
      * @param type  trend - New date for trend. Slide the new data from the right.
-     *              domain - The domain has been updated and all traits need to udpate based on the
+     *              domain - The domain has been updated and all traits need to update based on the
      *                      new domain extent (ex: brush event).
      * @param duration
      */
@@ -7013,15 +7043,24 @@ trait.chart.line = _chartLine
 
   function layoutLabelsNoOverlap(data, access, getSeriesEndpoint, getY, chartRect, textHeight, padding) {
 
-    var i,
+    var allSeriesHaveData = true,
         ends = data.map( function( s, i) { return getSeriesEndpoint(s, i)})
 
     function makeRect( d, i) {
       return new trait.Rect( 0, getY(d, i), 0, textHeight + padding, 0, 1) // 1 anchor on bottom.
     }
-    var justDs = ends.map( function( lastOrFirst) { lastOrFirst.d.rect = makeRect( lastOrFirst.d, lastOrFirst.di); return lastOrFirst.d })
+    function getDsWithRect( lastOrFirst) {
+      if( lastOrFirst.d !== undefined) {
+        lastOrFirst.d.rect = makeRect( lastOrFirst.d, lastOrFirst.di);
+      } else {
+        allSeriesHaveData = false
+      }
+      return lastOrFirst.d
+    }
+    var justDs = ends.map( getDsWithRect)
 
-    trait.layout.vertical( justDs, chartRect)
+    if( allSeriesHaveData)
+      trait.layout.vertical( justDs, chartRect)
   }
 
 
@@ -7083,7 +7122,8 @@ trait.chart.line = _chartLine
         case 'right': di = seriesData.length - 1; break;
         default: di = seriesData.length - 1; break;
       }
-      return { d: seriesData[di], di: di}
+      var value = seriesData.length > 0 ? seriesData[di] : undefined
+      return { d: value, di: di}
     }
     function getCenterY( d, di) {
       var yValue = access.y(d, di),
@@ -7104,12 +7144,13 @@ trait.chart.line = _chartLine
     //}
     function getSeriesEndRectY( data, si) {
       var last =  getSeriesEndpoint(data, si);
-      return last.d.rect.origin.y
+      return last.d !== undefined ? last.d.rect.origin.y : 0
     }
 
     function getSeriesEndY( data, si) {
-      var last = getSeriesEndpoint( data, si),
-          value = access.y(last.d, last.di)
+      var value,
+          last = getSeriesEndpoint( data, si)
+      value = last.d !== undefined ? access.y(last.d, last.di) : 0
       if(c.formatY)
         value = c.formatY( value)
       return value
@@ -8280,12 +8321,12 @@ trait.chart.line = _chartLine
   var TRACKING_DOMAIN_MAX = "domain-max"
 
   var DOMAIN_CONFIG = {
-    DATA: 0,
-    MIN: 1,
-    MAX: 2,
-    DOMAIN: 3,
-    TREND: 4,
-    MANUAL: 5
+    DATA: 0,    // Domain min and max are based on data.
+    MIN: 1,     // Only domain min is specified in config.
+    MAX: 2,     // Only domain max is specified in config.
+    DOMAIN: 3,  // Domain min and max are specified in config.
+    TREND: 4,   // This is a trend chart that scrolls horizontally based on tracking configuration.
+    MANUAL: 5   // Domain is only updated via call to <axis>Domain().  Example: chart.y1Domain( [-1,2])
   }
   var DOMAIN_CONFIG_NAMES = []
   DOMAIN_CONFIG_NAMES[DOMAIN_CONFIG.DATA] = 'DATA'
@@ -8517,8 +8558,6 @@ trait.chart.line = _chartLine
   function updateScale(scale, scaleName, range, externalScaleSet, extendDomainFn, listeners, domainConfig, data, access) {
     var min, max, dataDomain, oldDomain, oldMax, newRangeMax
 
-    scale.range(range)
-
     // if domainConfig.domain is specified, it trumps other configs
     if( domainConfig.type === DOMAIN_CONFIG.MANUAL )
       return
@@ -8593,6 +8632,8 @@ trait.chart.line = _chartLine
 
       constrainDomainMinOrMax( dataDomain, domainConfig)
 
+      if( debug)
+        console.log( 'updateScale' + scaleName + ': setting domain: ' + JSON.stringify( dataDomain))
       scale.domain(dataDomain)
 
       if( listeners.length && ( dataDomain[0] !== oldDomain[0] || extentMax( dataDomain) !== extentMax( oldDomain)) )
@@ -8619,18 +8660,40 @@ trait.chart.line = _chartLine
 
   function _scaleOrdinalBars(_super, _config) {
     var filteredData,
-        axes = trait.config.axes( _config),
-        access = trait.config.accessorsXY( _config, axes),
         scaleName = _config.axis,
         axisChar = scaleName.charAt(0), // x | y
-        scale = d3.scale.ordinal()
+        scale = d3.scale.ordinal(),
+        access = makeAccessorsFromConfig(_config, scaleName, scale),
+        axes = trait.config.axes( _config),
+        //access = trait.config.accessorsXY( _config, axes),
+        domainConfig = makeDomainConfig(_config),
+        extendDomainKey = scaleName + 'ExtendDomain',
+        externalScaleSet = [], // scales we're doing a union with
+        listeners = []
 
     if( typeof scale.invert !== 'function') {
       scale.invert = function( rangeValue) {
-        var i = 0
-        while( scale(i) < rangeValue)
-          i++
-        return i
+        var domain = scale.domain()
+        if( domain.length === 0)
+          return undefined
+
+        var domainMin = trait.utils.extentMin( domain),
+            domainMax = trait.utils.extentMax( domain)
+
+        if( rangeValue < scale(domainMin))
+          return domainMin
+        else if( rangeValue > scale(domainMax))
+          return domainMax
+        else {
+          var last = domainMin
+          for( var i = 1; i < domain.length -2; i++ ) {
+            var domainValue = domain[i]
+            if( scale(domainValue) > rangeValue)
+              return last
+            last = domainValue
+          }
+          return last
+        }
       }
     }
 
@@ -8647,7 +8710,7 @@ trait.chart.line = _chartLine
         scale.rangeRoundBands([0, rangeMax], 0.1)
 
         // Use the first series for the ordinals. TODO: should we merge the series ordinals?
-        ordinals = access.seriesData(filteredData[0]).map(access.x)
+        ordinals = access.series(filteredData[0]).map(access.value)
         scale.domain(ordinals);
       })
     }
@@ -8655,6 +8718,30 @@ trait.chart.line = _chartLine
     scaleOrdinalBars[scaleName] = function() {
       return scale;
     };
+    scaleOrdinalBars[extendDomainKey] = function(domain, data) {
+      return domain
+    }
+
+    scaleOrdinalBars.update = function(type, duration) {
+      this._super(type, duration)
+      if( ! filteredData)
+        return this
+
+      var range = d3.trait.utils.getScaleRange(_super, scaleName)
+      if( debug)
+        console.log( 'scaleOrdinalBars.update1 ' + scaleName + ' range:' + range + ' domain:' + scale.domain());
+
+      // reset the minimum domain from visible data, so later traits can grow the min domain as needed.
+      //delete domainConfig.minDomainFromData;
+      var rangeMax = axisChar === 'x' ? this.chartWidth() : this.chartHeight()
+      scale.rangeRoundBands([0, rangeMax], 0.1)
+      updateScale(scale, scaleName, range, externalScaleSet, scaleOrdinalBars[extendDomainKey], listeners, domainConfig, filteredData, access)
+      if( debug)
+        console.log( 'scaleOrdinalBars.update2 ' + scaleName + ' range:' + range + ' domain:' + scale.domain())
+
+      return this;
+    };
+
     return scaleOrdinalBars;
   }
 
@@ -8758,6 +8845,7 @@ trait.chart.line = _chartLine
       // calculate newRangeMax below, then we'll extend the range to that.
       var range = d3.trait.utils.getScaleRange(_super, scaleName)
 
+      scale.range(range)
       updateScale(scale, scaleName, range, externalScaleSet, scaleTime[extendDomainKey], listeners, domainConfig, filteredData, access)
 
       return this;
@@ -9002,6 +9090,7 @@ trait.chart.line = _chartLine
 
       // reset the minimum domain from visible data, so later traits can grow the min domain as needed.
       //delete domainConfig.minDomainFromData;
+      scale.range(range)
       updateScale(scale, scaleName, range, externalScaleSet, scaleLinear[extendDomainKey], listeners, domainConfig, filteredData, access)
       if( debug)
         console.log( 'scaleLinear.update2 ' + scaleName + ' range:' + range + ' domain:' + scale.domain())
