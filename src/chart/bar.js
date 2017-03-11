@@ -186,6 +186,8 @@
 
     if( scale.rangeBand ) {
       width = c.width === 'auto' ? scale.rangeBand() : c.width
+      if( debug)
+        console.log( 'getBarDimmensions scale.rangeBand width ' + width + ', domain ' + JSON.stringify(scale.domain()) + ', range ' + JSON.stringify(scale.range()))
       // gap isn't known with range bands
     } else {
       var scaleDomain = scale.domain(),
@@ -357,6 +359,9 @@
         var element = this,
             chartWidth = _super.chartWidth()
 
+        if( debug)
+          console.log( 'chartBar._selection.each begin -------------------------------')
+
         filteredData = seriesFilter(_data)
 
         barDimensions = getBarDimensions(filteredData, access.seriesData, access.x, c, x1, chartWidth)
@@ -433,6 +438,8 @@
      */
     chartBar[yExtendDomainKey] = function( domain, data) {
       domain = this._super( domain, data)
+      if( debug)
+        console.log( 'chartBar[yExtendDomainKey] begin ********************************')
 
       if( debug) console.log( 'chartBar.' + yExtendDomainKey + ': begin')
       if( ! c.stacked)
@@ -452,19 +459,31 @@
 
     chartBar.update = function(type, duration) {
       this._super(type, duration)
+      if( debug)
+        console.log( 'chartBar.update begin ++++++++++++++++++++++++++++++++')
+
+      var chartWidth = _super.chartWidth()
 
       // TODO: The x1.range() needs to be wider, so we draw the new line off the right
       // then translate it to the left with a transition animation.
 
+      if( debug)
+        console.log( 'chartBar.update x1.domain ' + JSON.stringify(x1.domain()) + ', range ' + JSON.stringify(x1.range()))
       var domainMax = d3.trait.utils.extentMax(x1.domain())
-      var translateX = x1(lastDomainMax) - x1(domainMax)
+      var translateX = lastDomainMax !== undefined && domainMax !== undefined ? x1(lastDomainMax) - x1(domainMax) : 0
+
+      // I don't think we need this because chartBar[yExtendDomainKey] calls stackLayout..
+      //stackLayoutPositiveAndNegativeValues( filteredData, access)
+      barDimensions = getBarDimensions(filteredData, access.seriesData, access.x, c, x1, chartWidth)
 
       // redraw the line and no transform
       series.attr("transform", null)
-      bars.attr(barAttr(access, barDimensions, _super.chartHeight(), x1, y, c.stacked));
 
       bars = series.selectAll("rect")
         .data(access.seriesData)
+
+      // UPDATE
+      bars.attr(barAttr(access, barDimensions, _super.chartHeight(), x1, y, c.stacked));
 
       // ENTER
       bars.enter().append('rect')
@@ -472,7 +491,7 @@
         .attr(barAttr(access, barDimensions, _super.chartHeight(), x1, y, c.stacked))
 
       bars.exit()
-        .transition()
+        .transition().duration(duration)
         .style({opacity: 0})
         .remove();
 

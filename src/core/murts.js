@@ -269,8 +269,12 @@
    * Sampling is a time-series data store for a single resolution. It may be sampled data
    * or raw source data.
    *
-   * @param resolution
-   * @param access
+   * @param {string} resolution One of '1s', '5s', '15s', '30s', '1m', '5m', '15m', '30m', '1h', '6h', '12h', '1d', '1w', '1mo', '1y'
+   * @param {Object} access
+   * @param {Object} constraints Constrain the sample size and throttle how frequent constraints are applied
+   * @param {int}    constraints.size Constrain the sample size based on max number of points. Zero for no constraint. Defaults to 0.
+   * @param {number}    constraints.time Trim data based on max millisecond time before last time in data array. Zero for no constraint. Defaults to 0.
+   * @param {number}    constraints.throttling Minimum millisecond delay between applying constraints. Zero for no constraint. Defaults to 0.
    * @param data      Data or undefined
    * @param sampled   True if data is sampled data
    * @constructor
@@ -899,9 +903,10 @@
     }
 
     /**
-     * Constrain the time of all Sampling data arrays to be no older that the last point's time.
+     * Throttle how often constraints are applied. For example, if we get updates every 100 milliseconds, only
+     * trim the data size every 1000 milliseconds.
      *
-     * @param throttling
+     * @param {number} throttling - Don't apply constraints more often than specified milliseconds
      * @returns this if no arguments; otherwise, it returns the current size constraint.
      */
     murtsDataStore.constrainThrottling = function ( throttling) {

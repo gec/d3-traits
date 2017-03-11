@@ -1,6 +1,6 @@
 
 .bar {
-  fill: lightblue;
+  /* can't use fill color here because it overrides series colors */
 }
 
 .axis path,

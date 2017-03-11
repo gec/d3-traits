@@ -775,7 +775,7 @@
     /**
      *
      * @param type  trend - New date for trend. Slide the new data from the right.
-     *              domain - The domain has been updated and all traits need to udpate based on the
+     *              domain - The domain has been updated and all traits need to update based on the
      *                      new domain extent (ex: brush event).
      * @param duration
      */

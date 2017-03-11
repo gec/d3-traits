@@ -48,15 +48,24 @@
 
   function layoutLabelsNoOverlap(data, access, getSeriesEndpoint, getY, chartRect, textHeight, padding) {
 
-    var i,
+    var allSeriesHaveData = true,
         ends = data.map( function( s, i) { return getSeriesEndpoint(s, i)})
 
     function makeRect( d, i) {
       return new trait.Rect( 0, getY(d, i), 0, textHeight + padding, 0, 1) // 1 anchor on bottom.
     }
-    var justDs = ends.map( function( lastOrFirst) { lastOrFirst.d.rect = makeRect( lastOrFirst.d, lastOrFirst.di); return lastOrFirst.d })
+    function getDsWithRect( lastOrFirst) {
+      if( lastOrFirst.d !== undefined) {
+        lastOrFirst.d.rect = makeRect( lastOrFirst.d, lastOrFirst.di);
+      } else {
+        allSeriesHaveData = false
+      }
+      return lastOrFirst.d
+    }
+    var justDs = ends.map( getDsWithRect)
 
-    trait.layout.vertical( justDs, chartRect)
+    if( allSeriesHaveData)
+      trait.layout.vertical( justDs, chartRect)
   }
 
 
@@ -118,7 +127,8 @@
         case 'right': di = seriesData.length - 1; break;
         default: di = seriesData.length - 1; break;
       }
-      return { d: seriesData[di], di: di}
+      var value = seriesData.length > 0 ? seriesData[di] : undefined
+      return { d: value, di: di}
     }
     function getCenterY( d, di) {
       var yValue = access.y(d, di),
@@ -139,12 +149,13 @@
     //}
     function getSeriesEndRectY( data, si) {
       var last =  getSeriesEndpoint(data, si);
-      return last.d.rect.origin.y
+      return last.d !== undefined ? last.d.rect.origin.y : 0
     }
 
     function getSeriesEndY( data, si) {
-      var last = getSeriesEndpoint( data, si),
-          value = access.y(last.d, last.di)
+      var value,
+          last = getSeriesEndpoint( data, si)
+      value = last.d !== undefined ? access.y(last.d, last.di) : 0
       if(c.formatY)
         value = c.formatY( value)
       return value
