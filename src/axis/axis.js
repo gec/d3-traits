@@ -276,9 +276,6 @@
             .append("path")
             .attr("class", makeLineClass)
             .attr("d", makeLinePath)
-
-          line.attr("class", "axis-line")
-            .attr("d", makeLinePath)
         }
 
 
@@ -296,11 +293,20 @@
 
       if( duration === 0 ) {
         group.call(axis);
+        // The line values are the same, but the axis scale might have changed and the lines may need to move.
+        if(c.lines && Array.isArray(c.lines))
+          group.selectAll('path.' + AxisLineClass).attr("d", makeLinePath)
       } else {
         group.transition()
           .duration(duration || _super.duration())
           .ease("linear")
           .call(axis);
+        // The line values are the same, but the axis scale might have changed and the lines may need to move.
+        if(c.lines && Array.isArray(c.lines)) {
+          group.selectAll('path.' + AxisLineClass)
+            .duration(duration || _super.duration())
+            .attr("d", makeLinePath)
+        }
       }
 
       return this;
