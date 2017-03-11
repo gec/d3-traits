@@ -35,12 +35,12 @@
   var TRACKING_DOMAIN_MAX = "domain-max"
 
   var DOMAIN_CONFIG = {
-    DATA: 0,
-    MIN: 1,
-    MAX: 2,
-    DOMAIN: 3,
-    TREND: 4,
-    MANUAL: 5
+    DATA: 0,    // Domain min and max are based on data.
+    MIN: 1,     // Only domain min is specified in config.
+    MAX: 2,     // Only domain max is specified in config.
+    DOMAIN: 3,  // Domain min and max are specified in config.
+    TREND: 4,   // This is a trend chart that scrolls horizontally based on tracking configuration.
+    MANUAL: 5   // Domain is only updated via call to <axis>Domain().  Example: chart.y1Domain( [-1,2])
   }
   var DOMAIN_CONFIG_NAMES = []
   DOMAIN_CONFIG_NAMES[DOMAIN_CONFIG.DATA] = 'DATA'
@@ -272,8 +272,6 @@
   function updateScale(scale, scaleName, range, externalScaleSet, extendDomainFn, listeners, domainConfig, data, access) {
     var min, max, dataDomain, oldDomain, oldMax, newRangeMax
 
-    scale.range(range)
-
     // if domainConfig.domain is specified, it trumps other configs
     if( domainConfig.type === DOMAIN_CONFIG.MANUAL )
       return
@@ -348,6 +346,8 @@
 
       constrainDomainMinOrMax( dataDomain, domainConfig)
 
+      if( debug)
+        console.log( 'updateScale' + scaleName + ': setting domain: ' + JSON.stringify( dataDomain))
       scale.domain(dataDomain)
 
       if( listeners.length && ( dataDomain[0] !== oldDomain[0] || extentMax( dataDomain) !== extentMax( oldDomain)) )
@@ -374,18 +374,40 @@
 
   function _scaleOrdinalBars(_super, _config) {
     var filteredData,
-        axes = trait.config.axes( _config),
-        access = trait.config.accessorsXY( _config, axes),
         scaleName = _config.axis,
         axisChar = scaleName.charAt(0), // x | y
-        scale = d3.scale.ordinal()
+        scale = d3.scale.ordinal(),
+        access = makeAccessorsFromConfig(_config, scaleName, scale),
+        axes = trait.config.axes( _config),
+        //access = trait.config.accessorsXY( _config, axes),
+        domainConfig = makeDomainConfig(_config),
+        extendDomainKey = scaleName + 'ExtendDomain',
+        externalScaleSet = [], // scales we're doing a union with
+        listeners = []
 
     if( typeof scale.invert !== 'function') {
       scale.invert = function( rangeValue) {
-        var i = 0
-        while( scale(i) < rangeValue)
-          i++
-        return i
+        var domain = scale.domain()
+        if( domain.length === 0)
+          return undefined
+
+        var domainMin = trait.utils.extentMin( domain),
+            domainMax = trait.utils.extentMax( domain)
+
+        if( rangeValue < scale(domainMin))
+          return domainMin
+        else if( rangeValue > scale(domainMax))
+          return domainMax
+        else {
+          var last = domainMin
+          for( var i = 1; i < domain.length -2; i++ ) {
+            var domainValue = domain[i]
+            if( scale(domainValue) > rangeValue)
+              return last
+            last = domainValue
+          }
+          return last
+        }
       }
     }
 
@@ -402,7 +424,7 @@
         scale.rangeRoundBands([0, rangeMax], 0.1)
 
         // Use the first series for the ordinals. TODO: should we merge the series ordinals?
-        ordinals = access.seriesData(filteredData[0]).map(access.x)
+        ordinals = access.series(filteredData[0]).map(access.value)
         scale.domain(ordinals);
       })
     }
@@ -410,6 +432,30 @@
     scaleOrdinalBars[scaleName] = function() {
       return scale;
     };
+    scaleOrdinalBars[extendDomainKey] = function(domain, data) {
+      return domain
+    }
+
+    scaleOrdinalBars.update = function(type, duration) {
+      this._super(type, duration)
+      if( ! filteredData)
+        return this
+
+      var range = d3.trait.utils.getScaleRange(_super, scaleName)
+      if( debug)
+        console.log( 'scaleOrdinalBars.update1 ' + scaleName + ' range:' + range + ' domain:' + scale.domain());
+
+      // reset the minimum domain from visible data, so later traits can grow the min domain as needed.
+      //delete domainConfig.minDomainFromData;
+      var rangeMax = axisChar === 'x' ? this.chartWidth() : this.chartHeight()
+      scale.rangeRoundBands([0, rangeMax], 0.1)
+      updateScale(scale, scaleName, range, externalScaleSet, scaleOrdinalBars[extendDomainKey], listeners, domainConfig, filteredData, access)
+      if( debug)
+        console.log( 'scaleOrdinalBars.update2 ' + scaleName + ' range:' + range + ' domain:' + scale.domain())
+
+      return this;
+    };
+
     return scaleOrdinalBars;
   }
 
@@ -513,6 +559,7 @@
       // calculate newRangeMax below, then we'll extend the range to that.
       var range = d3.trait.utils.getScaleRange(_super, scaleName)
 
+      scale.range(range)
       updateScale(scale, scaleName, range, externalScaleSet, scaleTime[extendDomainKey], listeners, domainConfig, filteredData, access)
 
       return this;
@@ -757,6 +804,7 @@
 
       // reset the minimum domain from visible data, so later traits can grow the min domain as needed.
       //delete domainConfig.minDomainFromData;
+      scale.range(range)
       updateScale(scale, scaleName, range, externalScaleSet, scaleLinear[extendDomainKey], listeners, domainConfig, filteredData, access)
       if( debug)
         console.log( 'scaleLinear.update2 ' + scaleName + ' range:' + range + ' domain:' + scale.domain())
