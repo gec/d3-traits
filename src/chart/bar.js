@@ -142,8 +142,8 @@
     if( !indicesExtent )
       return scale.range()
 
-    i = indicesExtent[0],
-      minValue = scale(accessor(data[i], i)) + offsetLeft
+    i = indicesExtent[0]
+    minValue = scale(accessor(data[i], i)) + offsetLeft
 
     i = indicesExtent[1]
     maxValue = scale(accessor(data[i], i)) + offsetRight

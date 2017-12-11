@@ -88,12 +88,12 @@
         var minMs = props.min.getTime(),
             maxMs = props.max.getTime()
         props.isDate = true
-        props.span = Math.abs( maxMs - minMs),
+        props.span = Math.abs( maxMs - minMs)
         props.spanEpsilon = props.span * 0.025
         props.isExtentMax = Math.abs( maxMs - lastDomainMax.getTime()) < props.spanEpsilon
       } else {
         props.isDate = false
-        props.span = Math.abs( props.max - props.min),
+        props.span = Math.abs( props.max - props.min)
         props.spanEpsilon = props.span * 0.025
         props.isExtentMax = Math.abs( props.max - lastDomainMax) < props.spanEpsilon
       }

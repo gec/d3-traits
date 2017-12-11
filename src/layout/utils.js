@@ -418,7 +418,7 @@
   trait.layout.vertical = layoutVertical
   trait.layout.byOrientation = layoutByOrientation
   trait.layout.verticalAnchorLeftRight = layoutVerticalAnchorLeftRight
-  trait.layout.mapUniform = mapUniform,
+  trait.layout.mapUniform = mapUniform
   trait.layout.utils = {
     listNudgeUpFromBottom: listNudgeUpFromBottom,
     removeOverlapFromTop: removeOverlapFromTop,

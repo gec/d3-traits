@@ -494,7 +494,7 @@
           return false
 
         var shiftTotal = totalLength - this.constraints.size
-        shiftCurrent = Math.min( currentLength, shiftTotal),
+        shiftCurrent = Math.min( currentLength, shiftTotal)
         shiftPending = shiftTotal - shiftCurrent
       }
     }

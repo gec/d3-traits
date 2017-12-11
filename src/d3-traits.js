@@ -423,7 +423,7 @@
         return self._super.__getRoot()
       else
         return self
-    },
+    }
 
       // TODO: make config from configs
 
