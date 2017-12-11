@@ -102,7 +102,7 @@
     extentFromAreaDataAccess.series = access.actualValues
     extentFromAreaDataAccess.data = access.actualY
 
-    area = makeArea( stacked, access, x, y, interpolate, _super.chartHeight()),
+    area = makeArea( stacked, access, x, y, interpolate, _super.chartHeight())
 
 
     // Return simple array of series data.
