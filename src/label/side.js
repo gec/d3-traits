@@ -49,10 +49,11 @@
   function layoutLabelsNoOverlap(data, access, getSeriesEndpoint, getY, chartRect, textHeight, padding) {
 
     var allSeriesHaveData = true,
-        ends = data.map( function( s, i) { return getSeriesEndpoint(s, i)})
+        ends = data.map( function( s, i) { return getSeriesEndpoint(s, i)}),
+        centerTextYOffset = textHeight / 2
 
     function makeRect( d, i) {
-      return new trait.Rect( 0, getY(d, i), 0, textHeight + padding, 0, 1) // 1 anchor on bottom.
+      return new trait.Rect( 0, getY(d, i) + centerTextYOffset, 0, textHeight + padding, 0, 1) // 1 anchor on bottom.
     }
     function getDsWithRect( lastOrFirst) {
       if( lastOrFirst.d !== undefined) {
@@ -121,7 +122,7 @@
 
     function getSeriesEndpoint( data, si) {
       var di,
-          seriesData = access.seriesData( data, si)
+          seriesData = trait.murts.utils.getOrElse( access.seriesData(data, si), x1)
       switch( c.orient) {
         case 'left': di = 0; break;
         case 'right': di = seriesData.length - 1; break;
@@ -137,8 +138,19 @@
       return yPositive + (height / 2.0)
     }
     function getCenterYStacked( d, di) {
-      var halfHeight = (y(0) - y(d.size)) / 2.0
-      return y(d.y0) + halfHeight
+      var halfVisibleHeight,
+          domainMinY = d3.trait.utils.extentMin(y.domain()),
+          yValue = access.y(d, di),
+          yOffset = domainMinY - d.y0
+      if( yOffset <= 0) {
+        // bottom of area or bar is visible
+        halfVisibleHeight = yValue / 2.0
+        return y(halfVisibleHeight + d.y0, di)
+      } else {
+        // bottom of area or bar is NOT visible
+        halfVisibleHeight = (yValue - yOffset) / 2.0
+        return y(halfVisibleHeight + domainMinY, di)
+      }
     }
 
     var getY = c.stacked ? getCenterYStacked : getCenterY
@@ -212,7 +224,7 @@
           group = this._container.append('g').classed(classes, true);
         }
 
-        layoutLabelsNoOverlap( filteredData, access, getSeriesEndpoint, getY, self.chartRect(), 10, 2)
+        layoutLabelsNoOverlap( filteredData, access, getSeriesEndpoint, getY, self.chartRect(), 14, 2)
 
         // DATA JOIN
         series = group.selectAll(".series")
