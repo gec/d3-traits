@@ -92,16 +92,17 @@
     }
 
     function getY( d, i) {
-      return y(Math.max(access.y(d,i),0))
+      return y(access.y(d,i))
     }
     function getYStacked( d, i) {
-      return y(d.y0)
+      var yValue = access.y(d,i)
+      return yValue >= 0 ? y(d.y0 + yValue) : y(d.y0)
     }
     function getHeight( d, i) {
       return y(0) - y( Math.abs(access.y(d,i)))
     }
     function getHeightStacked( d, i) {
-      return y(0) - y(d.size)
+      return Math.abs(y(d.y0) - y(d.y0 + access.y(d,i)))
     }
     // For pos/neg bars:
     // x - same
@@ -275,7 +276,8 @@
           negativeBase -= d.size
         } else
         {
-          d.y0 = positiveBase = positiveBase + d.size
+          d.y0 = positiveBase
+          positiveBase += d.size
         }
       }
     }
@@ -283,7 +285,7 @@
       d3.merge(
         d3.merge(
           data.map(function(e) {
-            return access.seriesData(e).map(function(f) { return [f.y0,f.y0-f.size] })
+            return access.seriesData(e).map(function(f) { return [f.y0,f.y0+f.size] })
           })
         )
       )

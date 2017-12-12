@@ -103,7 +103,7 @@ describe('d3.trait.chart.bar', function() {
     var rectNeg = seriesGroup.firstChild
     expect(rectNeg).toBeElement("rect.bar")
     rectNeg = d3.select( rectNeg)
-    expect( rectNeg.attr('y')).toEqual( '10')
+    expect( rectNeg.attr('y')).toEqual( '15')
     expect( rectNeg.attr('height')).toEqual( '5')   //15
 
     var rectPos = d3.select( seriesGroup.children[1])
