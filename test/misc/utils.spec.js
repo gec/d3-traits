@@ -135,6 +135,28 @@ describe('d3.trait.utils', function() {
 
   });
 
+  it('niceExtent should return nice extents', function() {
+
+    expect(d3.trait.utils.niceExtent([10, 11])).toEqual([9.8, 11])
+    expect(d3.trait.utils.niceExtent([10, 20])).toEqual([8, 20])
+    expect(d3.trait.utils.niceExtent([100, 120])).toEqual([95, 120])
+    expect(d3.trait.utils.niceExtent([100, 900])).toEqual([ 0, 900])
+    expect(d3.trait.utils.niceExtent([200, 250])).toEqual([ 190, 250])
+    expect(d3.trait.utils.niceExtent([200, 300])).toEqual([ 180, 300])
+    expect(d3.trait.utils.niceExtent([310, 450])).toEqual([ 300, 450])
+    expect(d3.trait.utils.niceExtent([390, 420])).toEqual([ 385, 420])
+    expect(d3.trait.utils.niceExtent([400, 420])).toEqual([ 395, 420])
+    expect(d3.trait.utils.niceExtent([400, 460])).toEqual([ 390, 460])
+    expect(d3.trait.utils.niceExtent([400, 500])).toEqual([ 380, 500])
+    expect(d3.trait.utils.niceExtent([450, 520])).toEqual([ 440, 520])
+    expect(d3.trait.utils.niceExtent([450, 720])).toEqual([ 400, 720])
+    expect(d3.trait.utils.niceExtent([500, 520])).toEqual([ 495, 520])
+    expect(d3.trait.utils.niceExtent([500, 560])).toEqual([ 490, 560])
+    expect(d3.trait.utils.niceExtent([500, 600])).toEqual([ 480, 600])
+    expect(d3.trait.utils.niceExtent([500, 700])).toEqual([ 450, 700])
+
+  });
+
 
 });
 

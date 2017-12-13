@@ -175,6 +175,35 @@
     return currentExtent
   }
 
+  var log10  = typeof Math.log10 === 'function' ? Math.log10 : function(x) {return Math.log(x) * Math.LOG10E}
+
+  function roundToNearest(number, nearest){
+    var absoluteNearest = Math.abs(nearest),
+        nearestSameSign = number >= 0 ? absoluteNearest : - absoluteNearest
+    return nearestSameSign * Math.round(number/nearestSameSign)
+  }
+
+  /**
+   * Return extent with nice minimum.
+   * @param [[]} extent array
+   * @return {[]} extent nice extent
+   */
+  function niceExtent(extent) {
+    var niceFraction1To10, niceFractionOfExtent, niceMin,
+        min = trait.utils.extentMin( extent),
+        max = trait.utils.extentMax( extent),
+        ext = (max - min) * 1.2, // padding of 0.2
+        exponent = Math.floor(log10(ext)),
+        fractionOf10 = ext / Math.pow(10,exponent) // between 1 and 10
+
+    niceFraction1To10 = fractionOf10 <= 0.9 ? 1
+        : fractionOf10 <= 1.7 ? 2
+        : fractionOf10 <= 4 ? 5
+        : 10
+    niceFractionOfExtent = niceFraction1To10 * Math.pow(10,exponent) / 10.0
+    niceMin = roundToNearest( min - niceFractionOfExtent, niceFractionOfExtent)
+    return [niceMin, max]
+  }
 
   if( !trait.utils )
     trait.utils = {}
@@ -187,5 +216,6 @@
   trait.utils.extentFromAreaData = extentFromAreaData
   trait.utils.isExtentExtended = isExtentExtended
   trait.utils.extendExtent = extendExtent
+  trait.utils.niceExtent = niceExtent
 
 }(d3, d3.trait));
