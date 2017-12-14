@@ -107,7 +107,7 @@
     extents = data.map(function(s, i) {
       var series = access.series(s, i)
       var extent = [
-        d3.min( series, function( d) { return d.y0}),
+        d3.min( series, function( d, ii) { return d.y0 + access.data(d, ii)}),
         d3.max( series, function( d, ii) { return d.y0 + access.data(d, ii)})
       ]
       return extent
@@ -191,8 +191,12 @@
   function niceExtent(extent) {
     var niceFraction1To10, niceFractionOfExtent, niceMin,
         min = trait.utils.extentMin( extent),
-        max = trait.utils.extentMax( extent),
-        ext = (max - min) * 1.2, // padding of 0.2
+        max = trait.utils.extentMax( extent)
+
+    if( min === 0 || max - min === 0)
+      return extent
+
+    var ext = (max - min) * 1.2, // padding of 0.2
         exponent = Math.floor(log10(ext)),
         fractionOf10 = ext / Math.pow(10,exponent) // between 1 and 10
 

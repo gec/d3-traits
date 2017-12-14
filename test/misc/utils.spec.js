@@ -130,13 +130,25 @@ describe('d3.trait.utils', function() {
           data:   function(d) { return d.y }
         }
 
-    extent = d3.trait.utils.extentFromAreaData([ {series: [ {y0: 1, y: 1}, {y0: 1, y:2}, {y0: 1, y: 3}]} ], access2, padding)
-    expect(extent).toEqual([1, 4])
+    extent = d3.trait.utils.extentFromAreaData([ {series: [ {y0: 0, y: 1}, {y0: 0, y:2}, {y0: 0, y: 3}]} ], access2, padding)
+    expect(extent).toEqual([1, 3])
 
   });
 
-  it('niceExtent should return nice extents', function() {
+  it('niceExtent should return same extent when extent min is 0', function() {
+    expect(d3.trait.utils.niceExtent([0, 0])).toEqual([0, 0])
+    expect(d3.trait.utils.niceExtent([0, 1])).toEqual([0, 1])
+    expect(d3.trait.utils.niceExtent([0, 10])).toEqual([0, 10])
+    expect(d3.trait.utils.niceExtent([0, 100])).toEqual([0, 100])
+  });
 
+  it('niceExtent should return same extent when extent is zero', function() {
+    expect(d3.trait.utils.niceExtent([4, 4])).toEqual([4, 4])
+    expect(d3.trait.utils.niceExtent([10, 10])).toEqual([10, 10])
+    expect(d3.trait.utils.niceExtent([253, 253])).toEqual([253, 253])
+  });
+
+  it('niceExtent should return nice extent with updated minimum', function() {
     expect(d3.trait.utils.niceExtent([10, 11])).toEqual([9.8, 11])
     expect(d3.trait.utils.niceExtent([10, 20])).toEqual([8, 20])
     expect(d3.trait.utils.niceExtent([100, 120])).toEqual([95, 120])
@@ -154,7 +166,6 @@ describe('d3.trait.utils', function() {
     expect(d3.trait.utils.niceExtent([500, 560])).toEqual([ 490, 560])
     expect(d3.trait.utils.niceExtent([500, 600])).toEqual([ 480, 600])
     expect(d3.trait.utils.niceExtent([500, 700])).toEqual([ 450, 700])
-
   });
 
 
