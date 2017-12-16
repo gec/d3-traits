@@ -4,7 +4,9 @@ describe('d3-traits.layout.uniformIterator', function() {
       mapUniform = d3.trait.layout.mapUniform,
       utils = d3.trait.layout.utils,
       makeTargetSeries                      = utils.trendstack.makeTargetSeries,
-      seriesIndexOfMinNextX                 = utils.trendstack.seriesIndexOfMinNextX
+      seriesIndexOfMinNextX                 = utils.trendstack.seriesIndexOfMinNextX,
+      greatestNextX                         = utils.trendstack.greatestNextX,
+      smallestNextX                         = utils.trendstack.smallestNextX
 
   var access  = d3.trait.config.accessorsXY( {}, {x: 'x', y: 'y'})
 
@@ -36,10 +38,11 @@ describe('d3-traits.layout.uniformIterator', function() {
       .epsilon(.01)
     iter(data)
     expect( iter.isNext()).toBeFalsy()
-    expect( iter.peakNextX).toBeUndefined()
+    expect( iter.peekNextX()).toBeUndefined()
 
-    var point = iter.next(1)
-    expect( point).toEqual( {x:1, y:0})
+    var x = 1,
+        point = iter.next(x)
+    expect( point).toEqual( {x:x, y:undefined})
   });
 
   it('uniformIterator should iterate a non-empty series', function() {
@@ -84,7 +87,7 @@ describe('d3-traits.layout.uniformIterator', function() {
 
   });
 
-  it('seriesIndexOfMinNextX should find the series with minimum nextX', function() {
+  it('seriesIndexOfMinNextX should return unknown if one series is empty', function() {
     var series, index, iterators, nextX, point
 
     series = []
@@ -102,56 +105,51 @@ describe('d3-traits.layout.uniformIterator', function() {
     expect( iterators[0].isNext()).toBeFalsy()
     expect( iterators[1].isNext()).toBeTruthy()
     expect( iterators[2].isNext()).toBeTruthy()
-    index = seriesIndexOfMinNextX( iterators)
-    expect( index).toEqual(1)
-    nextX = iterators[index].peekNextX()
-    expect( iterators[0].next( nextX)).toEqual( {x: 1, y: 0})
-    expect( iterators[1].next( nextX)).toEqual( {x: 1, y: 2})
-    expect( iterators[2].next( nextX)).toEqual( {x: 1, y: 0})
+    nextX = greatestNextX( iterators)
+    expect( index).toBeUndefined()
+  });
 
-    expect( iterators[0].isNext()).toBeFalsy()
-    expect( iterators[1].isNext()).toBeTruthy()
-    expect( iterators[2].isNext()).toBeTruthy()
-    index = seriesIndexOfMinNextX( iterators)
-    expect( index).toEqual(2)
-    nextX = iterators[index].peekNextX()
-    expect( iterators[0].next( nextX)).toEqual( {x: 3, y: 0})
-    expect( iterators[1].next( nextX)).toEqual( {x: 3, y: 2})
-    expect( iterators[2].next( nextX)).toEqual( {x: 3, y: 4})
+  it('greatestNextX should find the series with greatest nextX', function() {
+    var series, index, iterators, nextX, point
 
-    expect( iterators[0].isNext()).toBeFalsy()
-    expect( iterators[1].isNext()).toBeTruthy()
-    expect( iterators[2].isNext()).toBeTruthy()
-    index = seriesIndexOfMinNextX( iterators)
-    expect( index).toEqual(2)
-    nextX = iterators[index].peekNextX()
-    expect( iterators[0].next( nextX)).toEqual( {x: 5, y: 0})
-    expect( iterators[1].next( nextX)).toEqual( {x: 5, y: 2})
+    series = []
+    iterators = []
+    expect( greatestNextX( iterators)).toBeUndefined()
+
+    series = [
+      [                        {x:4.999, y:5}        ],
+      [ {x:1, y:2},                        {x:7, y:8}],
+      [             {x:3, y:4}, {x:5, y:6}           ]
+    ]
+    iterators = [ uniformIterator(), uniformIterator(), uniformIterator()]
+    iterators.forEach( function( iter, i) { iter(series[i])})
+
+    nextX = greatestNextX( iterators)
+    expect( nextX).toEqual( 4.999)
+    expect( iterators[0].next( nextX)).toEqual( {x: 4.999, y: 5})
+    expect( iterators[1].next( nextX)).toEqual( {x: 4.999, y: 2})
     expect( iterators[2].next( nextX)).toEqual( {x: 5, y: 6})
 
     expect( iterators[0].isNext()).toBeFalsy()
     expect( iterators[1].isNext()).toBeTruthy()
     expect( iterators[2].isNext()).toBeFalsy()
-    index = seriesIndexOfMinNextX( iterators)
-    expect( index).toEqual(1)
-    nextX = iterators[index].peekNextX()
-    expect( iterators[0].next( nextX)).toEqual( {x: 7, y: 0})
+    nextX = smallestNextX( iterators)
+    expect( nextX).toEqual(7)
+
+    expect( iterators[0].next( nextX)).toEqual( {x: 7, y: 5})
     expect( iterators[1].next( nextX)).toEqual( {x: 7, y: 8})
     expect( iterators[2].next( nextX)).toEqual( {x: 7, y: 6})
 
     expect( iterators[0].isNext()).toBeFalsy()
     expect( iterators[1].isNext()).toBeFalsy()
     expect( iterators[2].isNext()).toBeFalsy()
-    index = seriesIndexOfMinNextX( iterators)
-    expect( index).toBeUndefined()
-
   });
 
-  it('mapUniform should map points to uniform X values', function() {
+  it('mapUniform should map points to uniform X values, starting with ', function() {
     var series, iterators, target
 
     series = [
-      [                                              ],
+      [                          {x:5.001, y:5}      ],
       [ {x:1, y:2},                        {x:7, y:8}],
       [             {x:3, y:4}, {x:5, y:6}           ]
     ]
@@ -159,26 +157,48 @@ describe('d3-traits.layout.uniformIterator', function() {
 
     target = mapUniform( iterators)
 
-    expect( target[0].length).toEqual(4)
-    expect( target[1].length).toEqual(4)
-    expect( target[2].length).toEqual(4)
+    expect( target[0].length).toEqual(2)
+    expect( target[1].length).toEqual(2)
+    expect( target[2].length).toEqual(2)
 
 
-    expect( target[0][0]).toEqual( {x: 1, y: 0})
-    expect( target[1][0]).toEqual( {x: 1, y: 2})
-    expect( target[2][0]).toEqual( {x: 1, y: 0})
+    expect( target[0][0]).toEqual( {x: 5.001, y: 5})
+    expect( target[1][0]).toEqual( {x: 5.001, y: 2})
+    expect( target[2][0]).toEqual( {x: 5, y: 6})
 
-    expect( target[0][1]).toEqual( {x: 3, y: 0})
-    expect( target[1][1]).toEqual( {x: 3, y: 2})
-    expect( target[2][1]).toEqual( {x: 3, y: 4})
+    expect( target[0][1]).toEqual( {x: 7, y: 5})
+    expect( target[1][1]).toEqual( {x: 7, y: 8})
+    expect( target[2][1]).toEqual( {x: 7, y: 6})
 
-    expect( target[0][2]).toEqual( {x: 5, y: 0})
-    expect( target[1][2]).toEqual( {x: 5, y: 2})
-    expect( target[2][2]).toEqual( {x: 5, y: 6})
+  });
 
-    expect( target[0][3]).toEqual( {x: 7, y: 0})
-    expect( target[1][3]).toEqual( {x: 7, y: 8})
-    expect( target[2][3]).toEqual( {x: 7, y: 6})
+  it('mapUniform should map points to uniform X values', function() {
+    var series, iterators, target
+
+    series = [
+      [            {x:2.999, y:2}, {x:5.001, y:5}      ],
+      [ {x:1, y:3},                        {x:7, y:8}],
+      [             {x:3, y:4}, {x:5, y:6}           ]
+    ]
+    iterators = series.map( function(s, i) { return uniformIterator()(s) })
+
+    target = mapUniform( iterators)
+
+    expect( target[0].length).toEqual(3)
+    expect( target[1].length).toEqual(3)
+    expect( target[2].length).toEqual(3)
+
+    expect( target[0][0]).toEqual( {x: 2.999, y: 2})
+    expect( target[1][0]).toEqual( {x: 3, y: 3})
+    expect( target[2][0]).toEqual( {x: 3, y: 4})
+
+    expect( target[0][1]).toEqual( {x: 5.001, y: 5})
+    expect( target[1][1]).toEqual( {x: 5, y: 3})
+    expect( target[2][1]).toEqual( {x: 5, y: 6})
+
+    expect( target[0][2]).toEqual( {x: 7, y: 5})
+    expect( target[1][2]).toEqual( {x: 7, y: 8})
+    expect( target[2][2]).toEqual( {x: 7, y: 6})
 
   });
 
@@ -190,7 +210,7 @@ describe('d3-traits.layout.uniformIterator', function() {
         date2000 = new Date( 2000)
 
     series = [
-      [                                                    ],
+      [ {x:date0, y:1},                   {x:date2000, y:7}],
       [ {x:date0, y:2},                   {x:date2000, y:8}],
       [ {x:date1, y:4}, {x:date1000, y:6}                  ]
     ]
@@ -209,15 +229,15 @@ describe('d3-traits.layout.uniformIterator', function() {
     expect( target[2].length).toEqual(3)
 
 
-    expect( target[0][0]).toEqual( {x: date0, y: 0})
+    expect( target[0][0]).toEqual( {x: date0, y: 1})
     expect( target[1][0]).toEqual( {x: date0, y: 2})
     expect( target[2][0]).toEqual( {x: date1, y: 4})
 
-    expect( target[0][1]).toEqual( {x: date1000, y: 0})
+    expect( target[0][1]).toEqual( {x: date1000, y: 1})
     expect( target[1][1]).toEqual( {x: date1000, y: 2})
     expect( target[2][1]).toEqual( {x: date1000, y: 6})
 
-    expect( target[0][2]).toEqual( {x: date2000, y: 0})
+    expect( target[0][2]).toEqual( {x: date2000, y: 7})
     expect( target[1][2]).toEqual( {x: date2000, y: 8})
     expect( target[2][2]).toEqual( {x: date2000, y: 6})
 

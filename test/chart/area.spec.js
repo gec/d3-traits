@@ -165,7 +165,7 @@ describe('d3.trait.chart.area', function() {
 
     traits = d3.trait( d3.trait.chart.base, config )
       .trait(d3.trait.scale.linear, {axis: 'x1', domain: domain})
-      .trait(d3.trait.scale.linear, {axis: 'y1'})
+      .trait(d3.trait.scale.linear, {axis: 'y1', domain: {min: 0}})
       .trait(d3.trait.chart.area,   {stacked: true})
     selectionDatum = selection.datum( data)
     traits.call( selectionDatum)

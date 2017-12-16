@@ -50,7 +50,7 @@
 
     function uniformIterator( _data) {
       data = _data
-      current = {x: undefined, y: 0}
+      current = {x: undefined, y: undefined}
 
       if( !data.length) {
         index = undefined
@@ -65,8 +65,21 @@
       return uniformIterator
     }
 
+    function advance() {
+      if( nextX !== undefined) {
+        index++              // have a nextX, so next index is valid.
+        current.y = y.call( uniformIterator, data[index], index)
+        current.x = nextX
+        nextX = index + 1 < data.length ? x.call( uniformIterator,  data[index + 1], index + 1) : undefined
+      }
+    }
+
     uniformIterator.isNext = function( ) {
       return nextX !== undefined
+    }
+
+    uniformIterator.empty = function( ) {
+      return data.length === 0
     }
 
     /**
@@ -79,7 +92,7 @@
     }
 
     uniformIterator.next = function( xMin) {
-      var d, point, outPoint
+      var point, outPoint
 
       // cursor. index      nextX
       //         ---------  ---------
@@ -89,27 +102,60 @@
       //         undefined  undefined     Series is empty
 
       if( nextX !== undefined) {
-        if( nextX.valueOf() <= xMin.valueOf() + epsilon) {
-          // Advance and use value
-          index++              // have a nextX, so next index is valid.
-          d = data[index]
-          current.y = y.call( uniformIterator, d, index)
-          current.x = nextX
-          nextX = index + 1 < data.length ? x.call( uniformIterator,  data[index + 1], index + 1) : undefined
-          point = [current.x, current.y]
-        } else {
-          // nextX is too far away from xMin. Use xMin and interpolate y. Don't advance index.
-          point = [xMin, current.y]  // TODO: Assuming interpolate: 'step-after'. Add others later.
+        while( nextX !== undefined && nextX.valueOf() <= xMin.valueOf() + epsilon) {
+          advance()
         }
+        if( Math.abs(current.x.valueOf() - xMin.valueOf()) < epsilon)
+          point = [current.x, current.y]
+        else
+          point = [xMin, current.y]  // TODO: Assuming interpolate: 'step-after'. Add others later.
+
+        // if( nextX.valueOf() <= xMin.valueOf() + epsilon) {
+        //   advance()
+        //   point = [current.x, current.y]
+        // } else {
+        //   // nextX is too far away from xMin. Use xMin and interpolate y. Don't advance index.
+        //   point = [xMin, current.y]  // TODO: Assuming interpolate: 'step-after'. Add others later.
+        // }
       } else {
         // no next. Use xMin and interpolate y.
         point = [xMin, current.y]  // TODO: Assuming interpolate: 'step-after'. Add others later.
       }
 
       outPoint = {}
-      point = out.call( uniformIterator, outPoint, point[0], point[1])
+      out.call( uniformIterator, outPoint, point[0], point[1])
 
       return outPoint
+    }
+
+
+    /**
+     * Advance the iterator so a call to next(xValue) will return the specified xValue.
+     * @param {*} xValue Date or number
+     * @returns {boolean}
+     */
+    uniformIterator.advanceToNextX = function( xValue) {
+      if( xValue === undefined)
+        return false
+
+      var xValueMinusEpsilon = xValue.valueOf() - epsilon
+
+      // cursor. index      nextX
+      //         ---------  ---------
+      //         -1         number        Start of series
+      //         >=0        number        Middle of series.
+      //         >=0        undefined     At end of series or past end of series.
+      //         undefined  undefined     Series is empty
+
+      if( data.length === 0)
+        return false
+
+      // advance until nextX is past xMin, so current.x is at xMin
+      while( nextX !== undefined && nextX < xValueMinusEpsilon) {
+        advance()
+      }
+
+      return true
     }
 
 

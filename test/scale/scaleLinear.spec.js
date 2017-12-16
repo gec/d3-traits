@@ -174,7 +174,10 @@ describe('d3.trait.scale.linear', function() {
         min = 0,
         max = 999,
         extent = [0, 10],
-        y1Listener = jasmine.createSpy('y1Listener')
+        y1Listener = jasmine.createSpy('y1Listener'),
+        arrayUndefined = []
+    arrayUndefined[0] = undefined
+    arrayUndefined[1] = undefined
 
     mockY1ExtendDomain.and.returnValue(extent)
     selection.datum(data)
@@ -193,7 +196,7 @@ describe('d3.trait.scale.linear', function() {
     expect( y1Listener.calls.first()).toEqual( {object: _element, args: [scale]})
 
     expect( mockY1ExtendDomain.calls.count()).toBe( 1)
-    expect( mockY1ExtendDomain.calls.first()).toEqual( {object: chart._super, args: [ [4, 6], data]})
+    expect( mockY1ExtendDomain.calls.first()).toEqual( {object: chart._super, args: [ arrayUndefined, data]})
     expect(scale.domain()).toEqual(extent)
 
 

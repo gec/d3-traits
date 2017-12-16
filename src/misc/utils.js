@@ -118,9 +118,9 @@
 
   /**
    *
-   * @param extents Array of extents for each series.
-   * @param defaultValue if no extents, use default if available.
-   * @returns Extent array.
+   * @param {array} extents Array of extents for each series.
+   * @param {array} defaultValue if no extents, use default if available.
+   * @returns {array} Extent array.
    */
   function extentFromExtents( extents, padding, defaultValue) {
     var min, max
@@ -151,29 +151,45 @@
    * @returns {boolean}
    */
   function isExtentExtended( currentExtent, newExtent) {
-    if( ! currentExtent || currentExtent.length < 2) {
+    if( newExtent === undefined) {
+      return false
+    } else if( currentExtent === undefined) {
       return true
     } else {
-      return newExtent[0] < currentExtent[0] ||
-        trait.utils.extentMax( newExtent) > trait.utils.extentMax( currentExtent)
+      var currentMin = currentExtent[0],
+          currentMax = trait.utils.extentMax( currentExtent),
+          newMin = newExtent[0],
+          newMax = trait.utils.extentMax( newExtent)
+      return (currentMin === undefined && newMin !== undefined) ||
+          (currentMax === undefined && newMax !== undefined ) ||
+          newMin < currentMin ||
+          newMax > currentMax
     }
   }
 
+  // TODO: Update to functional (i.e. remove side effect of updating parameter)
   function extendExtent( currentExtent, newExtent) {
-    if( ! newExtent || newExtent.length < 2)
+    if( newExtent === undefined || newExtent.length === 0)
       return currentExtent
 
-    if( ! currentExtent || currentExtent.length < 2)
+    if( currentExtent === undefined || currentExtent.length === 0)
       return newExtent
 
-    if( newExtent[0] < currentExtent[0]) {
-      currentExtent[0] = newExtent[0]
+    var currentMin = currentExtent[0],
+        currentMax = trait.utils.extentMax( currentExtent),
+        newMin = newExtent[0],
+        newMax = trait.utils.extentMax( newExtent)
+
+    if( currentMin === undefined || newMin < currentMin) {
+      currentExtent[0] = newMin
     }
-    if( trait.utils.extentMax( newExtent) > trait.utils.extentMax( currentExtent)) {
-      currentExtent[ currentExtent.length-1] = trait.utils.extentMax( newExtent)
+    if( currentMax === undefined || newMax > currentMax) {
+      var maxIndex = Math.max(1, currentExtent.length-1)
+      currentExtent[ maxIndex] = newMax
     }
     return currentExtent
   }
+
 
   var log10  = typeof Math.log10 === 'function' ? Math.log10 : function(x) {return Math.log(x) * Math.LOG10E}
 

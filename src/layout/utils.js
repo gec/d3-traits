@@ -347,6 +347,44 @@
     return minSeriesIndex
   }
 
+  function smallestNextX( iterators) {
+    var iter, nextX, smallest,
+        s = -1,
+        length = iterators.length
+
+    while( ++s < length) {
+      iter = iterators[s]
+      nextX = iter.peekNextX()
+      if( nextX !== undefined && (smallest === undefined || nextX < smallest)) {
+        smallest = nextX
+      }
+    }
+    return smallest
+  }
+
+  /**
+   * Find the greatest nextX across the the iterators. If any iterator's nextX is undefined, we fail and return undefined.
+   * Don't advance the iterator, just peek ahead!
+   * Use this to skip to first X available in all series.
+   * @param {array} iterators
+   * @returns {number|Date} the greatest nextX or undefined
+   */
+  function greatestNextX( iterators) {
+    var iter, nextX, greatest,
+        s = -1,
+        length = iterators.length
+
+    while( ++s < length) {
+      iter = iterators[s]
+      nextX = iter.peekNextX()
+      if( nextX === undefined)
+        return undefined
+      else if( greatest === undefined || nextX > greatest)
+        greatest = nextX
+    }
+    return greatest
+  }
+
   //function populateVerticalSliceAndAdvanceCursor( outSeries, series, cursors, access, minSeriesIndex, epsilon) {
   //  var cursor, seriesData, point,
   //      s = -1,
@@ -387,20 +425,26 @@
     if( !length)
       return []
 
-    var s, index, indexOfMinNextX, nextX,
-        target = makeTargetSeries( iterators)
+    var s, xIndex,
+        target = makeTargetSeries( iterators),
+        nextX = greatestNextX( iterators) // skip to first available X for all series.
 
-    index = 0
-    indexOfMinNextX = seriesIndexOfMinNextX( iterators)
-    while( indexOfMinNextX !== undefined) {
-      nextX = iterators[indexOfMinNextX].peekNextX()
+    if( nextX === undefined)
+      return target
+
+    s = -1
+    while( ++s < length) {
+      iterators[s].advanceToNextX( nextX)
+    }
+
+    xIndex = 0
+    while( nextX !== undefined) {
       s = -1
       while( ++s < length) {
-        target[s][index] = iterators[s].next( nextX)
+        target[s][xIndex] = iterators[s].next( nextX)
       }
-
-      indexOfMinNextX = seriesIndexOfMinNextX( iterators)
-      index++
+      nextX = smallestNextX( iterators)
+      xIndex++
     }
 
     return target;
@@ -425,7 +469,9 @@
     listBalanceFromTop: listBalanceFromTop,
     trendstack: {
       makeTargetSeries: makeTargetSeries,
-      seriesIndexOfMinNextX: seriesIndexOfMinNextX
+      seriesIndexOfMinNextX: seriesIndexOfMinNextX,
+      greatestNextX: greatestNextX,
+      smallestNextX: smallestNextX
       //populateVerticalSliceAndAdvanceCursor: populateVerticalSliceAndAdvanceCursor,
       //mapSeriesToUniformX: mapSeriesToUniformX
     }

@@ -219,27 +219,37 @@
      * @returns {Array}
      */
     chartArea[yExtendDomainKey] = function( domain, data) {
+      var extent,
+          methodName = 'chartArea.' + yExtendDomainKey
+
       domain = this._super( domain, data)
       yExtendDomainKeyCalled = true
 
-      if( debug) console.log( 'chartArea.' + yExtendDomainKey + ': begin')
-      if( ! stacked)
-        return domain
+      if( debug) console.log( methodName + ': begin')
 
       if( data)
         filteredData = seriesFilter( data)
-
       if( filteredData.length === 0)
         return domain
 
-      if( debug) console.log( 'chartArea.' + yExtendDomainKey + ': before processFilteredData')
-      processFilteredData( filteredData)
-      if( debug) console.log( 'chartArea.' + yExtendDomainKey + ': before stackLayout')
-      stackLayout( filteredData)
-      var extent = trait.utils.extentFromAreaData( filteredData, extentFromAreaDataAccess, domainPadding)
-      if( debug) console.log( 'chartArea.' + yExtendDomainKey + ': domain: ' + JSON.stringify(domain) + ' data extent: ' + JSON.stringify( extent))
-      trait.utils.extendExtent( domain, extent)
+      if( stacked) {
+        if( debug) console.log( methodName + ' stacked: before processFilteredData')
+        processFilteredData( filteredData)
+        if( debug) console.log( methodName + ' stacked : before stackLayout')
+        stackLayout( filteredData)
+        extent = trait.utils.extentFromAreaData( filteredData, extentFromAreaDataAccess, domainPadding)
+      } else {
+        if( debug) console.log( methodName + ' unstacked : before extentFromData')
+        extent = trait.utils.extentFromData(filteredData, access, 0, domain)
+      }
 
+      if( debug) console.log( methodName + ': domain: ' + JSON.stringify(domain) + ' data extent: ' + JSON.stringify( extent))
+
+      if( trait.utils.isExtentExtended( domain, extent)) {
+        domain = trait.utils.extendExtent( domain, extent)
+        if( debug)
+          console.log( methodName + ' updated domain:' + domain)
+      }
       return domain
     }
 

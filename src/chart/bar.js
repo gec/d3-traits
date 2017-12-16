@@ -439,24 +439,33 @@
      * @returns {Array}
      */
     chartBar[yExtendDomainKey] = function( domain, data) {
+      var extent,
+          methodName = 'chartArea.' + yExtendDomainKey
       domain = this._super( domain, data)
-      if( debug)
-        console.log( 'chartBar[yExtendDomainKey] begin ********************************')
 
-      if( debug) console.log( 'chartBar.' + yExtendDomainKey + ': begin')
-      if( ! c.stacked)
-        return domain
+      if( debug) console.log( methodName + ': begin')
 
       if( data)
         filteredData = seriesFilter( data)
-
       if( filteredData.length === 0)
         return domain
 
-      if( debug) console.log( 'chartBar.' + yExtendDomainKey + ': before stackLayout')
-      stackLayoutPositiveAndNegativeValues( filteredData, access)
+      if( c.stacked) {
+        if( debug) console.log( methodName + ': before stackLayout')
+        stackLayoutPositiveAndNegativeValues( filteredData, access)
+        extent = filteredData.extent
+      }  else {
+        if( debug) console.log( methodName + ' unstacked : before extentFromData')
+        extent = trait.utils.extentFromData(filteredData, access, 0, domain)
+      }
 
-      return filteredData.extent
+      if( trait.utils.isExtentExtended( domain, extent)) {
+        domain = trait.utils.extendExtent( domain, extent)
+        if( debug)
+          console.log( methodName + ' updated domain:' + domain)
+      }
+
+      return domain
     }
 
     chartBar.update = function(type, duration) {
