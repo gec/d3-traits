@@ -46,7 +46,7 @@
   }
 
 
-  function layoutLabelsNoOverlap(data, access, getSeriesEndpoint, getY, chartRect, textHeight, padding) {
+  function layoutLabelsVerticalyWithNoOverlap(data, access, getSeriesEndpoint, getY, chartRect, textHeight, padding) {
 
     var allSeriesHaveData = true,
         ends = data.map( function( s, i) { return getSeriesEndpoint(s, i)}),
@@ -224,7 +224,7 @@
           group = this._container.append('g').classed(classes, true);
         }
 
-        layoutLabelsNoOverlap( filteredData, access, getSeriesEndpoint, getY, self.chartRect(), 14, 2)
+        layoutLabelsVerticalyWithNoOverlap( filteredData, access, getSeriesEndpoint, getY, self.chartRect(), 14, 2)
 
         // DATA JOIN
         series = group.selectAll(".series")
@@ -269,7 +269,7 @@
       this._super(type, duration)
       var self = labelSide
 
-      layoutLabelsNoOverlap( filteredData, access, getSeriesEndpoint, getY, self.chartRect(), 10, 2)
+      layoutLabelsVerticalyWithNoOverlap( filteredData, access, getSeriesEndpoint, getY, self.chartRect(), 10, 2)
       var attr = getAttrs( self.chartWidth(), self.marginLeft(), c)
 
       // DATA JOIN
@@ -305,12 +305,12 @@
       // UPDATE
       // Select will apply data to the text element (selectAll does not).
       series.select('text.value')
-        .attr("x", self.chartWidth() + self.marginLeft() + 5)
+        .attr("x", attr.value.x)
         .attr("y", getSeriesEndRectY)
         .text(getSeriesEndY)
 
       series.select('text.label')
-        .attr("x", self.chartWidth() + self.marginLeft() + 15)
+        .attr("x", attr.label.x)
         .attr("y", getSeriesEndRectY)
         .text(_config.seriesLabel) // I suppose the label could change.
 
