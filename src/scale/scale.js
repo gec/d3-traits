@@ -144,6 +144,18 @@
     return dc
   }
 
+  function scaleDefined( scale) {
+    var min, max,
+        scaleDomain = scale.domain()
+    if( scaleDomain.length === 0)
+      return false
+    else {
+      min = scaleDomain[0]
+      max = trait.utils.extentMax( scaleDomain)
+      // checks for null, undefined, NaN
+      return typeof min === 'number' && !isNaN(min) && typeof max === 'number' && !isNaN(max)
+    }
+  }
 
   /**
    * Return an object with interval and count or null
@@ -766,14 +778,16 @@
       var i = externalScaleSet.indexOf( scale)
       if( i < 0)
         externalScaleSet[externalScaleSet.length] = scale
-      scaleLinear.update( scaleName, 0)
+      if(scaleDefined(scale))
+        scaleLinear.update( scaleName, 0)
       return this
     }
     scaleLinear[removeUnionKey] = function( scale) {
       var i = externalScaleSet.indexOf( scale)
       if( i >= 0)
         externalScaleSet.splice(i,1)
-      scaleLinear.update( scaleName, 0)
+      if(scaleDefined(scale))
+        scaleLinear.update( scaleName, 0)
       return this
     }
     scaleLinear[scaleName + 'MinDomainExtent'] = function(minDomain) {
