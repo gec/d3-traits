@@ -20,6 +20,8 @@ module.exports = function(grunt) {
     'src/*/*.js'
   ]
 
+  grunt.loadNpmTasks('grunt-contrib-watch');
+
   // Project configuration.
   grunt.initConfig({
     // Metadata.
@@ -31,7 +33,7 @@ module.exports = function(grunt) {
       ' Licensed <%= _.pluck(pkg.licenses, "type").join(", ") %> */\n',
 
     watch: {
-      files: srcFiles,
+      files: srcFiles.concat(['test/*/*.js']),
       tasks: ['jshint', 'concat', 'karma:continuous', 'uglify']
     },
 
